@@ -20,9 +20,10 @@
       </div>
       <label>Tipo de vidrio<select data-new-measure="tipo"><option>Laminado</option><option>Templado</option><option>Cámara</option><option>Monolítico</option><option>Otro</option></select></label>
       <label>Observaciones de la pieza<textarea data-new-measure="observaciones" rows="2" maxlength="500"></textarea></label>
-      <output aria-live="polite">0.0000 m² reales</output>
+      <div class="new-measure-sketch"></div><output aria-live="polite">0.0000 m² reales</output>
       <button type="button" data-new-measure-remove>Quitar pieza</button>`;
     list.appendChild(row);
+    window.vidresSketch.mount(row.querySelector(".new-measure-sketch"));
     row.querySelector("input").focus();
   });
   list.addEventListener("click", event => {
@@ -43,6 +44,7 @@
       return [...list.querySelectorAll("fieldset")].map(row => ({
         id: "M-" + crypto.randomUUID(),
         trabajo: jobId,
+        croquis: window.vidresSketch.read(row.querySelector(".new-measure-sketch")),
         ...Object.fromEntries(fields.map(key => [key, row.querySelector(`[data-new-measure="${key}"]`).value.trim()]))
       }));
     }

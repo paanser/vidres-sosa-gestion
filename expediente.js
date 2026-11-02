@@ -5,6 +5,7 @@
   const body=dialog.querySelector("#exp-body"),heading=dialog.querySelector("#exp-title");
   const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   let current=null,tab="resumen";
+  let scale=1;try{scale=Math.min(1.5,Math.max(0.9,Number(localStorage.getItem("vidres-text-scale"))||1));}catch{}document.documentElement.style.setProperty("--vs-text-scale",String(scale));
   const docDB=()=>new Promise((resolve,reject)=>{const request=indexedDB.open("vidres-documentos-v1",1);request.onupgradeneeded=()=>request.result.createObjectStore("documentos",{keyPath:"id"});request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});
   const photoDB=()=>new Promise((resolve,reject)=>{const request=indexedDB.open("vidres-fotos-v1",1);request.onupgradeneeded=()=>request.result.createObjectStore("fotos",{keyPath:"id"});request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});
   async function photos(){const db=await photoDB();return new Promise((resolve,reject)=>{const tx=db.transaction("fotos","readonly");const r=tx.objectStore("fotos").getAll();r.onsuccess=()=>{resolve(r.result.filter(p=>p.trabajo===current));db.close();};r.onerror=()=>{reject(r.error);db.close();};});}
@@ -35,7 +36,8 @@
   document.querySelector("#content").addEventListener("click",e=>{const b=e.target.closest("[data-id]");if(b&&window.vidresGetJobs?.().some(j=>j.id===b.dataset.id)){e.stopImmediatePropagation();open(b.dataset.id);}},true);
   dialog.addEventListener("click",async e=>{
     const b=e.target.closest("button");if(!b)return;
-    if(b.dataset.expTab){tab=b.dataset.expTab;await render();}
+    if(b.dataset.textScale!==undefined){const step=Number(b.dataset.textScale);scale=step===0?1:Math.max(.9,Math.min(1.5,Math.round((scale+step*.1)*10)/10));document.documentElement.style.setProperty("--vs-text-scale",String(scale));try{localStorage.setItem("vidres-text-scale",String(scale));}catch{}}
+    else if(b.dataset.expTab){tab=b.dataset.expTab;await render();}
     else if(b.hasAttribute("data-exp-new-quote")){dialog.close();window.vidresQuoteStartForJob?.(current,getJob()?.cliente);}
     else if(b.dataset.expQuote){dialog.close();window.vidresQuoteOpenSaved?.(b.dataset.expQuote);}
     else if(b.dataset.expDocOpen){try{await openDocument(b.dataset.expDocOpen);}catch{alert("No se pudo descargar el documento.");}}

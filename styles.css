@@ -68,3 +68,14 @@ main{padding-top:18px}
 @media(max-width:850px){.work-filters{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.work-filters{grid-template-columns:repeat(2,minmax(0,1fr));padding:12px}.work-filters label:first-child{grid-column:span 2}.job-card{padding:15px}.job-cards{grid-template-columns:1fr}.job-open{width:100%}}
 
 .backup-actions{display:flex;align-items:end;flex-wrap:wrap;gap:12px;margin-top:14px}.backup-actions button{min-height:46px;padding:11px 16px;border:0;background:#15523e;color:white;border-radius:10px;font-weight:700}.backup-actions label{font-size:12px;font-weight:700;display:grid;gap:6px}.backup-actions input{max-width:350px}
+
+/* Fichas de clientes y mediciones: accesibles en móvil */
+.client-card,.measure-card{background:#fff;border:1px solid #dce7df;border-radius:13px;padding:16px;margin:13px 0}
+.client-heading,.measure-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.client-heading h3{font-size:18px;margin:0 0 4px}.client-heading button,.measure-card button{border:1px solid #b9d1c0;background:#f6faf7;color:#15523e;border-radius:9px;padding:11px 13px;min-height:44px;font-weight:700}
+.client-card>p{font-size:13px;color:#526759}.client-actions{display:flex;gap:9px;flex-wrap:wrap;margin:13px 0}
+.client-actions a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 14px;background:#15523e;color:#fff;text-decoration:none;border-radius:9px;font-size:13px;font-weight:700}
+.client-card details{border-top:1px solid #e4ece6;padding-top:12px}.client-card summary{cursor:pointer;font-weight:700;color:#15523e}
+.measure-heading h2{margin:0}.measure-list{display:grid;gap:12px}.measure-card{display:flex;justify-content:space-between;gap:15px;margin:0}.measure-card p{margin:7px 0;font-size:13px}.measure-card>div:last-child{display:flex;flex-wrap:wrap;gap:7px;align-content:start}
+.measure-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media(max-width:600px){.measure-card{flex-direction:column}.measure-card>div:last-child button{flex:1}.client-actions a{flex:1}}

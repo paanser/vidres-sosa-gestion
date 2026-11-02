@@ -66,3 +66,5 @@ main{padding-top:18px}
 .empty-state{text-align:center;border:1px dashed #b7cfc0;background:#f7faf8;border-radius:12px;padding:25px;color:#365442}.empty-state p{margin-bottom:0}
 .status-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:10px}.status-summary>div{display:flex;align-items:center;justify-content:space-between;padding:12px;border:1px solid #e2e9e4;border-radius:10px}.status-summary strong{font-size:19px;color:#15523e}
 @media(max-width:850px){.work-filters{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.work-filters{grid-template-columns:repeat(2,minmax(0,1fr));padding:12px}.work-filters label:first-child{grid-column:span 2}.job-card{padding:15px}.job-cards{grid-template-columns:1fr}.job-open{width:100%}}
+
+.backup-actions{display:flex;align-items:end;flex-wrap:wrap;gap:12px;margin-top:14px}.backup-actions button{min-height:46px;padding:11px 16px;border:0;background:#15523e;color:white;border-radius:10px;font-weight:700}.backup-actions label{font-size:12px;font-weight:700;display:grid;gap:6px}.backup-actions input{max-width:350px}

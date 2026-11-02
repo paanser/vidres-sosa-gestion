@@ -48,7 +48,7 @@
     else if(b.dataset.expDocOpen){try{await openDocument(b.dataset.expDocOpen);}catch{alert("No se pudo descargar el documento.");}}
     else if(b.dataset.expDocDelete){if(!confirm("¿Eliminar este documento del expediente?"))return;try{await deleteDocument(b.dataset.expDocDelete);render();}catch{alert("No se pudo eliminar el documento.");}}
     else if(b.hasAttribute("data-exp-edit")){dialog.close();window.vidresOpenJobEditor?.(current);}
-    else if(b.hasAttribute("data-exp-add-measure")){dialog.close();window.vidresOpenMeasurement?.(null);}
+    else if(b.hasAttribute("data-exp-add-measure")){dialog.close();window.vidresOpenMeasurement?.(null,current);}
     else if(b.dataset.expMeasure){dialog.close();window.vidresOpenMeasurement?.(b.dataset.expMeasure);}
     else if(b.dataset.expDeletePhoto){if(!confirm("¿Eliminar esta fotografía?"))return;await removePhoto(b.dataset.expDeletePhoto);render();}
     else if(b.hasAttribute("data-exp-close"))dialog.close();

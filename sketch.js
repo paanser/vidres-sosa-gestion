@@ -16,6 +16,36 @@
     }
     return {strokes,notes:typeof value?.notes === "string" ? value.notes.slice(0,1000) : ""};
   }
+  // Ajustes geométricos locales: no interpretan cifras ni cambian medidas.
+  function straighten(points) {
+    if(points.length<3)return null;
+    const distance=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+    const first=points[0],last=points.at(-1),span=distance(first,last);
+    const length=points.slice(1).reduce((n,p,i)=>n+distance(points[i],p),0);
+    if(span>=20&&length<=span*1.18){
+      const deviation=Math.max(...points.map(p=>Math.abs((last[0]-first[0])*(first[1]-p[1])-(first[0]-p[0])*(last[1]-first[1]))/span));
+      if(deviation<=Math.max(4,span*.08)){
+        let end=[...last];
+        if(Math.abs(last[1]-first[1])<=span*.12)end[1]=first[1];
+        else if(Math.abs(last[0]-first[0])<=span*.12)end[0]=first[0];
+        return {points:[first,end],label:"Línea enderezada"};
+      }
+    }
+    const xs=points.map(p=>p[0]),ys=points.map(p=>p[1]),x=Math.min(...xs),y=Math.min(...ys),w=Math.max(...xs)-x,h=Math.max(...ys)-y;
+    if(points.length<8||w<20||h<20||span>Math.hypot(w,h)*.2||length<2*(w+h)*.75||length>2*(w+h)*1.4)return null;
+    const tolerance=Math.max(5,Math.min(w,h)*.12),corners=[[x,y],[x+w,y],[x+w,y+h],[x,y+h]];
+    if(!corners.every(c=>points.some(p=>distance(c,p)<=tolerance*1.4)))return null;
+    if(points.filter(p=>Math.min(Math.abs(p[0]-x),Math.abs(p[0]-x-w),Math.abs(p[1]-y),Math.abs(p[1]-y-h))<=tolerance).length<points.length*.9)return null;
+    // Mantener orientación y dimensiones aproximadas del dibujo original.
+    return {points:[...corners,corners[0]],label:"Rectángulo ajustado"};
+  }
+  function smooth(points) {
+    if(points.length<5)return null;
+    return points.map((p,i)=>{
+      if(i===0||i===points.length-1)return [...p];
+      return [0,1].map(axis=>Math.round((points[i-1][axis]+2*p[axis]+points[i+1][axis])/4));
+    });
+  }
   function mount(host, initial) {
     host.replaceChildren();
     const details = document.createElement("details");
@@ -25,14 +55,17 @@
       <div class="sketch-tools" role="group" aria-label="Herramientas del croquis">
         <button type="button" data-ink="#17251e" aria-pressed="true">Negro</button>
         <button type="button" data-ink="#b42318" aria-pressed="false">Rojo</button>
+        <button type="button" data-sketch-assist>Mejorar último trazo</button>
+        <button type="button" data-sketch-smooth>Suavizar escritura</button>
         <button type="button" data-sketch-undo>Deshacer</button>
         <button type="button" data-sketch-clear>Borrar dibujo</button>
       </div>
+      <p>Para un cuadrado o rectángulo, dibuja el contorno de una vez y pulsa Mejorar último trazo. Suavizar escritura reduce los temblores del último trazo; no convierte letras ni interpreta medidas.</p>
       <canvas width="1000" height="700" aria-label="Hoja de croquis: dibuja con el dedo, lápiz o ratón"></canvas>
       <label>Notas del croquis<textarea maxlength="1000" rows="3" placeholder="Medidas, detalles de montaje o indicaciones…"></textarea></label>
       <p class="sketch-message" role="status" aria-live="polite"></p>`;
     host.appendChild(details);
-    let state=clean(initial),ink=colors[0],active=null,pointer=null;
+    let state=clean(initial),ink=colors[0],active=null,pointer=null,history=[];
     const canvas=details.querySelector("canvas"),ctx=canvas.getContext("2d"),notes=details.querySelector("textarea"),message=details.querySelector(".sketch-message");
     notes.value=state.notes;
     if(state.strokes.length||state.notes)details.querySelector("summary").textContent="✎ Bloc de croquis · Con anotaciones";
@@ -43,7 +76,8 @@
       if (!rest.length) {ctx.beginPath();ctx.arc(first[0],first[1],1.5,0,Math.PI*2);ctx.fill();return;}
       ctx.beginPath();ctx.moveTo(...first);for(const p of rest)ctx.lineTo(...p);ctx.stroke();
     }
-    function redraw(){ctx.clearRect(0,0,1000,700);state.strokes.forEach(draw);if(active)draw(active);details.querySelector("[data-sketch-undo]").disabled=!state.strokes.length;details.querySelector("[data-sketch-clear]").disabled=!state.strokes.length;}
+    function remember(){history.push(structuredClone(state.strokes));if(history.length>20)history.shift();}
+    function redraw(){ctx.clearRect(0,0,1000,700);state.strokes.forEach(draw);if(active)draw(active);details.querySelector("[data-sketch-undo]").disabled=!state.strokes.length&&!history.length;details.querySelectorAll("[data-sketch-assist],[data-sketch-smooth]").forEach(b=>b.disabled=!state.strokes.length);details.querySelector("[data-sketch-clear]").disabled=!state.strokes.length;}
     const point=e=>{const r=canvas.getBoundingClientRect();return [Math.round(Math.max(0,Math.min(1000,(e.clientX-r.left)*1000/r.width))),Math.round(Math.max(0,Math.min(700,(e.clientY-r.top)*700/r.height)))];};
     const count=()=>state.strokes.reduce((n,s)=>n+s.points.length,0)+(active?.points.length||0);
     canvas.addEventListener("pointerdown",e=>{
@@ -57,13 +91,21 @@
       if(count()<limit&&(p[0]!==last[0]||p[1]!==last[1])){active.points.push(p);redraw();}
       if(count()>=limit)message.textContent="Hoja llena. Puedes guardar o deshacer trazos.";
     });
-    function finish(e){if(e.pointerId!==pointer)return;if(e.type!=="pointercancel"&&active)state.strokes.push(active);active=null;pointer=null;redraw();}
+    function finish(e){if(e.pointerId!==pointer)return;if(e.type!=="pointercancel"&&active){remember();state.strokes.push(active);}active=null;pointer=null;redraw();}
     canvas.addEventListener("pointerup",finish);canvas.addEventListener("pointercancel",finish);canvas.addEventListener("lostpointercapture",finish);
     details.addEventListener("click",e=>{
       const b=e.target.closest("button");if(!b)return;
       if(b.dataset.ink){ink=b.dataset.ink;details.querySelectorAll("[data-ink]").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));}
-      if(b.hasAttribute("data-sketch-undo")){state.strokes.pop();message.textContent="Último trazo deshecho.";redraw();}
-      if(b.hasAttribute("data-sketch-clear")&&confirm("¿Borrar todos los trazos de este croquis? Las notas se conservarán.")){state.strokes=[];message.textContent="Dibujo borrado. Guarda la pieza para confirmar el cambio.";redraw();}
+      if(b.hasAttribute("data-sketch-assist")||b.hasAttribute("data-sketch-smooth")){
+        const stroke=state.strokes.at(-1);if(!stroke)return;
+        const assisted=b.hasAttribute("data-sketch-assist")?straighten(stroke.points):null;
+        const points=b.hasAttribute("data-sketch-smooth")?smooth(stroke.points):assisted?.points;
+        if(!points){message.textContent=b.hasAttribute("data-sketch-smooth")?"El trazo es demasiado corto para suavizarlo. Se conserva el original.":"No se ha reconocido una línea o un rectángulo claro. El trazo original se conserva.";return;}
+        remember();state.strokes[state.strokes.length-1]={...stroke,points};
+        message.textContent=(assisted?.label||"Último trazo suavizado")+". Puedes deshacer el ajuste. Las medidas numéricas no cambian.";redraw();
+      }
+      if(b.hasAttribute("data-sketch-undo")){if(history.length)state.strokes=history.pop();else state.strokes.pop();message.textContent="Última acción deshecha.";redraw();}
+      if(b.hasAttribute("data-sketch-clear")&&confirm("¿Borrar todos los trazos de este croquis? Las notas se conservarán.")){remember();state.strokes=[];message.textContent="Dibujo borrado. Guarda la pieza para confirmar el cambio.";redraw();}
     });
     redraw();
     const instance={read:()=>structuredClone({strokes:state.strokes,notes:notes.value.trim()})};

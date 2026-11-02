@@ -6,7 +6,7 @@ let quotes=read(key,[]),tariffs=read(tariffKey,[]),draft=null;
 const money=n=>Number(n||0).toLocaleString("es-ES",{style:"currency",currency:"EUR"});
 const num=v=>{const n=Number(String(v??"").replace(",","."));return Number.isFinite(n)&&n>=0?n:0;};
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const unit=()=>{try{return JSON.parse(localStorage.getItem("vs-config-v1")||"{}").unit==="mm"?"mm":"cm";}catch{return "cm";}};const displayed=cm=>unit()==="mm"?(num(cm)*10).toFixed(1).replace(/\\.0$/,""):cm;const round6=cm=>Math.ceil((cm-1e-9)/6)*6;
+const unit=()=>{try{return JSON.parse(localStorage.getItem("vs-config-v1")||"{}").unit==="mm"?"mm":"cm";}catch{return "cm";}};const displayed=cm=>unit()==="mm"?String(Number((num(cm)*10).toFixed(1))):cm;const round6=cm=>Math.ceil((cm-1e-9)/6)*6;
 const calc=line=>{const w=num(line.w),h=num(line.h),aw=round6(w),ah=round6(h),sides=[...new Set(line.sides||[])].filter(x=>["top","bottom","left","right"].includes(x));const ml=sides.reduce((n,s)=>n+(s==="top"||s==="bottom"?w:h)/100,0);const area=aw*ah/10000,real=w*h/10000;return {w,h,aw,ah,real,area,ml,total:area*num(line.price)+ml*num(line.edgePrice)};};
 const save=()=>{localStorage.setItem(key,JSON.stringify(quotes));localStorage.setItem(tariffKey,JSON.stringify(tariffs));};
 const fresh=()=>({id:"P-"+Date.now(),client:"",job:"",date:new Date().toISOString().slice(0,10),lines:[{w:"",h:"",price:"",edgePrice:"",sides:[],tariff:""}]});

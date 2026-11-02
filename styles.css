@@ -135,3 +135,22 @@ form label,.quote-fields label,.quote-line .quote-fields label,.work-filters lab
 .exp-gallery button{width:100%;padding:9px;border:1px solid #dfb6b6;border-radius:8px;background:white;color:#9e2929;font-weight:700}
 .exp-history{padding-left:22px}.exp-history li{padding:12px 0;border-bottom:1px solid #e2eae4}.exp-history span{display:block;margin-top:5px;color:#526b59;font-size:13px}
 @media(max-width:700px){#expediente{width:100vw;height:100dvh;max-height:100dvh;border-radius:0}.exp-header{gap:9px}#expediente .exp-header{padding:15px}.exp-header-actions button{padding:9px 11px;font-size:12px}#expediente .exp-tabs{padding:9px 12px;gap:4px}.exp-tabs button{font-size:13px;padding:10px 13px}.exp-body{padding:14px}.exp-details{grid-template-columns:repeat(2,minmax(0,1fr))}.exp-details>div,.exp-section{padding:14px}.exp-two{grid-template-columns:1fr}.exp-gallery{grid-template-columns:repeat(2,minmax(0,1fr))}.exp-gallery img{height:120px}}
+
+/* Escala de lectura configurable para ordenador y móvil */
+:root{--vs-text-scale:1}
+html{font-size:calc(16px * var(--vs-text-scale))}
+body{font-size:calc(15px * var(--vs-text-scale))}
+#content p,#content td,#content th,#content label,.exp-body p,.exp-body span,.exp-body label{font-size:calc(15px * var(--vs-text-scale))}
+#content button,#content input,#content select,#content textarea,.exp-shell button,.exp-shell input,.exp-shell select{font-size:calc(15px * var(--vs-text-scale))}
+#content h2,.exp-section h3{font-size:calc(21px * var(--vs-text-scale))}
+#content h3,.exp-header h2{font-size:calc(19px * var(--vs-text-scale))}
+.exp-tabs button{font-size:calc(15px * var(--vs-text-scale))}
+.exp-doc-list,.exp-quote-list{display:grid;gap:12px}
+.exp-doc-item,.exp-quote-item{display:flex;align-items:center;justify-content:space-between;gap:16px;background:#f7faf8;border:1px solid #d9e7dc;border-radius:12px;padding:15px}
+.exp-doc-item>div:last-child,.exp-quote-item>div:last-child{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.exp-doc-item button,.exp-quote-item button{min-height:44px;padding:10px 14px;border-radius:9px;border:1px solid #b9d0c0;background:#fff;color:#15523e;font-weight:700}
+.exp-quote-item>div:last-child{flex-direction:column;align-items:flex-end}
+.exp-text-controls{display:flex;align-items:center;gap:7px;margin-top:12px;flex-wrap:wrap}
+.exp-text-controls button{min-height:40px;padding:8px 12px;border-radius:8px;background:#fff;border:1px solid #bfd2c4;color:#15523e;font-weight:700}
+.exp-text-controls span{font-size:13px;color:#50695a}
+@media(max-width:700px){.exp-doc-item,.exp-quote-item{align-items:flex-start;flex-direction:column}.exp-quote-item>div:last-child{align-items:flex-start}}

@@ -4,6 +4,8 @@
  const button=document.querySelector("#voice-start"), stop=document.querySelector("#voice-stop"), apply=document.querySelector("#voice-apply"), transcript=document.querySelector("#voice-transcript"), message=document.querySelector("#voice-message");
  const aiButton=document.querySelector("#voice-ai");
  let accessCode="";
+ const SESSION_KEY="vidres-ai-access-session";
+ try{accessCode=sessionStorage.getItem(SESSION_KEY)||"";}catch{}
  const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
  let recognition=null,listening=false,base="";
  const setMessage=s=>message.textContent=s;
@@ -78,13 +80,13 @@
   if(!endpoint){setMessage("La IA todavía no está conectada. Falta configurar el servidor Cloudflare. Puedes usar «Rellenar campos para revisar» mientras tanto.");return;}
   const text=transcript.value.trim();
   if(text.length<5){setMessage("Primero dicta un parte de al menos cinco caracteres.");return;}
-  if(!accessCode){accessCode=window.prompt("Código privado de acceso al interpretador IA (no es la clave de OpenAI):")||"";if(!accessCode)return;}
+  if(!accessCode){accessCode=window.prompt("Código privado de acceso IA (se recordará durante esta sesión):")||"";if(!accessCode)return;try{sessionStorage.setItem(SESSION_KEY,accessCode);}catch{}}
   aiButton.disabled=true;setMessage("Interpretando el parte con IA…");
   try{
    const response=await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json","X-Access-Code":accessCode},body:JSON.stringify({text})});
    const raw=await response.text();
    let result;try{result=JSON.parse(raw);}catch{throw new Error("El servidor respondió HTTP "+response.status+" con una respuesta no válida.");}
-   if(!response.ok){if(response.status===401)accessCode="";throw new Error("HTTP "+response.status+": "+(result.error||"No se pudo interpretar"));}
+   if(!response.ok){if(response.status===401){accessCode="";try{sessionStorage.removeItem(SESSION_KEY);}catch{}}throw new Error("HTTP "+response.status+": "+(result.error||"No se pudo interpretar"));}
    let count=0;
    for(const k of ["cliente","descripcion","direccion","responsable","fecha","estado","notas"]){
     const field=form.elements[k],value=result.fields?.[k];
@@ -94,6 +96,7 @@
      field.value=value.slice(0,field.maxLength>0?field.maxLength:1000);count++;
     }
    }
+   try{const key="vidres-ai-success-"+new Date().toISOString().slice(0,7);localStorage.setItem(key,String(Number(localStorage.getItem(key)||0)+1));window.dispatchEvent(new Event("vidres-ai-usage"));}catch{}
    setMessage("IA: "+count+" campos identificados. Revisa cliente, dirección, medidas y fecha antes de pulsar Guardar.");
   }catch(err){const network=err instanceof TypeError || /Load failed|Failed to fetch|NetworkError/i.test(err.message);setMessage(network?"Error de conexión con Cloudflare (no es necesariamente la contraseña). Comprueba la URL del Worker y los registros de peticiones. Detalle: "+err.message:"No se ha podido usar la IA: "+err.message+". Puedes utilizar el método básico.");}
   finally{aiButton.disabled=false;}

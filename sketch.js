@@ -50,7 +50,7 @@
     host.replaceChildren();
     const details = document.createElement("details");
     details.className = "sketch-book";
-    details.innerHTML = `<summary>✎ Bloc de croquis a mano</summary>
+    details.innerHTML = `<summary>✎ Dibujar medidas · Bloc de croquis</summary>
       <p>Dibuja medidas y formas con el dedo, lápiz táctil o ratón. Se guarda al guardar la pieza.</p>
       <div class="sketch-tools" role="group" aria-label="Herramientas del croquis">
         <button type="button" data-ink="#17251e" aria-pressed="true">Negro</button>
@@ -66,7 +66,7 @@
     let state=clean(initial),ink=colors[0],active=null,pointer=null,history=[];
     const canvas=details.querySelector("canvas"),ctx=canvas.getContext("2d"),notes=details.querySelector("textarea"),message=details.querySelector(".sketch-message");
     notes.value=state.notes;
-    if(state.strokes.length||state.notes)details.querySelector("summary").textContent="✎ Bloc de croquis · Con anotaciones";
+    if(state.strokes.length||state.notes)details.querySelector("summary").textContent="✎ Dibujar medidas · Con anotaciones";
     function draw(stroke) {
       ctx.strokeStyle=ctx.fillStyle=stroke.color;ctx.lineWidth=3;ctx.lineCap=ctx.lineJoin="round";
       const [first,...rest]=stroke.points;
@@ -112,8 +112,11 @@
       if(b.hasAttribute("data-sketch-clear")&&confirm("¿Borrar todos los trazos de este croquis? Las notas se conservarán.")){remember();state.strokes=[];message.textContent="Dibujo borrado. Guarda la pieza para confirmar el cambio.";redraw();}
     });
     redraw();
-    const instance={read:()=>structuredClone({strokes:state.strokes,notes:notes.value.trim()})};
+    const instance={
+      read:()=>structuredClone({strokes:state.strokes,notes:notes.value.trim()}),
+      open(){details.open=true;requestAnimationFrame(()=>canvas.scrollIntoView({block:"center"}));}
+    };
     instances.set(host,instance);return instance;
   }
-  window.vidresSketch={mount,read:host=>instances.get(host)?.read()||{strokes:[],notes:""}};
+  window.vidresSketch={mount,open:host=>instances.get(host)?.open(),read:host=>instances.get(host)?.read()||{strokes:[],notes:""}};
 })();

@@ -82,8 +82,9 @@
   aiButton.disabled=true;setMessage("Interpretando el parte con IA…");
   try{
    const response=await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json","X-Access-Code":accessCode},body:JSON.stringify({text})});
-   const result=await response.json();
-   if(!response.ok){if(response.status===401)accessCode="";throw new Error(result.error||"No se pudo interpretar");}
+   const raw=await response.text();
+   let result;try{result=JSON.parse(raw);}catch{throw new Error("El servidor respondió HTTP "+response.status+" con una respuesta no válida.");}
+   if(!response.ok){if(response.status===401)accessCode="";throw new Error("HTTP "+response.status+": "+(result.error||"No se pudo interpretar"));}
    let count=0;
    for(const k of ["cliente","descripcion","direccion","responsable","fecha","estado","notas"]){
     const field=form.elements[k],value=result.fields?.[k];
@@ -94,7 +95,7 @@
     }
    }
    setMessage("IA: "+count+" campos identificados. Revisa cliente, dirección, medidas y fecha antes de pulsar Guardar.");
-  }catch(err){setMessage("No se ha podido usar la IA: "+err.message+". Puedes utilizar el método básico.");}
+  }catch(err){const network=err instanceof TypeError || /Load failed|Failed to fetch|NetworkError/i.test(err.message);setMessage(network?"Error de conexión con Cloudflare (no es necesariamente la contraseña). Comprueba la URL del Worker y los registros de peticiones. Detalle: "+err.message:"No se ha podido usar la IA: "+err.message+". Puedes utilizar el método básico.");}
   finally{aiButton.disabled=false;}
  });
  apply.addEventListener("click",()=>{

@@ -42,3 +42,13 @@ input,select,textarea{border-color:#cedcd3;min-height:43px;border-radius:10px;co
 @media(max-width:600px){.layout{display:block;padding-bottom:75px}aside{height:auto;position:static;width:100%;padding:11px 14px 0;border-right:0;border-bottom:1px solid var(--vs-border)}.logo{margin:0 0 12px;font-size:24px;letter-spacing:-.8px}nav{position:fixed;bottom:0;left:0;right:0;z-index:30;display:flex;gap:0;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;background:#fff;border-top:1px solid var(--vs-border);padding:7px max(8px,env(safe-area-inset-left)) calc(7px + env(safe-area-inset-bottom));box-shadow:0 -6px 20px #173c2210}nav::-webkit-scrollbar{display:none}nav button{flex:0 0 auto;padding:12px 11px;font-size:12px;min-height:44px}aside small{display:none}main{padding:17px 13px}header{align-items:center;margin-bottom:18px;padding-bottom:14px}header .primary{max-width:118px;min-height:42px}h1{font-size:22px}.panel{padding:15px;border-radius:14px}.quote-editor{padding:15px}.quote-section-heading{margin-bottom:12px}.quote-section-heading h2{font-size:21px}.quote-status{font-size:10px;padding:6px 9px}.quote-lines-heading{align-items:flex-start;flex-direction:column;gap:4px}.quote-line{padding:13px}.quote-line .quote-fields{grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.quote-line .quote-glass-label{grid-column:span 2}.quote-line .quote-fields label{min-width:0}.quote-edges label{padding:9px}.quote-total{padding:15px}.quote-grand-total{font-size:23px}.quote-final-actions{display:grid;grid-template-columns:1fr 1fr}.quote-final-actions button{min-width:0}.quote-toolbar button{font-size:12px}.quote-saved{align-items:flex-start}.quote-saved button{flex-shrink:0}.tool-tiles{grid-template-columns:1fr}}
 @media(max-width:370px){.quote-line .quote-fields{grid-template-columns:1fr}.quote-line .quote-glass-label{grid-column:auto}.quote-final-actions{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){nav button{transition:none}}
+
+/* Menú superior en móvil, sin barra inferior */
+@media(max-width:600px){
+.layout{padding-bottom:0}
+aside{position:static;height:auto;padding:12px 12px 0;background:#fff}
+nav{position:static;top:auto;bottom:auto;left:auto;right:auto;z-index:auto;display:flex;overflow-x:auto;gap:6px;border:0;border-top:1px solid #edf1ee;box-shadow:none;padding:9px 0 11px;background:#fff;scrollbar-width:none}
+nav button{flex:0 0 auto;min-height:42px;padding:10px 13px;font-size:12px;border-radius:10px}
+nav button.active{background:var(--vs-green);color:#fff}
+main{padding-top:18px}
+}

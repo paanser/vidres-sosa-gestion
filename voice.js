@@ -2,6 +2,8 @@
 (() => {
  const dialog=document.querySelector("#editor"), form=document.querySelector("#form");
  const button=document.querySelector("#voice-start"), stop=document.querySelector("#voice-stop"), apply=document.querySelector("#voice-apply"), transcript=document.querySelector("#voice-transcript"), message=document.querySelector("#voice-message");
+ const aiButton=document.querySelector("#voice-ai");
+ let accessCode="";
  const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
  let recognition=null,listening=false,base="";
  const setMessage=s=>message.textContent=s;
@@ -70,6 +72,31 @@
   try{recognition.start();listening=true;button.disabled=true;stop.disabled=false;setMessage("Escuchando. Detén el dictado cuando termines.");}catch{setMessage("No se pudo activar el micrófono. Usa el dictado del teclado.");}
  });
  stop.addEventListener("click",stopListening);
+ aiButton.addEventListener("click",async()=>{
+  stopListening();
+  const endpoint=window.VIDRES_AI_ENDPOINT;
+  if(!endpoint){setMessage("La IA todavía no está conectada. Falta configurar el servidor Cloudflare. Puedes usar «Rellenar campos para revisar» mientras tanto.");return;}
+  const text=transcript.value.trim();
+  if(text.length<5){setMessage("Primero dicta un parte de al menos cinco caracteres.");return;}
+  if(!accessCode){accessCode=window.prompt("Código privado de acceso al interpretador IA (no es la clave de OpenAI):")||"";if(!accessCode)return;}
+  aiButton.disabled=true;setMessage("Interpretando el parte con IA…");
+  try{
+   const response=await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json","X-Access-Code":accessCode},body:JSON.stringify({text})});
+   const result=await response.json();
+   if(!response.ok){if(response.status===401)accessCode="";throw new Error(result.error||"No se pudo interpretar");}
+   let count=0;
+   for(const k of ["cliente","descripcion","direccion","responsable","fecha","estado","notas"]){
+    const field=form.elements[k],value=result.fields?.[k];
+    if(field && typeof value==="string" && value.trim()){
+     if(k==="fecha"&&!/^\d{4}-\d{2}-\d{2}$/.test(value))continue;
+     if(k==="estado" && ![...field.options].some(o=>o.value===value))continue;
+     field.value=value.slice(0,field.maxLength>0?field.maxLength:1000);count++;
+    }
+   }
+   setMessage("IA: "+count+" campos identificados. Revisa cliente, dirección, medidas y fecha antes de pulsar Guardar.");
+  }catch(err){setMessage("No se ha podido usar la IA: "+err.message+". Puedes utilizar el método básico.");}
+  finally{aiButton.disabled=false;}
+ });
  apply.addEventListener("click",()=>{
   stopListening();const text=transcript.value.trim();if(!text){setMessage("Primero dicta o escribe el parte.");return;}
   const {values,uncertain}=parse(text);let count=0;

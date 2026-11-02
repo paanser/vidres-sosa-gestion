@@ -55,12 +55,10 @@
       <div class="sketch-tools" role="group" aria-label="Herramientas del croquis">
         <button type="button" data-ink="#17251e" aria-pressed="true">Negro</button>
         <button type="button" data-ink="#b42318" aria-pressed="false">Rojo</button>
-        <button type="button" data-sketch-assist>Mejorar último trazo</button>
-        <button type="button" data-sketch-smooth>Suavizar escritura</button>
         <button type="button" data-sketch-undo>Deshacer</button>
         <button type="button" data-sketch-clear>Borrar dibujo</button>
       </div>
-      <p>Para un cuadrado o rectángulo, dibuja el contorno de una vez y pulsa Mejorar último trazo. Suavizar escritura reduce los temblores del último trazo; no convierte letras ni interpreta medidas.</p>
+      <p>Mejora automática al levantar el dedo o lápiz: endereza líneas, ajusta rectángulos y suaviza los demás trazos. Dibuja el contorno de una vez. Deshacer recupera el trazo original. No interpreta letras ni medidas.</p>
       <canvas width="1000" height="700" aria-label="Hoja de croquis: dibuja con el dedo, lápiz o ratón"></canvas>
       <label>Notas del croquis<textarea maxlength="1000" rows="3" placeholder="Medidas, detalles de montaje o indicaciones…"></textarea></label>
       <p class="sketch-message" role="status" aria-live="polite"></p>`;
@@ -77,7 +75,7 @@
       ctx.beginPath();ctx.moveTo(...first);for(const p of rest)ctx.lineTo(...p);ctx.stroke();
     }
     function remember(){history.push(structuredClone(state.strokes));if(history.length>20)history.shift();}
-    function redraw(){ctx.clearRect(0,0,1000,700);state.strokes.forEach(draw);if(active)draw(active);details.querySelector("[data-sketch-undo]").disabled=!state.strokes.length&&!history.length;details.querySelectorAll("[data-sketch-assist],[data-sketch-smooth]").forEach(b=>b.disabled=!state.strokes.length);details.querySelector("[data-sketch-clear]").disabled=!state.strokes.length;}
+    function redraw(){ctx.clearRect(0,0,1000,700);state.strokes.forEach(draw);if(active)draw(active);details.querySelector("[data-sketch-undo]").disabled=!state.strokes.length&&!history.length;details.querySelector("[data-sketch-clear]").disabled=!state.strokes.length;}
     const point=e=>{const r=canvas.getBoundingClientRect();return [Math.round(Math.max(0,Math.min(1000,(e.clientX-r.left)*1000/r.width))),Math.round(Math.max(0,Math.min(700,(e.clientY-r.top)*700/r.height)))];};
     const count=()=>state.strokes.reduce((n,s)=>n+s.points.length,0)+(active?.points.length||0);
     canvas.addEventListener("pointerdown",e=>{
@@ -91,19 +89,25 @@
       if(count()<limit&&(p[0]!==last[0]||p[1]!==last[1])){active.points.push(p);redraw();}
       if(count()>=limit)message.textContent="Hoja llena. Puedes guardar o deshacer trazos.";
     });
-    function finish(e){if(e.pointerId!==pointer)return;if(e.type!=="pointercancel"&&active){remember();state.strokes.push(active);}active=null;pointer=null;redraw();}
+    function finish(e){
+      if(e.pointerId!==pointer)return;
+      if(e.type==="pointerup"&&active){
+        const end=point(e),last=active.points.at(-1);
+        if(count()<limit&&(end[0]!==last[0]||end[1]!==last[1]))active.points.push(end);
+        remember();state.strokes.push(active);
+        const assisted=straighten(active.points),points=assisted?.points||smooth(active.points);
+        if(points&&JSON.stringify(points)!==JSON.stringify(active.points)){
+          // Deshacer primero restaura el trazo original, después permite quitarlo.
+          remember();state.strokes[state.strokes.length-1]={...active,points};
+          message.textContent=(assisted?.label||"Trazo suavizado automáticamente")+". Deshacer recupera el original.";
+        }else message.textContent="Trazo conservado.";
+      }
+      active=null;pointer=null;redraw();
+    }
     canvas.addEventListener("pointerup",finish);canvas.addEventListener("pointercancel",finish);canvas.addEventListener("lostpointercapture",finish);
     details.addEventListener("click",e=>{
       const b=e.target.closest("button");if(!b)return;
       if(b.dataset.ink){ink=b.dataset.ink;details.querySelectorAll("[data-ink]").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));}
-      if(b.hasAttribute("data-sketch-assist")||b.hasAttribute("data-sketch-smooth")){
-        const stroke=state.strokes.at(-1);if(!stroke)return;
-        const assisted=b.hasAttribute("data-sketch-assist")?straighten(stroke.points):null;
-        const points=b.hasAttribute("data-sketch-smooth")?smooth(stroke.points):assisted?.points;
-        if(!points){message.textContent=b.hasAttribute("data-sketch-smooth")?"El trazo es demasiado corto para suavizarlo. Se conserva el original.":"No se ha reconocido una línea o un rectángulo claro. El trazo original se conserva.";return;}
-        remember();state.strokes[state.strokes.length-1]={...stroke,points};
-        message.textContent=(assisted?.label||"Último trazo suavizado")+". Puedes deshacer el ajuste. Las medidas numéricas no cambian.";redraw();
-      }
       if(b.hasAttribute("data-sketch-undo")){if(history.length)state.strokes=history.pop();else state.strokes.pop();message.textContent="Última acción deshecha.";redraw();}
       if(b.hasAttribute("data-sketch-clear")&&confirm("¿Borrar todos los trazos de este croquis? Las notas se conservarán.")){remember();state.strokes=[];message.textContent="Dibujo borrado. Guarda la pieza para confirmar el cambio.";redraw();}
     });

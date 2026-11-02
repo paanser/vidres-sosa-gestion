@@ -12,7 +12,11 @@
         .filter(p => Array.isArray(p) && p.length === 2 && p.every(Number.isFinite))
         .map(([x,y]) => [Math.max(0,Math.min(1000,x)), Math.max(0,Math.min(700,y))]);
       count += points.length;
-      if (points.length) strokes.push({color:colors.includes(stroke.color)?stroke.color:colors[0],points});
+      if (points.length) {
+        const tool=stroke.tool==="eraser"?"eraser":"pen";
+        const allowed=tool==="eraser"?[24,48,80]:[3,6,10];
+        strokes.push({color:colors.includes(stroke.color)?stroke.color:colors[0],tool,width:allowed.includes(stroke.width)?stroke.width:allowed[0],points});
+      }
     }
     return {strokes,notes:typeof value?.notes === "string" ? value.notes.slice(0,1000) : ""};
   }
@@ -47,6 +51,7 @@
     });
   }
   function mount(host, initial) {
+    instances.get(host)?.close();
     host.replaceChildren();
     const details = document.createElement("details");
     details.className = "sketch-book";
@@ -55,6 +60,10 @@
       <div class="sketch-tools" role="group" aria-label="Herramientas del croquis">
         <button type="button" data-ink="#17251e" aria-pressed="true">Negro</button>
         <button type="button" data-ink="#b42318" aria-pressed="false">Rojo</button>
+        <button type="button" data-sketch-eraser aria-pressed="false">Goma</button>
+        <label>Grosor del lápiz<select data-sketch-width><option value="3">Fino</option><option value="6">Medio</option><option value="10">Grueso</option></select></label>
+        <label>Tamaño de goma<select data-eraser-width><option value="24">Pequeña</option><option value="48" selected>Mediana</option><option value="80">Grande</option></select></label>
+        <button type="button" data-sketch-expand>Ampliar bloc</button>
         <button type="button" data-sketch-undo>Deshacer</button>
         <button type="button" data-sketch-clear>Borrar dibujo</button>
       </div>
@@ -63,16 +72,37 @@
       <label>Notas del croquis<textarea maxlength="1000" rows="3" placeholder="Medidas, detalles de montaje o indicaciones…"></textarea></label>
       <p class="sketch-message" role="status" aria-live="polite"></p>`;
     host.appendChild(details);
-    let state=clean(initial),ink=colors[0],active=null,pointer=null,history=[];
+    const expanded=document.createElement("dialog");
+    expanded.className="sketch-expanded";
+    const titleId="sketch-title-"+crypto.randomUUID();
+    expanded.setAttribute("aria-labelledby",titleId);
+    expanded.innerHTML=`<div class="sketch-expanded-header"><h2 id="${titleId}">Bloc de medidas</h2><button type="button" data-sketch-return>Volver al parte</button></div><div class="sketch-expanded-content"></div>`;
+    host.appendChild(expanded);
+    const placeholder=document.createComment("Ubicación del bloc compacto");
+    function enlarge(){
+      if(expanded.open)return;
+      details.open=true;details.before(placeholder);
+      expanded.querySelector(".sketch-expanded-content").appendChild(details);
+      expanded.showModal();
+    }
+    expanded.querySelector("[data-sketch-return]").addEventListener("click",()=>expanded.close());
+    expanded.addEventListener("close",()=>{
+      if(placeholder.parentNode)placeholder.replaceWith(details);
+      if(active){active=null;pointer=null;redraw();}
+    });
+    details.querySelector("summary").addEventListener("click",e=>{e.preventDefault();enlarge();});
+    let state=clean(initial),ink=colors[0],active=null,pointer=null,history=[],tool="pen";
     const canvas=details.querySelector("canvas"),ctx=canvas.getContext("2d"),notes=details.querySelector("textarea"),message=details.querySelector(".sketch-message");
     notes.value=state.notes;
     if(state.strokes.length||state.notes)details.querySelector("summary").textContent="✎ Dibujar medidas · Con anotaciones";
     function draw(stroke) {
-      ctx.strokeStyle=ctx.fillStyle=stroke.color;ctx.lineWidth=3;ctx.lineCap=ctx.lineJoin="round";
+      ctx.save();
+      ctx.globalCompositeOperation=stroke.tool==="eraser"?"destination-out":"source-over";
+      ctx.strokeStyle=ctx.fillStyle=stroke.color;ctx.lineWidth=stroke.width||(stroke.tool==="eraser"?24:3);ctx.lineCap=ctx.lineJoin="round";
       const [first,...rest]=stroke.points;
-      if (!first) return;
-      if (!rest.length) {ctx.beginPath();ctx.arc(first[0],first[1],1.5,0,Math.PI*2);ctx.fill();return;}
-      ctx.beginPath();ctx.moveTo(...first);for(const p of rest)ctx.lineTo(...p);ctx.stroke();
+      if (!first){ctx.restore();return;}
+      if (!rest.length) {ctx.beginPath();ctx.arc(first[0],first[1],ctx.lineWidth/2,0,Math.PI*2);ctx.fill();ctx.restore();return;}
+      ctx.beginPath();ctx.moveTo(...first);for(const p of rest)ctx.lineTo(...p);ctx.stroke();ctx.restore();
     }
     function remember(){history.push(structuredClone(state.strokes));if(history.length>20)history.shift();}
     function redraw(){ctx.clearRect(0,0,1000,700);state.strokes.forEach(draw);if(active)draw(active);details.querySelector("[data-sketch-undo]").disabled=!state.strokes.length&&!history.length;details.querySelector("[data-sketch-clear]").disabled=!state.strokes.length;}
@@ -81,7 +111,7 @@
     canvas.addEventListener("pointerdown",e=>{
       if(pointer!==null||!e.isPrimary||e.button!==0)return;
       if(count()>=limit){message.textContent="Hoja llena. Deshaz algún trazo antes de seguir dibujando.";return;}
-      e.preventDefault();pointer=e.pointerId;active={color:ink,points:[point(e)]};canvas.setPointerCapture(pointer);redraw();
+      e.preventDefault();pointer=e.pointerId;active={color:ink,tool,width:Number(details.querySelector(tool==="eraser"?"[data-eraser-width]":"[data-sketch-width]").value),points:[point(e)]};canvas.setPointerCapture(pointer);redraw();
     });
     canvas.addEventListener("pointermove",e=>{
       if(e.pointerId!==pointer||!active)return;e.preventDefault();
@@ -95,26 +125,35 @@
         const end=point(e),last=active.points.at(-1);
         if(count()<limit&&(end[0]!==last[0]||end[1]!==last[1]))active.points.push(end);
         remember();state.strokes.push(active);
-        const assisted=straighten(active.points),points=assisted?.points||smooth(active.points);
+        const assisted=active.tool==="pen"?straighten(active.points):null,points=active.tool==="pen"?(assisted?.points||smooth(active.points)):null;
         if(points&&JSON.stringify(points)!==JSON.stringify(active.points)){
           // Deshacer primero restaura el trazo original, después permite quitarlo.
           remember();state.strokes[state.strokes.length-1]={...active,points};
           message.textContent=(assisted?.label||"Trazo suavizado automáticamente")+". Deshacer recupera el original.";
-        }else message.textContent="Trazo conservado.";
+        }else message.textContent=active.tool==="eraser"?"Zona borrada. Puedes deshacer.":"Trazo conservado.";
       }
       active=null;pointer=null;redraw();
     }
     canvas.addEventListener("pointerup",finish);canvas.addEventListener("pointercancel",finish);canvas.addEventListener("lostpointercapture",finish);
     details.addEventListener("click",e=>{
       const b=e.target.closest("button");if(!b)return;
-      if(b.dataset.ink){ink=b.dataset.ink;details.querySelectorAll("[data-ink]").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));}
+      if(b.hasAttribute("data-sketch-expand")){enlarge();return;}
+      if(b.dataset.ink||b.hasAttribute("data-sketch-eraser")){
+        tool=b.hasAttribute("data-sketch-eraser")?"eraser":"pen";
+        if(b.dataset.ink)ink=b.dataset.ink;
+        details.querySelectorAll("[data-ink]").forEach(x=>x.setAttribute("aria-pressed",String(tool==="pen"&&x.dataset.ink===ink)));
+        details.querySelector("[data-sketch-eraser]").setAttribute("aria-pressed",String(tool==="eraser"));
+        canvas.classList.toggle("is-erasing",tool==="eraser");
+        message.textContent=tool==="eraser"?"Goma activa: pasa por la zona que quieras borrar.":"Lápiz activo.";
+      }
       if(b.hasAttribute("data-sketch-undo")){if(history.length)state.strokes=history.pop();else state.strokes.pop();message.textContent="Última acción deshecha.";redraw();}
       if(b.hasAttribute("data-sketch-clear")&&confirm("¿Borrar todos los trazos de este croquis? Las notas se conservarán.")){remember();state.strokes=[];message.textContent="Dibujo borrado. Guarda la pieza para confirmar el cambio.";redraw();}
     });
     redraw();
     const instance={
       read:()=>structuredClone({strokes:state.strokes,notes:notes.value.trim()}),
-      open(){details.open=true;requestAnimationFrame(()=>canvas.scrollIntoView({block:"center"}));}
+      open:enlarge,
+      close(){if(expanded.open)expanded.close();}
     };
     instances.set(host,instance);return instance;
   }

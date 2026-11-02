@@ -210,3 +210,19 @@ nav button[data-page="criticos"]:hover,nav button[data-page="criticos"].active{b
 .sketch-book label{display:grid;gap:6px;font-weight:600}
 .sketch-message{color:#15523e}
 @media(max-width:600px){.exp-summary-gallery img{height:150px}.sketch-book{padding:9px}}
+
+/* Libreta ampliada en la capa modal, también sobre el formulario del parte. */
+.sketch-expanded{width:min(1400px,98vw);max-width:none;height:96dvh;max-height:96dvh;padding:0;border-radius:14px;overflow:hidden}
+.sketch-expanded[open]{display:flex;flex-direction:column}
+.sketch-expanded::backdrop{background:#10251bd9}
+.sketch-expanded-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid #cbdcd1;flex-shrink:0;background:#fff}
+.sketch-expanded-header h2{margin:0;color:#15523e}
+.sketch-expanded-header button{min-height:44px;padding:10px 14px;background:#15523e;color:white;border:0;border-radius:8px;font-weight:700}
+.sketch-expanded-content{overflow:auto;flex:1;min-height:0;padding:12px}
+.sketch-expanded .sketch-book{border:0;padding:0}
+.sketch-expanded .sketch-book summary,.sketch-expanded .sketch-book>p:not(.sketch-message),.sketch-expanded [data-sketch-expand]{display:none}
+.sketch-expanded .sketch-tools{position:sticky;top:-12px;z-index:1;background:#f5f9f6;padding:10px 0;margin:0 0 12px}
+.sketch-tools label{font-size:14px;gap:4px}
+.sketch-tools select{min-height:44px;min-width:100px}
+.sketch-book canvas.is-erasing{cursor:cell}
+@media(max-width:600px){.sketch-expanded{width:100vw;height:100dvh;max-height:100dvh;margin:0;border-radius:0}.sketch-expanded-header{padding:10px}.sketch-expanded-header h2{font-size:19px}.sketch-expanded-content{padding:8px}.sketch-expanded .sketch-tools{top:-8px;gap:6px}.sketch-expanded .sketch-tools button{padding:9px}.sketch-expanded-header button{white-space:nowrap}}

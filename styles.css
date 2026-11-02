@@ -162,3 +162,13 @@ body{font-size:calc(15px * var(--vs-text-scale))}
 .global-text-controls button:focus-visible{outline:3px solid #23834f;outline-offset:2px}
 #expediente .exp-text-controls{padding:8px 26px;margin:0;background:#f7faf8}
 @media(max-width:700px){.global-text-controls{bottom:12px;right:10px;padding:5px;gap:3px}.global-text-controls span{display:none}.global-text-controls button{min-width:40px;min-height:40px;padding:6px;font-size:13px}#expediente .exp-text-controls{padding:7px 13px}}
+
+/* Ajuste de letra global discreto, plegado por defecto en el lateral */
+.global-text-controls{position:fixed;top:45%;right:0;bottom:auto;z-index:90;display:flex;align-items:flex-end;flex-direction:column;gap:0;padding:0;background:transparent;border:0;border-radius:0;box-shadow:none;width:auto;height:auto;overflow:visible}
+.global-text-controls .text-settings-toggle{min-width:44px;min-height:52px;border:1px solid #15523e;border-right:0;border-radius:11px 0 0 11px;background:#15523e;color:white;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 3px 12px #0002}
+.global-text-controls .text-settings-panel{background:#fff;border:1px solid #c9d8ce;border-right:0;border-radius:12px 0 0 12px;padding:15px;box-shadow:0 5px 20px #0002;min-width:220px}
+.global-text-controls .text-settings-panel[hidden]{display:none!important}
+.global-text-controls .text-settings-panel strong{display:block;font-size:15px;margin-bottom:12px;color:#15523e}
+.global-text-controls .text-settings-actions{display:flex;gap:6px}
+.global-text-controls .text-settings-actions button{min-width:48px;min-height:44px;background:#f5faf6;color:#15523e;border:1px solid #bdd2c2;border-radius:8px;font-size:15px;font-weight:800}
+@media(max-width:700px){.global-text-controls{top:40%;right:0;bottom:auto}.global-text-controls .text-settings-toggle{min-width:40px;min-height:50px;font-size:13px}.global-text-controls .text-settings-panel{min-width:205px}}

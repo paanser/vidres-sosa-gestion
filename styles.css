@@ -181,3 +181,13 @@ nav button[data-page="criticos"]:hover,nav button[data-page="criticos"].active{b
 .critical-heading,.critical-panel h2{color:#b42318}
 .critical-panel{border-left:4px solid #b42318}
 .critical-panel p{margin-top:8px;line-height:1.5}
+
+/* Medidas opcionales durante el alta del parte. */
+.new-job-measures{border-top:1px solid #cbdcd1;padding-top:16px;margin-top:8px;min-width:0}
+.new-job-measures[hidden]{display:none}
+.new-job-measures h3{margin:0 0 8px;color:#15523e}
+.new-job-measures p{line-height:1.5}
+.new-measure-piece{min-width:0;margin:15px 0;padding:12px;border:1px solid #cbdcd1;border-radius:10px;display:grid;gap:10px}
+.new-measure-piece legend{font-weight:700;color:#15523e}
+.new-job-measures button{min-height:44px;padding:10px 14px;border:1px solid #b9d0c0;border-radius:8px;background:#f2f8f4;color:#15523e}
+.new-measure-piece output{font-weight:700;color:#15523e}

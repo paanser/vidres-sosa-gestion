@@ -34,9 +34,12 @@
   }
   function open(id){current=id;tab="resumen";render();dialog.showModal();}
   document.querySelector("#content").addEventListener("click",e=>{const b=e.target.closest("[data-id]");if(b&&window.vidresGetJobs?.().some(j=>j.id===b.dataset.id)){e.stopImmediatePropagation();open(b.dataset.id);}},true);
+  function changeScale(step){scale=step===0?1:Math.max(.9,Math.min(1.5,Math.round((scale+step*.1)*10)/10));document.documentElement.style.setProperty("--vs-text-scale",String(scale));try{localStorage.setItem("vidres-text-scale",String(scale));}catch{}document.querySelectorAll("[data-text-scale=\"0\"]").forEach(b=>b.textContent=Math.round(scale*100)+" %");}
+  document.querySelector(".global-text-controls")?.addEventListener("click",e=>{const b=e.target.closest("[data-text-scale]");if(b)changeScale(Number(b.dataset.textScale));});
+  document.querySelectorAll("[data-text-scale=\"0\"]").forEach(b=>b.textContent=Math.round(scale*100)+" %");
   dialog.addEventListener("click",async e=>{
     const b=e.target.closest("button");if(!b)return;
-    if(b.dataset.textScale!==undefined){const step=Number(b.dataset.textScale);scale=step===0?1:Math.max(.9,Math.min(1.5,Math.round((scale+step*.1)*10)/10));document.documentElement.style.setProperty("--vs-text-scale",String(scale));try{localStorage.setItem("vidres-text-scale",String(scale));}catch{}}
+    if(b.dataset.textScale!==undefined){changeScale(Number(b.dataset.textScale));}
     else if(b.dataset.expTab){tab=b.dataset.expTab;await render();}
     else if(b.hasAttribute("data-exp-new-quote")){dialog.close();window.vidresQuoteStartForJob?.(current,getJob()?.cliente);}
     else if(b.dataset.expQuote){dialog.close();window.vidresQuoteOpenSaved?.(b.dataset.expQuote);}

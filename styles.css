@@ -154,3 +154,11 @@ body{font-size:calc(15px * var(--vs-text-scale))}
 .exp-text-controls button{min-height:40px;padding:8px 12px;border-radius:8px;background:#fff;border:1px solid #bfd2c4;color:#15523e;font-weight:700}
 .exp-text-controls span{font-size:13px;color:#50695a}
 @media(max-width:700px){.exp-doc-item,.exp-quote-item{align-items:flex-start;flex-direction:column}.exp-quote-item>div:last-child{align-items:flex-start}}
+
+/* Controles tipográficos siempre visibles en escritorio y móvil */
+.global-text-controls{position:fixed;right:16px;bottom:16px;z-index:80;display:flex;align-items:center;gap:6px;padding:9px 11px;background:#fff;border:2px solid #15523e;border-radius:14px;box-shadow:0 5px 22px #122b2040}
+.global-text-controls span{font-size:14px;font-weight:800;color:#15523e}
+.global-text-controls button{min-width:44px;min-height:44px;padding:9px;border:1px solid #bdd2c2;background:#f4faf5;color:#15523e;border-radius:9px;font-size:15px;font-weight:800;cursor:pointer}
+.global-text-controls button:focus-visible{outline:3px solid #23834f;outline-offset:2px}
+#expediente .exp-text-controls{padding:8px 26px;margin:0;background:#f7faf8}
+@media(max-width:700px){.global-text-controls{bottom:12px;right:10px;padding:5px;gap:3px}.global-text-controls span{display:none}.global-text-controls button{min-width:40px;min-height:40px;padding:6px;font-size:13px}#expediente .exp-text-controls{padding:7px 13px}}

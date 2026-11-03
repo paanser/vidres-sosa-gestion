@@ -348,7 +348,9 @@
                   money(q.total) +
                   '</strong><button type="button" data-exp-quote="' +
                   esc(q.id) +
-                  '">Abrir presupuesto</button></div></article>',
+                  '">Abrir presupuesto</button><button type="button" data-exp-quote-whatsapp="' +
+                  esc(q.id) +
+                  '">Enviar por WhatsApp</button></div></article>',
               )
               .join("") +
             "</div>"
@@ -497,6 +499,8 @@
     } else if (b.dataset.expQuote) {
       dialog.close();
       window.vidresQuoteOpenSaved?.(b.dataset.expQuote);
+    } else if (b.dataset.expQuoteWhatsapp) {
+      window.vidresQuoteWhatsApp?.(b.dataset.expQuoteWhatsapp);
     } else if (b.dataset.expDocOpen) {
       try {
         await openDocument(b.dataset.expDocOpen);

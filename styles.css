@@ -1927,6 +1927,13 @@ textarea:focus {
   padding: 1rem;
   font-size: 1.05rem;
 }
+#quote-message-dialog {
+  width: min(94vw, 42rem);
+}
+#quote-message-dialog textarea {
+  min-height: 18rem;
+  font-size: 1rem;
+}
 
 /* Escala de lectura configurable para ordenador y móvil */
 :root {

@@ -72,8 +72,8 @@
     document.querySelector("#content").innerHTML =
       `<div class="quote-toolbar"><button type="button" class="quick-quote-button" id="quote-quick">⚡ Presupuesto rápido</button><button type="button" class="primary" id="quote-new">+ Nuevo presupuesto</button><button type="button" id="quote-settings">Ajustes de tarifas</button></div>
  <section class="panel quote-editor"><h2>Presupuesto de vidrio · ${esc(draft.id || "Sin guardar")}</h2><div class="quote-fields"><label>Cliente<input id="quote-client" maxlength="100" value="${esc(draft.client)}"></label><label>Parte relacionado<select id="quote-job"><option value="">Sin vincular</option>${jobs.map((j) => `<option value="${esc(j.id)}" ${draft.job === j.id ? "selected" : ""}>${esc(j.id + " · " + j.cliente)}</option>`).join("")}</select></label><label>Estado<select id="quote-status">${statuses.map((s) => `<option ${s === (draft.status || "Borrador") ? "selected" : ""}>${s}</option>`).join("")}</select></label></div>
- <div id="quote-lines">${draft.lines.map(row).join("")}</div><button type="button" id="quote-add">+ Añadir otro vidrio</button><div class="quote-total"><div class="quote-total-breakdown">Base imponible: <strong>${money(total.base)}</strong><br>IVA (${esc(pricing(draft).vat ?? 21)} %): <strong>${money(total.iva)}</strong><br>Total con IVA: <strong class="quote-grand-total">${money(total.total)}</strong></div></div><div class="quote-toolbar"><button type="button" class="primary" id="quote-save">Guardar presupuesto</button><button type="button" id="quote-pdf">Imprimir / Guardar PDF</button></div></section>
- <section class="panel"><h2>Presupuestos guardados</h2>${list.length ? list.map((q) => `<article class="quote-saved"><span>${esc(q.id)} · ${esc(q.client)} · ${esc(q.status || "Borrador")} · Total: ${money(sum(q).total)}</span><div><button type="button" data-load="${esc(q.id)}">Abrir</button><button type="button" data-duplicate="${esc(q.id)}">Duplicar</button><button type="button" data-delete-quote="${esc(q.id)}">Eliminar</button></div></article>`).join("") : "<p>No hay presupuestos guardados.</p>"}</section>`;
+ <div id="quote-lines">${draft.lines.map(row).join("")}</div><button type="button" id="quote-add">+ Añadir otro vidrio</button><div class="quote-total"><div class="quote-total-breakdown">Base imponible: <strong>${money(total.base)}</strong><br>IVA (${esc(pricing(draft).vat ?? 21)} %): <strong>${money(total.iva)}</strong><br>Total con IVA: <strong class="quote-grand-total">${money(total.total)}</strong></div></div><div class="quote-toolbar"><button type="button" class="primary" id="quote-save">Guardar presupuesto</button><button type="button" id="quote-whatsapp">Enviar por WhatsApp</button><button type="button" id="quote-pdf">Imprimir / Guardar PDF</button></div></section>
+ <section class="panel"><h2>Presupuestos guardados</h2>${list.length ? list.map((q) => `<article class="quote-saved"><span>${esc(q.id)} · ${esc(q.client)} · ${esc(q.status || "Borrador")} · Total: ${money(sum(q).total)}</span><div><button type="button" data-load="${esc(q.id)}">Abrir</button><button type="button" data-whatsapp="${esc(q.id)}">WhatsApp</button><button type="button" data-duplicate="${esc(q.id)}">Duplicar</button><button type="button" data-delete-quote="${esc(q.id)}">Eliminar</button></div></article>`).join("") : "<p>No hay presupuestos guardados.</p>"}</section>`;
   }
   function quickSync() {
     const line = draft.lines[0] || emptyLine(),
@@ -152,11 +152,61 @@
     if (host)
       host.innerHTML = quickResultHtml(calc(draft.lines[0]), sum(draft));
   }
+  function messageQuote(q) {
+    const c = config(),
+      company = c.company || {},
+      totals = sum(q),
+      detail = q.lines
+        .map((line) => {
+          const result = VSCalculations.calc(line, pricing(q));
+          return `• ${glassName(line) || "Vidrio"} ${result.w}×${result.h} cm (${result.qty} ud.): ${money(result.total)}`;
+        })
+        .join("\n"),
+      template =
+        c.whatsappTemplate ||
+        "Hola{cliente}, te paso el precio:\n\n{detalle}\n\nBase: {base}\nIVA: {iva}\nTotal: {total}\n\n{empresa}. Presupuesto válido {validez} días.",
+      values = {
+        cliente: q.client && q.client !== "Sin cliente" ? " " + q.client : "",
+        detalle: detail,
+        base: money(totals.base),
+        iva: money(totals.iva),
+        total: money(totals.total),
+        empresa: company.name || "Vidres Sosa",
+        validez: company.validity || 30,
+      };
+    return template.replace(
+      /\{(cliente|detalle|base|iva|total|empresa|validez)\}/g,
+      (_, key) => values[key],
+    );
+  }
+  function phoneForQuote(q) {
+    const client = VSStorage.read("vidres-clientes-v1", []).find(
+      (item) =>
+        String(item.nombre || "")
+          .trim()
+          .toLocaleLowerCase("es") ===
+        String(q.client || "")
+          .trim()
+          .toLocaleLowerCase("es"),
+    );
+    let phone = String(client?.telefono || "").replace(/[^+0-9]/g, "");
+    phone = phone.replace(/^\+|^00/, "");
+    if (/^\d{9}$/.test(phone)) phone = "34" + phone;
+    return phone;
+  }
+  let messageTarget = null;
+  function openQuoteMessage(q) {
+    messageTarget = q;
+    const dialog = document.querySelector("#quote-message-dialog");
+    dialog.querySelector('[name="mensaje"]').value = messageQuote(q);
+    dialog.showModal();
+    requestAnimationFrame(() =>
+      dialog.querySelector('[name="mensaje"]').focus(),
+    );
+  }
   function quickMessage() {
     readQuickForm();
-    const line = draft.lines[0],
-      total = sum(draft);
-    return `Hola${draft.client ? " " + draft.client : ""}, te paso el precio de ${glassName(line) || "vidrio"} de ${calc(line).w} × ${calc(line).h} cm (${calc(line).qty} ud.): ${money(total.total)} IVA incluido.`;
+    return messageQuote(draft);
   }
   async function copyText(text) {
     if (navigator.clipboard?.writeText)
@@ -356,18 +406,20 @@
       } else if (b.id === "quick-whatsapp") {
         updateQuickResult();
         if (!valid(true)) return;
-        window.open(
-          "https://wa.me/?text=" + encodeURIComponent(quickMessage()),
-          "_blank",
-          "noopener,noreferrer",
-        );
+        openQuoteMessage(draft);
       } else if (b.id === "quick-save") {
         await saveDraft();
       } else if (b.id === "quote-settings") {
         fromForm();
         window.vidresNavigate("ajustes");
       } else if (b.id === "quote-save") await saveDraft();
-      else if (b.id === "quote-add") {
+      else if (b.id === "quote-whatsapp") {
+        fromForm();
+        if (valid(true)) openQuoteMessage(draft);
+      } else if (b.dataset.whatsapp) {
+        const quote = quotes().find((item) => item.id === b.dataset.whatsapp);
+        if (quote) openQuoteMessage(quote);
+      } else if (b.id === "quote-add") {
         fromForm();
         draft.lines.push(emptyLine());
         sync();
@@ -472,4 +524,42 @@
       window.vidresNavigate("presupuestos");
     }
   };
+  window.vidresQuoteWhatsApp = (id) => {
+    const quote = quotes().find((item) => item.id === id);
+    if (quote) openQuoteMessage(quote);
+  };
+  const messageDialog = document.querySelector("#quote-message-dialog"),
+    messageForm = document.querySelector("#quote-message-form");
+  document
+    .querySelector("#quote-message-cancel")
+    .addEventListener("click", () => messageDialog.close());
+  messageForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (!messageTarget || !messageForm.reportValidity()) return;
+    const text = messageForm.elements.mensaje.value.trim(),
+      phone = phoneForQuote(messageTarget),
+      targetId = messageTarget.id;
+    window.open(
+      "https://wa.me/" + phone + "?text=" + encodeURIComponent(text),
+      "_blank",
+      "noopener,noreferrer",
+    );
+    messageDialog.close();
+    if (targetId && confirm("¿Marcar este presupuesto como Enviado?")) {
+      const today = new Date().toLocaleDateString("en-CA");
+      VSStorage.write(
+        Q,
+        quotes().map((quote) =>
+          quote.id === targetId
+            ? { ...quote, status: "Enviado", enviado: today }
+            : quote,
+        ),
+      );
+      if (draft?.id === targetId) {
+        draft.status = "Enviado";
+        draft.enviado = today;
+      }
+      sync();
+    }
+  });
 })();

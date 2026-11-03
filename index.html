@@ -214,6 +214,17 @@
       </button>
       <img alt="Foto de medidas ampliada" />
     </dialog>
+    <dialog id="quote-message-dialog" aria-labelledby="quote-message-title">
+      <form id="quote-message-form">
+        <h2 id="quote-message-title">Mensaje de WhatsApp</h2>
+        <p class="muted">Puedes corregir el texto antes de enviarlo.</p>
+        <textarea name="mensaje" rows="14" maxlength="5000" required></textarea>
+        <div class="actions">
+          <button type="button" id="quote-message-cancel">Cancelar</button
+          ><button type="submit" class="primary">Abrir WhatsApp</button>
+        </div>
+      </form>
+    </dialog>
     <dialog id="quick-note-dialog" aria-labelledby="quick-note-title">
       <form id="quick-note-form">
         <h2 id="quick-note-title">Nota rápida</h2>

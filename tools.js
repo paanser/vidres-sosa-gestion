@@ -151,7 +151,12 @@
       esc(company.validity || 30) +
       '"></label></div><label>Condiciones<textarea data-company="conditions" rows="4">' +
       esc(company.conditions || "") +
-      '</textarea></label></details><p>Los impuestos y recargos se copian a los presupuestos nuevos. Los guardados conservan sus condiciones.</p><button id="cfg-save" class="primary">Guardar configuración</button><p id="cfg-notice" role="status"></p></section><section class="panel"><h2>Tarifas y documentos PDF</h2><label>Importar tarifas CSV<input id="cfg-csv" type="file" accept=".csv,text/csv"></label><p id="csv-notice" role="status"></p>' +
+      '</textarea></label><label>Plantilla de WhatsApp<textarea id="cfg-whatsapp-template" rows="7" maxlength="3000">' +
+      esc(
+        c.whatsappTemplate ||
+          "Hola{cliente}, te paso el precio:\n\n{detalle}\n\nBase: {base}\nIVA: {iva}\nTotal: {total}\n\n{empresa}. Presupuesto válido {validez} días.",
+      ) +
+      '</textarea></label><p class="muted">Campos disponibles: {cliente}, {detalle}, {base}, {iva}, {total}, {empresa}, {validez}.</p></details><p>Los impuestos y recargos se copian a los presupuestos nuevos. Los guardados conservan sus condiciones.</p><button id="cfg-save" class="primary">Guardar configuración</button><p id="cfg-notice" role="status"></p></section><section class="panel"><h2>Tarifas y documentos PDF</h2><label>Importar tarifas CSV<input id="cfg-csv" type="file" accept=".csv,text/csv"></label><p id="csv-notice" role="status"></p>' +
       tariffList() +
       '<label>Seleccionar PDF de tarifa<input id="cfg-pdf" type="file" accept=".pdf,application/pdf"></label><p id="pdf-notice" role="status"></p><p>El catálogo PDF solo registra el nombre, no guarda el archivo. Los documentos de cada expediente se guardan en su sección Documentos.</p>' +
       pdfs
@@ -241,6 +246,9 @@
         vat: Number(vat),
         energyMode,
         company,
+        whatsappTemplate: document
+          .querySelector("#cfg-whatsapp-template")
+          .value.trim(),
       });
       document.querySelector("#cfg-notice").textContent =
         "Configuración guardada en este dispositivo.";

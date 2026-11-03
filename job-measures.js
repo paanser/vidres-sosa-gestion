@@ -3,12 +3,23 @@
   const section = document.querySelector("#new-job-measures");
   const list = section.querySelector(".new-measure-list");
   let sequence = 0;
-  const fields = ["ancho", "alto", "cantidad", "espesor", "tipo", "observaciones"];
+  const fields = [
+    "ancho",
+    "alto",
+    "cantidad",
+    "espesor",
+    "tipo",
+    "observaciones",
+  ];
   function updateArea(row) {
-    const value = key => Number(row.querySelector(`[data-new-measure="${key}"]`).value);
-    row.querySelector("output").textContent = (value("ancho") * value("alto") * value("cantidad") / 10000).toFixed(4) + " m² reales";
+    const value = (key) =>
+      Number(row.querySelector(`[data-new-measure="${key}"]`).value);
+    row.querySelector("output").textContent =
+      ((value("ancho") * value("alto") * value("cantidad")) / 10000).toFixed(
+        4,
+      ) + " m² reales";
   }
-  function addPiece(draw=false) {
+  function addPiece(draw = false) {
     const row = document.createElement("fieldset");
     row.className = "new-measure-piece";
     row.innerHTML = `<legend>Pieza ${++sequence}</legend>
@@ -24,33 +35,51 @@
       <button type="button" data-new-measure-remove>Quitar pieza</button>`;
     list.appendChild(row);
     window.vidresSketch.mount(row.querySelector(".new-measure-sketch"));
-    if(draw)window.vidresSketch.open(row.querySelector(".new-measure-sketch"));
+    if (draw)
+      window.vidresSketch.open(row.querySelector(".new-measure-sketch"));
     else row.querySelector("input").focus();
   }
-  section.querySelector("#new-measure-add").addEventListener("click",()=>addPiece());
-  section.querySelector("#new-measure-draw").addEventListener("click",()=>addPiece(true));
-  list.addEventListener("click", event => {
+  section
+    .querySelector("#new-measure-add")
+    .addEventListener("click", () => addPiece());
+  section
+    .querySelector("#new-measure-draw")
+    .addEventListener("click", () => addPiece(true));
+  list.addEventListener("click", (event) => {
     const button = event.target.closest("[data-new-measure-remove]");
-    if (button) {const row=button.closest("fieldset");window.vidresSketch.destroy(row.querySelector(".new-measure-sketch"));row.remove();}
+    if (button) {
+      const row = button.closest("fieldset");
+      window.vidresSketch.destroy(row.querySelector(".new-measure-sketch"));
+      row.remove();
+    }
   });
-  list.addEventListener("input", event => {
+  list.addEventListener("input", (event) => {
     const row = event.target.closest("fieldset");
     if (row) updateArea(row);
   });
   window.vidresNewMeasures = {
     reset(editing) {
-      list.querySelectorAll(".new-measure-sketch").forEach(host=>window.vidresSketch.destroy(host));
+      list
+        .querySelectorAll(".new-measure-sketch")
+        .forEach((host) => window.vidresSketch.destroy(host));
       list.replaceChildren();
       sequence = 0;
       section.hidden = Boolean(editing);
     },
     read(jobId) {
-      return [...list.querySelectorAll("fieldset")].map(row => ({
+      return [...list.querySelectorAll("fieldset")].map((row) => ({
         id: "M-" + crypto.randomUUID(),
         trabajo: jobId,
-        croquis: window.vidresSketch.read(row.querySelector(".new-measure-sketch")),
-        ...Object.fromEntries(fields.map(key => [key, row.querySelector(`[data-new-measure="${key}"]`).value.trim()]))
+        croquis: window.vidresSketch.read(
+          row.querySelector(".new-measure-sketch"),
+        ),
+        ...Object.fromEntries(
+          fields.map((key) => [
+            key,
+            row.querySelector(`[data-new-measure="${key}"]`).value.trim(),
+          ]),
+        ),
       }));
-    }
+    },
   };
 })();

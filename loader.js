@@ -12,6 +12,7 @@ document.querySelectorAll("#nav button").forEach((b) => (b.disabled = true));
   for (const name of [
     "utils",
     "storage",
+    "calculations",
     "tariffs",
     "tools",
     "quotes",

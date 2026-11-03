@@ -29,42 +29,10 @@
   };
   const displayed = (cm) =>
     unit() === "mm" ? String(Number((num(cm) * 10).toFixed(1))) : cm;
-  const qty = (line) => Math.max(1, Math.floor(num(line.qty) || 1));
-  const calc = (line) => {
-    const w = num(line.w),
-      h = num(line.h),
-      aw = round6(w),
-      ah = round6(h),
-      sides = [...new Set(line.sides || [])].filter((x) =>
-        ["top", "bottom", "left", "right"].includes(x),
-      );
-    const ml = sides.reduce(
-      (n, s) => n + (s === "top" || s === "bottom" ? w : h) / 100,
-      0,
-    );
-    const area = (aw * ah) / 10000,
-      real = (w * h) / 10000;
-    return {
-      w,
-      h,
-      aw,
-      ah,
-      real,
-      area,
-      ml,
-      total: (area * num(line.price) + ml * num(line.edgePrice)) * qty(line),
-      qty: qty(line),
-    };
-  };
+  const { calc, totals } = VSCalculations;
   const save = () => {
     VSStorage.local.setItem(key, JSON.stringify(quotes));
     VSStorage.local.setItem(tariffKey, JSON.stringify(tariffs));
-  };
-  const totals = (lines) => {
-    const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
-    const base = round2(lines.reduce((n, l) => n + calc(l).total, 0)),
-      iva = round2(base * 0.21);
-    return { base, iva, total: round2(base + iva) };
   };
   const fresh = () => ({
     id: "P-" + Date.now(),
@@ -104,7 +72,7 @@
       ')<input type="number" inputmode="decimal" min="0" step="0.1" data-field="h" value="' +
       esc(displayed(l.h)) +
       '"></label><label>Cantidad<input type="number" min="1" step="1" inputmode="numeric" data-field="qty" value="' +
-      esc(qty(l)) +
+      esc(c.qty) +
       '"></label><label class="quote-glass-label">Tipo de vidrio · buscar o escribir<input type="text" data-field="glass" list="glass-options-' +
       i +
       '" placeholder="Laminado, 5+5 o vidrio especial" value="' +

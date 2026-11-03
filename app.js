@@ -1103,6 +1103,7 @@ window.vidresAppReady = (async () => {
   });
   $("#content").addEventListener("input", (e) => {
     if (page === "consultor") window.vidresToolsInput?.(e);
+    else if (page === "presupuestos") window.vidresQuoteInput?.(e);
   });
   document.querySelector("#client-form").addEventListener("submit", (e) => {
     e.preventDefault();

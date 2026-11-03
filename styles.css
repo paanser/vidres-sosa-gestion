@@ -1912,6 +1912,22 @@ textarea:focus {
   min-height: 44px;
 }
 
+.quick-quote-button {
+  background: #fff3cd;
+  border-color: #d89b00;
+  color: #5c4300;
+  font-weight: 800;
+}
+.quick-quote-editor {
+  max-width: 70rem;
+  margin-inline: auto;
+}
+.quick-result {
+  margin: 1rem 0;
+  padding: 1rem;
+  font-size: 1.05rem;
+}
+
 /* Escala de lectura configurable para ordenador y móvil */
 :root {
   --vs-text-scale: 1;

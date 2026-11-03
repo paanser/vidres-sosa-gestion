@@ -1,7 +1,7 @@
 "use strict";
 (() => {
   const instances = new WeakMap();
-  const colors = ["#17251e", "#b42318"];
+  const colors = ["#17251e", "#b42318", "#2457a7", "#15523e"];
   const limit = 5000;
   function clean(value) {
     let count = 0;
@@ -57,15 +57,22 @@
     details.className = "sketch-book";
     details.innerHTML = `<summary>✎ Dibujar medidas · Bloc de croquis</summary>
       <p>Dibuja medidas y formas con el dedo, lápiz táctil o ratón. Se guarda al guardar la pieza.</p>
-      <div class="sketch-tools" role="group" aria-label="Herramientas del croquis">
+      <div class="sketch-tools sketch-case" role="group" aria-label="Estuche de dibujo">
+        <button type="button" data-case-toggle aria-expanded="false">✎ Estuche</button>
+        <span data-case-state>Lápiz negro · fino</span>
+        <div class="sketch-case-panel" hidden>
         <button type="button" data-ink="#17251e" aria-pressed="true">Negro</button>
         <button type="button" data-ink="#b42318" aria-pressed="false">Rojo</button>
+        <button type="button" data-ink="#2457a7" aria-pressed="false">Azul</button>
+        <button type="button" data-ink="#15523e" aria-pressed="false">Verde</button>
         <button type="button" data-sketch-eraser aria-pressed="false">Goma</button>
         <label>Grosor del lápiz<select data-sketch-width><option value="3">Fino</option><option value="6">Medio</option><option value="10">Grueso</option></select></label>
         <label>Tamaño de goma<select data-eraser-width><option value="24">Pequeña</option><option value="48" selected>Mediana</option><option value="80">Grande</option></select></label>
         <button type="button" data-sketch-expand>Ampliar bloc</button>
         <button type="button" data-sketch-undo>Deshacer</button>
+        <button type="button" data-sketch-redo>Rehacer</button>
         <button type="button" data-sketch-clear>Borrar dibujo</button>
+        </div>
       </div>
       <p>Mejora automática al levantar el dedo o lápiz: endereza líneas, ajusta rectángulos y suaviza los demás trazos. Dibuja el contorno de una vez. Deshacer recupera el trazo original. No interpreta letras ni medidas.</p>
       <canvas width="1000" height="700" aria-label="Hoja de croquis: dibuja con el dedo, lápiz o ratón"></canvas>
@@ -87,12 +94,22 @@
     }
     expanded.querySelector("[data-sketch-return]").addEventListener("click",()=>expanded.close());
     expanded.addEventListener("close",()=>{
+      closeCase();
       if(placeholder.parentNode)placeholder.replaceWith(details);
       if(active){active=null;pointer=null;redraw();}
     });
     details.querySelector("summary").addEventListener("click",e=>{e.preventDefault();enlarge();});
-    let state=clean(initial),ink=colors[0],active=null,pointer=null,history=[],tool="pen";
+    let state=clean(initial),ink=colors[0],active=null,pointer=null,history=[],future=[],tool="pen";
     const canvas=details.querySelector("canvas"),ctx=canvas.getContext("2d"),notes=details.querySelector("textarea"),message=details.querySelector(".sketch-message");
+    const casePanel=details.querySelector(".sketch-case-panel"),caseToggle=details.querySelector("[data-case-toggle]");
+    casePanel.id="sketch-case-"+crypto.randomUUID();caseToggle.setAttribute("aria-controls",casePanel.id);
+    function closeCase(){casePanel.hidden=true;caseToggle.setAttribute("aria-expanded","false");}
+    function toolStatus(){
+      const name={"#17251e":"negro","#b42318":"rojo","#2457a7":"azul","#15523e":"verde"}[ink];
+      const size=details.querySelector(tool==="eraser"?"[data-eraser-width]":"[data-sketch-width]");
+      details.querySelector("[data-case-state]").textContent=(tool==="eraser"?"Goma": "Lápiz "+name)+" · "+size.selectedOptions[0].text.toLocaleLowerCase("es");
+    }
+    details.addEventListener("change",e=>{if(e.target.matches("[data-sketch-width],[data-eraser-width]"))toolStatus();});
     notes.value=state.notes;
     if(state.strokes.length||state.notes)details.querySelector("summary").textContent="✎ Dibujar medidas · Con anotaciones";
     function draw(stroke) {
@@ -104,14 +121,14 @@
       if (!rest.length) {ctx.beginPath();ctx.arc(first[0],first[1],ctx.lineWidth/2,0,Math.PI*2);ctx.fill();ctx.restore();return;}
       ctx.beginPath();ctx.moveTo(...first);for(const p of rest)ctx.lineTo(...p);ctx.stroke();ctx.restore();
     }
-    function remember(){history.push(structuredClone(state.strokes));if(history.length>20)history.shift();}
-    function redraw(){ctx.clearRect(0,0,1000,700);state.strokes.forEach(draw);if(active)draw(active);details.querySelector("[data-sketch-undo]").disabled=!state.strokes.length&&!history.length;details.querySelector("[data-sketch-clear]").disabled=!state.strokes.length;}
+    function remember(){future=[];history.push(structuredClone(state.strokes));if(history.length>20)history.shift();}
+    function redraw(){ctx.clearRect(0,0,1000,700);state.strokes.forEach(draw);if(active)draw(active);details.querySelector("[data-sketch-undo]").disabled=!state.strokes.length&&!history.length;details.querySelector("[data-sketch-clear]").disabled=!state.strokes.length;details.querySelector("[data-sketch-redo]").disabled=!future.length;}
     const point=e=>{const r=canvas.getBoundingClientRect();return [Math.round(Math.max(0,Math.min(1000,(e.clientX-r.left)*1000/r.width))),Math.round(Math.max(0,Math.min(700,(e.clientY-r.top)*700/r.height)))];};
     const count=()=>state.strokes.reduce((n,s)=>n+s.points.length,0)+(active?.points.length||0);
     canvas.addEventListener("pointerdown",e=>{
       if(pointer!==null||!e.isPrimary||e.button!==0)return;
       if(count()>=limit){message.textContent="Hoja llena. Deshaz algún trazo antes de seguir dibujando.";return;}
-      e.preventDefault();pointer=e.pointerId;active={color:ink,tool,width:Number(details.querySelector(tool==="eraser"?"[data-eraser-width]":"[data-sketch-width]").value),points:[point(e)]};canvas.setPointerCapture(pointer);redraw();
+      closeCase();e.preventDefault();pointer=e.pointerId;active={color:ink,tool,width:Number(details.querySelector(tool==="eraser"?"[data-eraser-width]":"[data-sketch-width]").value),points:[point(e)]};canvas.setPointerCapture(pointer);redraw();
     });
     canvas.addEventListener("pointermove",e=>{
       if(e.pointerId!==pointer||!active)return;e.preventDefault();
@@ -137,16 +154,22 @@
     canvas.addEventListener("pointerup",finish);canvas.addEventListener("pointercancel",finish);canvas.addEventListener("lostpointercapture",finish);
     details.addEventListener("click",e=>{
       const b=e.target.closest("button");if(!b)return;
+      if(b.hasAttribute("data-case-toggle")){casePanel.hidden=!casePanel.hidden;caseToggle.setAttribute("aria-expanded",String(!casePanel.hidden));return;}
       if(b.hasAttribute("data-sketch-expand")){enlarge();return;}
       if(b.dataset.ink||b.hasAttribute("data-sketch-eraser")){
         tool=b.hasAttribute("data-sketch-eraser")?"eraser":"pen";
         if(b.dataset.ink)ink=b.dataset.ink;
         details.querySelectorAll("[data-ink]").forEach(x=>x.setAttribute("aria-pressed",String(tool==="pen"&&x.dataset.ink===ink)));
         details.querySelector("[data-sketch-eraser]").setAttribute("aria-pressed",String(tool==="eraser"));
-        canvas.classList.toggle("is-erasing",tool==="eraser");
+        canvas.classList.toggle("is-erasing",tool==="eraser");toolStatus();
         message.textContent=tool==="eraser"?"Goma activa: pasa por la zona que quieras borrar.":"Lápiz activo.";
       }
-      if(b.hasAttribute("data-sketch-undo")){if(history.length)state.strokes=history.pop();else state.strokes.pop();message.textContent="Última acción deshecha.";redraw();}
+      if(b.hasAttribute("data-sketch-undo")){
+        future.push(structuredClone(state.strokes));if(future.length>20)future.shift();
+        if(history.length)state.strokes=history.pop();else state.strokes.pop();
+        message.textContent="Última acción deshecha.";redraw();
+      }
+      if(b.hasAttribute("data-sketch-redo")&&future.length){history.push(structuredClone(state.strokes));if(history.length>20)history.shift();state.strokes=future.pop();message.textContent="Última acción rehecha.";redraw();}
       if(b.hasAttribute("data-sketch-clear")&&confirm("¿Borrar todos los trazos de este croquis? Las notas se conservarán.")){remember();state.strokes=[];message.textContent="Dibujo borrado. Guarda la pieza para confirmar el cambio.";redraw();}
     });
     redraw();

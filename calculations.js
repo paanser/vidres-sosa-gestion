@@ -1,0 +1,49 @@
+"use strict";
+(function (root) {
+  const U =
+    typeof module !== "undefined" ? require("./utils.js") : root.VSUtils;
+  const { num, round6 } = U;
+  const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+  function calc(line, config = {}) {
+    const w = num(line.w),
+      h = num(line.h),
+      aw = round6(w),
+      ah = round6(h),
+      qty = Math.max(1, Math.floor(num(line.qty) || 1));
+    const sides = [...new Set(line.sides || [])].filter((s) =>
+      ["top", "bottom", "left", "right"].includes(s),
+    );
+    const ml = sides.reduce(
+        (n, s) => n + (s === "top" || s === "bottom" ? w : h) / 100,
+        0,
+      ),
+      area = (aw * ah) / 10000,
+      real = (w * h) / 10000;
+    const subtotal = (area * num(line.price) + ml * num(line.edgePrice)) * qty;
+    let energy = 0;
+    if (config.energyMode === "percent")
+      energy = (subtotal * num(config.energy)) / 100;
+    if (config.energyMode === "m2") energy = area * qty * num(config.energy);
+    return {
+      w,
+      h,
+      aw,
+      ah,
+      real,
+      area,
+      ml,
+      qty,
+      energy,
+      total: subtotal + energy,
+    };
+  }
+  function totals(lines, config = {}) {
+    const base = round2(lines.reduce((n, l) => n + calc(l, config).total, 0)),
+      rate = config.vat === "" || config.vat == null ? 21 : num(config.vat),
+      iva = round2((base * rate) / 100);
+    return { base, iva, total: round2(base + iva) };
+  }
+  const api = { calc, totals, round2 };
+  if (typeof module !== "undefined") module.exports = api;
+  else root.VSCalculations = api;
+})(globalThis);

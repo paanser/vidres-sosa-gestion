@@ -2,16 +2,32 @@ name: Publicar Vidres Sosa Gestión
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 permissions:
   contents: read
-  pages: write
-  id-token: write
 concurrency:
-  group: pages
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npx prettier --check .
   deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: checks
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -21,6 +37,10 @@ jobs:
         uses: actions/checkout@v4
       - name: Preparar GitHub Pages
         uses: actions/configure-pages@v5
+      - name: Asignar versión a los recursos
+        run: |
+          python3 -c 'import json, os; open("version.json", "w").write(json.dumps({"version": os.environ["GITHUB_SHA"]}))'
+          python3 -c 'import os; p="sw.js"; s=open(p).read(); open(p,"w").write(s.replace("__BUILD_VERSION__", os.environ["GITHUB_SHA"]))'
       - name: Empaquetar web
         uses: actions/upload-pages-artifact@v3
         with:

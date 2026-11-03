@@ -1,0 +1,11 @@
+{
+  "name": "vidres-sosa-gestion",
+  "private": true,
+  "scripts": {
+    "format": "prettier --write .",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "prettier": "3.8.3"
+  }
+}

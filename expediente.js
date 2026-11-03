@@ -48,49 +48,13 @@
       request.onerror = () => reject(request.error);
     });
   async function photos(jobId = current) {
-    const db = await photoDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction("fotos", "readonly");
-      const r = tx.objectStore("fotos").getAll();
-      r.onsuccess = () => {
-        resolve(r.result.filter((p) => p.trabajo === jobId));
-        db.close();
-      };
-      r.onerror = () => {
-        reject(r.error);
-        db.close();
-      };
-    });
+    return (await VSFiles.all("photos")).filter((p) => p.trabajo === jobId);
   }
   async function savePhoto(record) {
-    const db = await photoDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction("fotos", "readwrite");
-      tx.objectStore("fotos").put(record);
-      tx.oncomplete = () => {
-        db.close();
-        resolve();
-      };
-      tx.onerror = () => {
-        db.close();
-        reject(tx.error);
-      };
-    });
+    return VSFiles.put("photos", record);
   }
   async function removePhoto(id) {
-    const db = await photoDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction("fotos", "readwrite");
-      tx.objectStore("fotos").delete(id);
-      tx.oncomplete = () => {
-        db.close();
-        resolve();
-      };
-      tx.onerror = () => {
-        db.close();
-        reject(tx.error);
-      };
-    });
+    return VSFiles.remove("photos", id);
   }
   async function documentItems() {
     const db = await docDB();
@@ -151,31 +115,7 @@
     setTimeout(() => URL.revokeObjectURL(url), 60000);
   }
   function compress(file) {
-    return new Promise((resolve, reject) => {
-      const url = URL.createObjectURL(file),
-        img = new Image();
-      img.onload = () => {
-        URL.revokeObjectURL(url);
-        const scale = Math.min(1, 1600 / Math.max(img.width, img.height)),
-          canvas = document.createElement("canvas");
-        canvas.width = Math.round(img.width * scale);
-        canvas.height = Math.round(img.height * scale);
-        canvas
-          .getContext("2d")
-          .drawImage(img, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob(
-          (b) =>
-            b ? resolve(b) : reject(Error("No se pudo comprimir la imagen")),
-          "image/jpeg",
-          0.72,
-        );
-      };
-      img.onerror = () => {
-        URL.revokeObjectURL(url);
-        reject(Error("Imagen no válida"));
-      };
-      img.src = url;
-    });
+    return VSFiles.compressImage(file);
   }
   const getJob = () => window.vidresGetJobs?.().find((j) => j.id === current);
   const date = (v) => (v ? new Date(v).toLocaleString("es-ES") : "—");
@@ -259,7 +199,7 @@
         );
       }
       try {
-        const items = await photos(jobId);
+        const items = (await photos(jobId)).filter((p) => p.tipo !== "medidas");
         if (!active()) return;
         const host = body.querySelector("#exp-summary-photos");
         if (items.length && host) {
@@ -291,8 +231,9 @@
         }
       }
     }
-    if (tab === "medidas")
+    if (tab === "medidas") {
       body.innerHTML =
+        '<section class="exp-section"><div class="exp-section-head"><h3>Medidas en papel</h3><label class="exp-upload">📷 Foto de medidas<input type="file" accept="image/*" capture="environment" data-exp-measure-photo hidden></label><label class="exp-upload">Elegir de la galería<input type="file" accept="image/*" multiple data-exp-measure-photo hidden></label></div><p class="muted">La foto se guarda solo en este dispositivo. Se incluye únicamente en la copia completa con fotos y documentos.</p><div id="exp-paper-photos" class="measure-paper-grid">Cargando fotos…</div></section>' +
         '<div class="exp-section"><div class="exp-section-head"><h3>Mediciones del expediente</h3><button class="primary" data-exp-draw-measure>✎ Dibujar medidas</button><button type="button" data-exp-add-measure>+ Añadir medida</button><button type="button" data-exp-quote-measures>Crear presupuesto desde medidas</button></div>' +
         (measures.length
           ? '<div class="exp-measure-grid">' +
@@ -320,11 +261,43 @@
             "</div>"
           : "<p>Todavía no hay piezas medidas.</p>") +
         "</div>";
+      try {
+        const paper = (await photos(jobId)).filter(
+          (photo) => photo.tipo === "medidas",
+        );
+        if (!active()) return;
+        const host = body.querySelector("#exp-paper-photos");
+        if (host)
+          host.innerHTML = paper.length
+            ? paper
+                .map(
+                  (photo) =>
+                    '<figure><button type="button" class="paper-photo-open" data-exp-paper-open="' +
+                    esc(photo.id) +
+                    '"><img src="' +
+                    photoUrl(photo.blob) +
+                    '" alt="' +
+                    esc(photo.nombre) +
+                    '"></button><label>Nota<input maxlength="180" data-exp-photo-note="' +
+                    esc(photo.id) +
+                    '" value="' +
+                    esc(photo.nota || "") +
+                    '"></label><button type="button" data-exp-delete-photo="' +
+                    esc(photo.id) +
+                    '">Eliminar</button></figure>',
+                )
+                .join("")
+            : '<p class="muted">No hay fotos de medidas en papel.</p>';
+      } catch {
+        const host = body.querySelector("#exp-paper-photos");
+        if (host) host.textContent = "No se pudieron cargar las fotos.";
+      }
+    }
     if (tab === "fotos") {
       body.innerHTML =
         '<div class="exp-section"><div class="exp-section-head"><h3>Fotografías del trabajo</h3><label class="exp-upload">+ Añadir fotos<input id="exp-files" type="file" accept="image/*" multiple hidden></label></div><p class="muted">Las imágenes se comprimen antes de guardarse. Por ahora solo se conservan en este dispositivo y no se incluyen en la copia JSON.</p><div id="exp-photos" class="exp-gallery">Cargando fotos…</div></div>';
       try {
-        const items = await photos(jobId);
+        const items = (await photos(jobId)).filter((p) => p.tipo !== "medidas");
         if (!active()) return;
         const host = dialog.querySelector("#exp-photos");
         if (host)
@@ -554,9 +527,50 @@
       if (!confirm("¿Eliminar esta fotografía?")) return;
       await removePhoto(b.dataset.expDeletePhoto);
       render();
+    } else if (b.dataset.expPaperOpen) {
+      const photo = (await photos()).find(
+        (p) => p.id === b.dataset.expPaperOpen,
+      );
+      if (photo) openMeasurePhoto(photo);
     } else if (b.hasAttribute("data-exp-close")) dialog.close();
   });
   dialog.addEventListener("change", async (e) => {
+    if (e.target.dataset.expPhotoNote) {
+      const photo = (await photos()).find(
+        (item) => item.id === e.target.dataset.expPhotoNote,
+      );
+      if (photo)
+        await savePhoto({ ...photo, nota: String(e.target.value).trim() });
+      return;
+    }
+    if (e.target.hasAttribute("data-exp-measure-photo")) {
+      const files = [...e.target.files];
+      if (files.length > 12) {
+        alert("Añade un máximo de 12 fotos por operación.");
+        return;
+      }
+      for (const file of files) {
+        if (!file.type.startsWith("image/") || file.size > 20_000_000) {
+          alert("Archivo no admitido: " + file.name);
+          continue;
+        }
+        try {
+          await savePhoto({
+            id: crypto.randomUUID(),
+            trabajo: current,
+            tipo: "medidas",
+            nota: "",
+            nombre: file.name.slice(0, 100),
+            blob: await compress(file),
+            fecha: new Date().toISOString(),
+          });
+        } catch (error) {
+          alert("No se pudo guardar " + file.name + ": " + error.message);
+        }
+      }
+      render();
+      return;
+    }
     if (e.target.id === "exp-doc-files") {
       const files = [...e.target.files];
       if (files.length > 12) {
@@ -601,6 +615,7 @@
         await savePhoto({
           id: crypto.randomUUID(),
           trabajo: photoJobId,
+          tipo: "normal",
           nombre: file.name.slice(0, 100),
           blob,
           fecha: new Date().toISOString(),
@@ -610,5 +625,22 @@
       }
     }
     render();
+  });
+  const measurePhotoViewer = document.querySelector("#measure-photo-viewer"),
+    measurePhotoViewerImage = measurePhotoViewer?.querySelector("img");
+  function openMeasurePhoto(photo) {
+    const url = photoUrl(photo.blob);
+    measurePhotoViewerImage.src = url;
+    measurePhotoViewerImage.style.transform = "scale(1)";
+    measurePhotoViewer.showModal();
+  }
+  measurePhotoViewer
+    ?.querySelector(".measure-photo-close")
+    ?.addEventListener("click", () => measurePhotoViewer.close());
+  measurePhotoViewerImage?.addEventListener("dblclick", () => {
+    const enlarged = measurePhotoViewerImage.style.transform === "scale(2)";
+    measurePhotoViewerImage.style.transform = enlarged
+      ? "scale(1)"
+      : "scale(2)";
   });
 })();

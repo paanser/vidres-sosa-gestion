@@ -171,6 +171,25 @@
             </label>
           </details>
           <section id="new-job-measures" class="new-job-measures">
+            <h3>Foto de medidas en papel</h3>
+            <div class="measure-photo-actions">
+              <label class="exp-upload"
+                >📷 Foto de medidas<input
+                  class="job-measure-photo"
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  hidden /></label
+              ><label class="exp-upload"
+                >Elegir de la galería<input
+                  class="job-measure-photo"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  hidden
+              /></label>
+            </div>
+            <div id="job-measure-photo-list" class="measure-paper-grid"></div>
             <h3>Medidas del trabajo</h3>
             <p class="muted">
               Añade las piezas que ya tengas medidas. Puedes dejarlo vacío y
@@ -188,6 +207,12 @@
           ><button class="primary" type="submit">Guardar</button>
         </div>
       </form>
+    </dialog>
+    <dialog id="measure-photo-viewer" class="measure-photo-viewer">
+      <button type="button" class="measure-photo-close" aria-label="Cerrar">
+        Cerrar
+      </button>
+      <img alt="Foto de medidas ampliada" />
     </dialog>
     <dialog id="quick-note-dialog" aria-labelledby="quick-note-title">
       <form id="quick-note-form">

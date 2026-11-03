@@ -782,6 +782,33 @@ window.vidresAppReady = (async () => {
   }
   const dlg = $("#editor"),
     form = $("#form");
+  let pendingMeasurePhotos = [],
+    pendingPhotoUrls = [];
+  function clearPendingPhotoUrls() {
+    pendingPhotoUrls.forEach((url) => URL.revokeObjectURL(url));
+    pendingPhotoUrls = [];
+  }
+  function renderPendingMeasurePhotos() {
+    clearPendingPhotoUrls();
+    const host = $("#job-measure-photo-list");
+    host.innerHTML = pendingMeasurePhotos
+      .map((photo, index) => {
+        const url = URL.createObjectURL(photo.blob);
+        pendingPhotoUrls.push(url);
+        return (
+          '<figure><img src="' +
+          url +
+          '" alt="' +
+          esc(photo.nombre) +
+          '"><figcaption>' +
+          esc(photo.nombre) +
+          '</figcaption><button type="button" data-pending-photo-delete="' +
+          index +
+          '">Quitar</button></figure>'
+        );
+      })
+      .join("");
+  }
   let convertingNote = "";
   function open(id, prefill = {}) {
     editing = id;
@@ -789,6 +816,8 @@ window.vidresAppReady = (async () => {
     form.reset();
     form.querySelectorAll("details").forEach((el) => (el.open = false));
     window.vidresNewMeasures.reset(id);
+    pendingMeasurePhotos = [];
+    renderPendingMeasurePhotos();
     for (const [selector, field] of [
       ["#known-clients", "cliente"],
       ["#known-workers", "responsable"],
@@ -885,6 +914,44 @@ window.vidresAppReady = (async () => {
   window.vidresOpenMeasurement = measurementEditor;
   $("#add").addEventListener("click", () => open(null));
   $("#cancel").addEventListener("click", () => dlg.close());
+  form.addEventListener("change", async (e) => {
+    if (!e.target.classList.contains("job-measure-photo")) return;
+    const files = [...e.target.files];
+    if (files.length > 12) {
+      alert("Añade un máximo de 12 fotos por operación.");
+      e.target.value = "";
+      return;
+    }
+    for (const file of files) {
+      if (!file.type.startsWith("image/") || file.size > 20_000_000) {
+        alert("Archivo no admitido: " + file.name);
+        continue;
+      }
+      try {
+        const record = {
+          id: crypto.randomUUID(),
+          trabajo: editing || "",
+          tipo: "medidas",
+          nota: "",
+          nombre: file.name.slice(0, 100),
+          blob: await VSFiles.compressImage(file),
+          fecha: new Date().toISOString(),
+        };
+        if (editing) await VSFiles.put("photos", record);
+        else pendingMeasurePhotos.push(record);
+      } catch (error) {
+        alert("No se pudo preparar " + file.name + ": " + error.message);
+      }
+    }
+    e.target.value = "";
+    renderPendingMeasurePhotos();
+  });
+  form.addEventListener("click", (e) => {
+    const button = e.target.closest("[data-pending-photo-delete]");
+    if (!button) return;
+    pendingMeasurePhotos.splice(Number(button.dataset.pendingPhotoDelete), 1);
+    renderPendingMeasurePhotos();
+  });
   $("#content").addEventListener("click", async (e) => {
     if (e.target.closest("[data-note-new]")) {
       openQuickNote();
@@ -1184,7 +1251,8 @@ window.vidresAppReady = (async () => {
     let previousJobs,
       previousMeasurements,
       wroteJobs = false,
-      wroteMeasurements = false;
+      wroteMeasurements = false,
+      writtenPhotoIds = [];
     try {
       previousJobs = VSStorage.local.getItem(KEY);
       previousMeasurements = measurements;
@@ -1193,6 +1261,13 @@ window.vidresAppReady = (async () => {
       if (nextMeasurements !== measurements) {
         await VSStorage.measurements.replace(nextMeasurements);
         wroteMeasurements = true;
+      }
+      if (createdJobId && pendingMeasurePhotos.length) {
+        for (const photo of pendingMeasurePhotos) {
+          const record = { ...photo, trabajo: createdJobId };
+          await VSFiles.put("photos", record);
+          writtenPhotoIds.push(record.id);
+        }
       }
       if (createdJobId && convertingNote) {
         saveNotes(
@@ -1205,6 +1280,7 @@ window.vidresAppReady = (async () => {
       }
     } catch {
       try {
+        for (const id of writtenPhotoIds) await VSFiles.remove("photos", id);
         if (wroteMeasurements) {
           await VSStorage.measurements.replace(previousMeasurements);
         }
@@ -1226,6 +1302,8 @@ window.vidresAppReady = (async () => {
     jobs = nextJobs;
     measurements = nextMeasurements;
     dlg.close();
+    pendingMeasurePhotos = [];
+    clearPendingPhotoUrls();
     render();
   });
   const quickNoteDialog = $("#quick-note-dialog"),

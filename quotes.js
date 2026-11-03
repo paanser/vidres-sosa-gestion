@@ -208,6 +208,9 @@
       )}</tbody></table>${energy ? `<p>Recargo energético incluido en la base: ${money(energy)} (${esc(pricing(draft).energy)} ${pricing(draft).energyMode === "m2" ? "€/m²" : "%"})</p>` : ""}<p>Base: ${money(t.base)}<br>IVA (${esc(pricing(draft).vat ?? 21)} %): ${money(t.iva)}<br><strong>Total: ${money(t.total)}</strong></p><p>${esc(company.conditions || "").replace(/\n/g, "<br>")}</p><p>Validez: ${esc(company.validity || 30)} días desde la fecha del presupuesto.</p>${["name", "taxId", "address", "phone", "email"].every((k) => company[k]?.trim()) ? "" : "<p>Versión de prueba: completar los datos fiscales antes de entregar.</p>"}`;
     window.print();
   }
+  window.addEventListener("vidres-data-restored", () => {
+    draft = null;
+  });
   window.vidresQuoteRender = sync;
   window.vidresQuoteClick = async (e) => {
     const b = e.target.closest("button");

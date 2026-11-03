@@ -126,7 +126,26 @@
     local.removeItem(legacy);
   })();
   ready.catch(() => {});
+  async function getMeta(key) {
+    const d = await db();
+    return new Promise((resolve, reject) => {
+      const r = d.transaction("meta").objectStore("meta").get(key);
+      r.onsuccess = () => resolve(r.result);
+      r.onerror = () => reject(r.error);
+    });
+  }
+  async function setMeta(key, value) {
+    const d = await db();
+    return new Promise((resolve, reject) => {
+      const tx = d.transaction("meta", "readwrite");
+      if (value === undefined) tx.objectStore("meta").delete(key);
+      else tx.objectStore("meta").put(value, key);
+      tx.oncomplete = resolve;
+      tx.onerror = tx.onabort = () => reject(tx.error);
+    });
+  }
   window.VSStorage = {
+    meta: { get: getMeta, set: setMeta },
     local,
     read,
     write,

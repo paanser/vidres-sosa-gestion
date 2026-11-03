@@ -1,6 +1,7 @@
 "use strict";
 window.vidresAppReady = (async () => {
   await VSStorage.ready;
+  await VSBackup.recover();
   const { esc, num, money, round6 } = VSUtils;
 
   const KEY = "vidres-sosa-demo-v01";
@@ -569,7 +570,10 @@ window.vidresAppReady = (async () => {
     $("#title").classList.toggle("critical-heading", page === "criticos");
     let html = "";
     if (page === "inicio") {
-      html = dashboardHtml();
+      html =
+        (VSBackup.overdue()
+          ? '<p role="status" class="backup-reminder">Hace más de 14 días que no exportas una copia. <button type="button" data-go="ajustes">Hacer copia</button></p>'
+          : "") + dashboardHtml();
     } else if (page === "trabajos") {
       const q = /^[+\d\s()-]+$/.test(search)
         ? search.replace(/\D/g, "")
@@ -629,9 +633,19 @@ window.vidresAppReady = (async () => {
           "beforeend",
           panel(
             "Copia de seguridad de trabajos",
-            '<p class="muted">Exporta un JSON antes de cambiar de dispositivo o limpiar el navegador. Incluye trabajos, fichas de clientes y mediciones. No incluye presupuestos ni tarifas.</p><div class="backup-actions"><button type="button" id="backup-export">Descargar copia JSON</button><label>Importar copia JSON<input id="backup-import" type="file" accept=".json,application/json"></label></div>',
+            '<p class="muted">Exporta un JSON antes de cambiar de dispositivo o limpiar el navegador. Incluye trabajos, clientes, mediciones con croquis, presupuestos, tarifas y configuración. La copia con archivos incluye además fotos y documentos.</p><div class="backup-actions"><button type="button" id="backup-export">Descargar datos JSON</button><button type="button" id="backup-export-full">Copia completa con fotos y documentos</button><label>Importar copia JSON<input id="backup-import" type="file" accept=".json,application/json"></label></div>',
           ),
         );
+      host.insertAdjacentHTML(
+        "beforeend",
+        "<p>Última copia exportada: " +
+          esc(
+            VSBackup.last()
+              ? new Date(VSBackup.last()).toLocaleString("es-ES")
+              : "Ninguna",
+          ) +
+          "</p>",
+      );
       if (usagePanel) {
         host.appendChild(usagePanel);
         usagePanel.hidden = false;
@@ -705,70 +719,17 @@ window.vidresAppReady = (async () => {
       window.vidresNavigate(b.dataset.page);
     }),
   );
-  function downloadBackup() {
-    const payload = {
-      format: "vidres-sosa-backup",
-      version: 1,
-      exportado: new Date().toISOString(),
-      trabajos: jobs,
-      clientes: clients,
-      mediciones: measurements,
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob),
-      a = document.createElement("a");
-    a.href = url;
-    a.download = "vidres-sosa-copia-" + localToday() + ".json";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  async function downloadBackup() {
+    try {
+      await VSBackup.exportData(false);
+    } catch (e) {
+      alert(e.message);
+    }
   }
   function importBackup(file) {
-    if (!file || file.size > 5_000_000) {
-      alert("Selecciona una copia JSON de menos de 5 MB.");
-      return;
-    }
-    file
-      .text()
-      .then(async (text) => {
-        const data = JSON.parse(text);
-        if (
-          data.format !== "vidres-sosa-backup" ||
-          !Array.isArray(data.trabajos) ||
-          data.trabajos.some(
-            (j) =>
-              !j ||
-              typeof j.id !== "string" ||
-              typeof j.cliente !== "string" ||
-              typeof j.descripcion !== "string",
-          )
-        )
-          throw Error(
-            "El archivo no es una copia válida de trabajos de Vidres Sosa.",
-          );
-        if (
-          !confirm(
-            "Se sustituirán los trabajos guardados en este dispositivo por " +
-              data.trabajos.length +
-              " trabajos de la copia. También se restaurarán clientes y mediciones cuando estén presentes. ¿Continuar?",
-          )
-        )
-          return;
-        VSStorage.local.setItem(KEY, JSON.stringify(data.trabajos));
-        if (Array.isArray(data.clientes))
-          VSStorage.local.setItem(CLIENT_KEY, JSON.stringify(data.clientes));
-        if (Array.isArray(data.mediciones))
-          await VSStorage.measurements.replace(data.mediciones);
-        jobs = data.trabajos;
-        if (Array.isArray(data.clientes)) clients = data.clientes;
-        if (Array.isArray(data.mediciones)) measurements = data.mediciones;
-        render();
-        alert("Copia restaurada correctamente.");
-      })
-      .catch((err) => alert("No se pudo importar la copia: " + err.message));
+    VSBackup.importFile(file).catch((e) =>
+      alert("No se pudo importar: " + e.message),
+    );
   }
   const dlg = $("#editor"),
     form = $("#form");
@@ -837,49 +798,32 @@ window.vidresAppReady = (async () => {
       ) !== id
     )
       return false;
-    const before = {
-      jobs: structuredClone(jobs),
-      measurements: structuredClone(measurements),
-      quotes: VSStorage.read("vs-quote-prototype-v1", []),
-      photos: await VSFiles.all("photos"),
-      documents: await VSFiles.all("documents"),
-    };
     try {
-      await VSStorage.measurements.replace(
-        measurements.filter((m) => m.trabajo !== id),
+      const after = await VSBackup.snapshot();
+      after.trabajos = after.trabajos.filter((j) => j.id !== id);
+      after.mediciones = after.mediciones.filter((m) => m.trabajo !== id);
+      after.photos = after.photos.filter((x) => x.trabajo !== id);
+      after.documents = after.documents.filter((x) => x.trabajo !== id);
+      after.presupuestos = after.presupuestos.map((q) =>
+        q.job === id ? { ...q, job: "" } : q,
       );
-      for (const kind of ["photos", "documents"])
-        await VSFiles.replace(
-          kind,
-          before[kind].filter((x) => x.trabajo !== id),
-        );
-      VSStorage.write(
-        "vs-quote-prototype-v1",
-        before.quotes.map((q) => (q.job === id ? { ...q, job: "" } : q)),
-      );
-      VSStorage.write(
-        KEY,
-        jobs.filter((j) => j.id !== id),
-      );
-      jobs = jobs.filter((j) => j.id !== id);
-      measurements = VSStorage.measurements.get();
+      await VSBackup.transaction(after);
+      jobs = after.trabajos;
+      measurements = after.mediciones;
       render();
       return true;
     } catch (e) {
-      try {
-        await VSStorage.measurements.replace(before.measurements);
-        for (const kind of ["photos", "documents"])
-          await VSFiles.replace(kind, before[kind]);
-        VSStorage.write("vs-quote-prototype-v1", before.quotes);
-        VSStorage.write(KEY, before.jobs);
-      } catch {
-        alert(
-          "No se pudo restaurar todo el estado anterior. Conserva la sesión y exporta una copia antes de continuar.",
-        );
-      }
       alert("No se pudo eliminar el trabajo: " + e.message);
       return false;
     }
+  };
+  window.vidresRefresh = render;
+  window.vidresReloadData = () => {
+    jobs = VSStorage.read(KEY, []);
+    clients = VSStorage.read(CLIENT_KEY, []);
+    measurements = VSStorage.measurements.get();
+    window.dispatchEvent(new Event("vidres-data-restored"));
+    render();
   };
   window.vidresGetJobs = () => jobs;
   window.vidresGetMeasurements = () => measurements;
@@ -887,6 +831,14 @@ window.vidresAppReady = (async () => {
   $("#add").addEventListener("click", () => open(null));
   $("#cancel").addEventListener("click", () => dlg.close());
   $("#content").addEventListener("click", async (e) => {
+    if (e.target.closest("#backup-export-full")) {
+      try {
+        await VSBackup.exportData(true);
+      } catch (error) {
+        alert(error.message);
+      }
+      return;
+    }
     const focus = e.target.closest("[data-job-focus]");
     if (focus) {
       jobScope = "activos";

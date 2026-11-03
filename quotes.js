@@ -4,7 +4,8 @@
     Q = "vs-quote-prototype-v1",
     T = "vs-tariffs-prototype-v1",
     C = "vs-config-v1";
-  let draft = null;
+  let draft = null,
+    quickMode = false;
   const quotes = () => VSStorage.read(Q, []),
     tariffs = () => VSStorage.read(T, []),
     config = () => VSStorage.read(C, {});
@@ -13,6 +14,12 @@
   const calc = (line) => VSCalculations.calc(line, pricing(draft));
   const sum = (q) => VSCalculations.totals(q.lines, pricing(q));
   const statuses = ["Borrador", "Enviado", "Aceptado", "Rechazado"];
+  const localToday = () => new Date().toLocaleDateString("en-CA");
+  function addDays(date, days) {
+    const value = new Date(date + "T12:00:00");
+    value.setDate(value.getDate() + days);
+    return value.toLocaleDateString("en-CA");
+  }
   const unit = () => (config().unit === "mm" ? "mm" : "cm"),
     display = (v) => (unit() === "mm" ? String(num(v) * 10) : v);
   const glassName = (l) =>
@@ -34,7 +41,7 @@
       client: "",
       job: "",
       status: "Borrador",
-      date: new Date().toLocaleDateString("en-CA"),
+      date: localToday(),
       pricing: {
         vat: c.vat ?? 21,
         energy: c.energy || "",
@@ -61,14 +68,168 @@
   }
   function sync() {
     if (!draft) draft = fresh();
+    if (quickMode) {
+      quickSync();
+      return;
+    }
     const list = quotes(),
       jobs = window.vidresGetJobs?.() || [],
       total = sum(draft);
     document.querySelector("#content").innerHTML =
-      `<div class="quote-toolbar"><button type="button" class="primary" id="quote-new">+ Nuevo presupuesto</button><button type="button" id="quote-settings">Ajustes de tarifas</button></div>
+      `<div class="quote-toolbar"><button type="button" class="quick-quote-button" id="quote-quick">⚡ Presupuesto rápido</button><button type="button" class="primary" id="quote-new">+ Nuevo presupuesto</button><button type="button" id="quote-settings">Ajustes de tarifas</button></div>
  <section class="panel quote-editor"><h2>Presupuesto de vidrio · ${esc(draft.id || "Sin guardar")}</h2><div class="quote-fields"><label>Cliente<input id="quote-client" maxlength="100" value="${esc(draft.client)}"></label><label>Parte relacionado<select id="quote-job"><option value="">Sin vincular</option>${jobs.map((j) => `<option value="${esc(j.id)}" ${draft.job === j.id ? "selected" : ""}>${esc(j.id + " · " + j.cliente)}</option>`).join("")}</select></label><label>Estado<select id="quote-status">${statuses.map((s) => `<option ${s === (draft.status || "Borrador") ? "selected" : ""}>${s}</option>`).join("")}</select></label></div>
- <div id="quote-lines">${draft.lines.map(row).join("")}</div><button type="button" id="quote-add">+ Añadir otro vidrio</button><div class="quote-total"><div class="quote-total-breakdown">Base imponible: <strong>${money(total.base)}</strong><br>IVA (${esc(pricing(draft).vat ?? 21)} %): <strong>${money(total.iva)}</strong><br>Total con IVA: <strong class="quote-grand-total">${money(total.total)}</strong></div></div><div class="quote-toolbar"><button type="button" class="primary" id="quote-save">Guardar presupuesto</button><button type="button" id="quote-pdf">Imprimir / Guardar PDF</button></div></section>
- <section class="panel"><h2>Presupuestos guardados</h2>${list.length ? list.map((q) => `<article class="quote-saved"><span>${esc(q.id)} · ${esc(q.client)} · ${esc(q.status || "Borrador")} · Total: ${money(sum(q).total)}</span><div><button type="button" data-load="${esc(q.id)}">Abrir</button><button type="button" data-duplicate="${esc(q.id)}">Duplicar</button><button type="button" data-delete-quote="${esc(q.id)}">Eliminar</button></div></article>`).join("") : "<p>No hay presupuestos guardados.</p>"}</section>`;
+ <div id="quote-lines">${draft.lines.map(row).join("")}</div><button type="button" id="quote-add">+ Añadir otro vidrio</button><div class="quote-total"><div class="quote-total-breakdown">Base imponible: <strong>${money(total.base)}</strong><br>IVA (${esc(pricing(draft).vat ?? 21)} %): <strong>${money(total.iva)}</strong><br>Total con IVA: <strong class="quote-grand-total">${money(total.total)}</strong></div></div><div class="quote-toolbar"><button type="button" class="primary" id="quote-save">Guardar presupuesto</button><button type="button" id="quote-whatsapp">Enviar por WhatsApp</button><button type="button" id="quote-pdf">Imprimir / Guardar PDF</button></div></section>
+ <section class="panel"><h2>Presupuestos guardados</h2>${list.length ? list.map((q) => `<article class="quote-saved"><span>${esc(q.id)} · ${esc(q.client)} · ${esc(q.status || "Borrador")} · Total: ${money(sum(q).total)}</span><div><button type="button" data-load="${esc(q.id)}">Abrir</button><button type="button" data-whatsapp="${esc(q.id)}">WhatsApp</button><button type="button" data-duplicate="${esc(q.id)}">Duplicar</button><button type="button" data-delete-quote="${esc(q.id)}">Eliminar</button></div></article>`).join("") : "<p>No hay presupuestos guardados.</p>"}</section>`;
+  }
+  function quickSync() {
+    const line = draft.lines[0] || emptyLine(),
+      result = calc(line),
+      total = sum(draft),
+      names = [
+        ...new Set([
+          ...(window.vidresGetJobs?.() || []).map((job) => job.cliente),
+          ...VSStorage.read("vidres-clientes-v1", []).map(
+            (client) => client.nombre,
+          ),
+        ]),
+      ].filter(Boolean);
+    document.querySelector("#content").innerHTML = `
+      <div class="quote-toolbar"><button type="button" id="quick-close">← Volver a presupuestos</button></div>
+      <section class="panel quick-quote-editor">
+        <h2>⚡ Presupuesto rápido</h2>
+        <p class="muted">Calcula un precio sin crear antes un parte.</p>
+        <div class="quote-fields">
+          <label>Cliente (opcional)<input id="quick-client" list="quick-quote-clients" maxlength="100" value="${esc(draft.client)}"></label>
+          <datalist id="quick-quote-clients">${names.map((name) => `<option value="${esc(name)}"></option>`).join("")}</datalist>
+          <label>Ancho (${unit()})<input id="quick-w" type="number" min="0" step="0.1" value="${esc(display(line.w))}"></label>
+          <label>Alto (${unit()})<input id="quick-h" type="number" min="0" step="0.1" value="${esc(display(line.h))}"></label>
+          <label>Cantidad<input id="quick-qty" type="number" min="1" step="1" value="${esc(line.qty || 1)}"></label>
+          <label>Tipo de vidrio<select id="quick-glass"><option value="">Selecciona una tarifa</option>${tariffs()
+            .map(
+              (tariff) =>
+                `<option value="${esc(tariff.id)}" ${line.tariff === tariff.id ? "selected" : ""}>${esc(tariff.name)} · ${money(tariff.price)}/m²</option>`,
+            )
+            .join("")}</select></label>
+        </div>
+        <fieldset class="quote-edges"><legend>Cantos a pulir</legend>${[
+          ["top", "Superior"],
+          ["bottom", "Inferior"],
+          ["left", "Izquierdo"],
+          ["right", "Derecho"],
+        ]
+          .map(
+            ([value, label]) =>
+              `<label><input type="checkbox" data-quick-edge="${value}" ${(line.sides || []).includes(value) ? "checked" : ""}>${label}</label>`,
+          )
+          .join("")}</fieldset>
+        <div id="quick-result" class="quote-result quick-result">${quickResultHtml(result, total)}</div>
+        <div class="quote-toolbar"><button type="button" id="quick-copy">Copiar mensaje</button><button type="button" id="quick-whatsapp">Enviar por WhatsApp</button><button type="button" class="primary" id="quick-save">Guardar como presupuesto</button></div>
+      </section>`;
+  }
+  function quickResultHtml(result, total) {
+    return `Medida real: ${result.w} × ${result.h} cm<br>Medida aplicada: ${result.aw} × ${result.ah} cm<br>Superficie aplicada: ${result.area.toFixed(4)} m² por pieza<br>Base: <strong>${money(total.base)}</strong><br>IVA (${esc(pricing(draft).vat ?? 21)} %): <strong>${money(total.iva)}</strong><br>Total: <strong class="quote-grand-total">${money(total.total)}</strong>`;
+  }
+  function readQuickForm() {
+    const line = draft.lines[0] || emptyLine(),
+      client = document.querySelector("#quick-client"),
+      width = document.querySelector("#quick-w");
+    if (!client || !width) return;
+    draft.client = client.value.trim();
+    line.w =
+      unit() === "mm" ? String(num(width.value) / 10) : width.value.trim();
+    const height = document.querySelector("#quick-h").value;
+    line.h = unit() === "mm" ? String(num(height) / 10) : height.trim();
+    line.qty = document.querySelector("#quick-qty").value;
+    const tariff = tariffs().find(
+      (item) => item.id === document.querySelector("#quick-glass").value,
+    );
+    line.tariff = tariff?.id || "";
+    line.glass = tariff?.name || "";
+    line.price = tariff?.price ?? "";
+    line.edgePrice = tariff?.edge ?? "";
+    line.sides = [
+      ...document.querySelectorAll("[data-quick-edge]:checked"),
+    ].map((input) => input.dataset.quickEdge);
+    draft.lines = [line];
+  }
+  function updateQuickResult() {
+    readQuickForm();
+    const host = document.querySelector("#quick-result");
+    if (host)
+      host.innerHTML = quickResultHtml(calc(draft.lines[0]), sum(draft));
+  }
+  function messageQuote(q) {
+    const c = config(),
+      company = c.company || {},
+      totals = sum(q),
+      detail = q.lines
+        .map((line) => {
+          const result = VSCalculations.calc(line, pricing(q));
+          return `• ${glassName(line) || "Vidrio"} ${result.w}×${result.h} cm (${result.qty} ud.): ${money(result.total)}`;
+        })
+        .join("\n"),
+      template =
+        c.whatsappTemplate ||
+        "Hola{cliente}, te paso el precio:\n\n{detalle}\n\nBase: {base}\nIVA: {iva}\nTotal: {total}\n\n{empresa}. Presupuesto válido {validez} días.",
+      values = {
+        cliente: q.client && q.client !== "Sin cliente" ? " " + q.client : "",
+        detalle: detail,
+        base: money(totals.base),
+        iva: money(totals.iva),
+        total: money(totals.total),
+        empresa: company.name || "Vidres Sosa",
+        validez: company.validity || 30,
+      };
+    return template.replace(
+      /\{(cliente|detalle|base|iva|total|empresa|validez)\}/g,
+      (_, key) => values[key],
+    );
+  }
+  function phoneForQuote(q) {
+    const client = VSStorage.read("vidres-clientes-v1", []).find(
+      (item) =>
+        String(item.nombre || "")
+          .trim()
+          .toLocaleLowerCase("es") ===
+        String(q.client || "")
+          .trim()
+          .toLocaleLowerCase("es"),
+    );
+    let phone = String(client?.telefono || "").replace(/[^+0-9]/g, "");
+    phone = phone.replace(/^\+|^00/, "");
+    if (/^\d{9}$/.test(phone)) phone = "34" + phone;
+    return phone;
+  }
+  let messageTarget = null,
+    messageKind = "quote";
+  function openQuoteMessage(q, kind = "quote") {
+    messageTarget = q;
+    messageKind = kind;
+    const dialog = document.querySelector("#quote-message-dialog");
+    dialog.querySelector('[name="mensaje"]').value =
+      kind === "followup"
+        ? `Hola${q.client && q.client !== "Sin cliente" ? " " + q.client : ""}, ¿has podido revisar el presupuesto ${q.id}? Si tienes cualquier duda, estamos a tu disposición.\n\n${config().company?.name || "Vidres Sosa"}`
+        : messageQuote(q);
+    dialog.showModal();
+    requestAnimationFrame(() =>
+      dialog.querySelector('[name="mensaje"]').focus(),
+    );
+  }
+  function quickMessage() {
+    readQuickForm();
+    return messageQuote(draft);
+  }
+  async function copyText(text) {
+    if (navigator.clipboard?.writeText)
+      await navigator.clipboard.writeText(text);
+    else {
+      const area = document.createElement("textarea");
+      area.value = text;
+      document.body.appendChild(area);
+      area.select();
+      document.execCommand("copy");
+      area.remove();
+    }
   }
   function row(l, i) {
     const c = calc(l);
@@ -122,7 +283,7 @@
   }
   function valid(print = false) {
     if (
-      !draft.client.trim() ||
+      (!draft.client.trim() && !quickMode) ||
       !draft.lines.length ||
       !draft.lines.every(
         (l) =>
@@ -147,6 +308,17 @@
     fromForm();
     if (!draft) return true;
     const old = quotes().find((q) => q.id === draft.id);
+    if (
+      !old &&
+      !draft.client &&
+      !draft.job &&
+      draft.lines.length === 1 &&
+      !draft.lines[0].w &&
+      !draft.lines[0].h &&
+      !draft.lines[0].glass &&
+      !draft.lines[0].price
+    )
+      return true;
     return (
       JSON.stringify(old || fresh()) === JSON.stringify(draft) ||
       confirm("¿Descartar los cambios del presupuesto sin guardar?")
@@ -154,11 +326,19 @@
   }
   async function saveDraft() {
     fromForm();
+    if (quickMode) readQuickForm();
+    if (quickMode && !draft.client.trim()) draft.client = "Sin cliente";
     if (!valid()) return;
     const task = async () => {
       const list = quotes(),
         old = list.find((q) => q.id === draft.id);
       if (!draft.id) draft.id = nextId();
+      if (draft.status === "Enviado") {
+        draft.enviado = draft.enviado || localToday();
+        draft.seguimiento =
+          draft.seguimiento ||
+          addDays(draft.enviado, Number(config().followupDays) || 4);
+      }
       const i = list.findIndex((q) => q.id === draft.id),
         copy = structuredClone(draft);
       if (i < 0) list.push(copy);
@@ -171,6 +351,7 @@
         confirm("¿Cambiar el trabajo vinculado a En producción?")
       )
         window.vidresChangeJobStatus?.(copy.job, "En producción");
+      quickMode = false;
       sync();
     };
     try {
@@ -220,14 +401,42 @@
     try {
       if (b.id === "quote-new") {
         if (discard()) {
+          quickMode = false;
           draft = fresh();
           sync();
         }
+      } else if (b.id === "quote-quick") {
+        if (discard()) {
+          draft = fresh();
+          quickMode = true;
+          sync();
+        }
+      } else if (b.id === "quick-close") {
+        quickMode = false;
+        draft = fresh();
+        sync();
+      } else if (b.id === "quick-copy") {
+        updateQuickResult();
+        if (!valid(true)) return;
+        await copyText(quickMessage());
+        alert("Mensaje copiado.");
+      } else if (b.id === "quick-whatsapp") {
+        updateQuickResult();
+        if (!valid(true)) return;
+        openQuoteMessage(draft);
+      } else if (b.id === "quick-save") {
+        await saveDraft();
       } else if (b.id === "quote-settings") {
         fromForm();
         window.vidresNavigate("ajustes");
       } else if (b.id === "quote-save") await saveDraft();
-      else if (b.id === "quote-add") {
+      else if (b.id === "quote-whatsapp") {
+        fromForm();
+        if (valid(true)) openQuoteMessage(draft);
+      } else if (b.dataset.whatsapp) {
+        const quote = quotes().find((item) => item.id === b.dataset.whatsapp);
+        if (quote) openQuoteMessage(quote);
+      } else if (b.id === "quote-add") {
         fromForm();
         draft.lines.push(emptyLine());
         sync();
@@ -260,7 +469,7 @@
           );
           draft.id = null;
           draft.status = "Borrador";
-          draft.date = new Date().toLocaleDateString("en-CA");
+          draft.date = localToday();
           sync();
         }
       }
@@ -269,6 +478,10 @@
     }
   };
   window.vidresQuoteChange = (e) => {
+    if (quickMode) {
+      updateQuickResult();
+      return;
+    }
     fromForm();
     const el = e.target.closest(".quote-line");
     if (el && e.target.dataset.field === "glass") {
@@ -290,6 +503,9 @@
       }
     }
     sync();
+  };
+  window.vidresQuoteInput = () => {
+    if (quickMode) updateQuickResult();
   };
   window.vidresQuotesForJob = (id) =>
     quotes()
@@ -324,5 +540,111 @@
       window.vidresQuotePage = "presupuestos";
       window.vidresNavigate("presupuestos");
     }
+  };
+  window.vidresQuoteWhatsApp = (id) => {
+    const quote = quotes().find((item) => item.id === id);
+    if (quote) openQuoteMessage(quote);
+  };
+  const messageDialog = document.querySelector("#quote-message-dialog"),
+    messageForm = document.querySelector("#quote-message-form");
+  document
+    .querySelector("#quote-message-cancel")
+    .addEventListener("click", () => messageDialog.close());
+  messageForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (!messageTarget || !messageForm.reportValidity()) return;
+    const text = messageForm.elements.mensaje.value.trim(),
+      phone = phoneForQuote(messageTarget),
+      targetId = messageTarget.id;
+    window.open(
+      "https://wa.me/" + phone + "?text=" + encodeURIComponent(text),
+      "_blank",
+      "noopener,noreferrer",
+    );
+    messageDialog.close();
+    if (
+      messageKind === "quote" &&
+      targetId &&
+      confirm("¿Marcar este presupuesto como Enviado?")
+    ) {
+      const today = localToday(),
+        followup = addDays(today, Number(config().followupDays) || 4);
+      VSStorage.write(
+        Q,
+        quotes().map((quote) =>
+          quote.id === targetId
+            ? {
+                ...quote,
+                status: "Enviado",
+                enviado: today,
+                seguimiento: followup,
+              }
+            : quote,
+        ),
+      );
+      if (draft?.id === targetId) {
+        draft.status = "Enviado";
+        draft.enviado = today;
+        draft.seguimiento = followup;
+      }
+      sync();
+    }
+  });
+  window.vidresQuoteFollowUps = () => {
+    const today = localToday();
+    return quotes()
+      .filter(
+        (quote) =>
+          (quote.status || "Borrador") === "Enviado" &&
+          quote.seguimiento &&
+          quote.seguimiento <= today,
+      )
+      .map((quote) => ({
+        id: quote.id,
+        client: quote.client,
+        sent: quote.enviado || "",
+        followup: quote.seguimiento,
+        total: sum(quote).total,
+        days: quote.enviado
+          ? Math.max(
+              0,
+              Math.floor(
+                (new Date(today + "T12:00:00") -
+                  new Date(quote.enviado + "T12:00:00")) /
+                  86400000,
+              ),
+            )
+          : 0,
+      }));
+  };
+  window.vidresQuoteFollowupWhatsApp = (id) => {
+    const quote = quotes().find((item) => item.id === id);
+    if (quote) openQuoteMessage(quote, "followup");
+  };
+  window.vidresQuotePostpone = (id, days = 3) => {
+    const date = addDays(localToday(), days);
+    VSStorage.write(
+      Q,
+      quotes().map((quote) =>
+        quote.id === id ? { ...quote, seguimiento: date } : quote,
+      ),
+    );
+    if (draft?.id === id) draft.seguimiento = date;
+  };
+  window.vidresQuoteUpdateStatus = (id, status) => {
+    const list = quotes(),
+      quote = list.find((item) => item.id === id);
+    if (!quote || !statuses.includes(status)) return;
+    VSStorage.write(
+      Q,
+      list.map((item) => (item.id === id ? { ...item, status } : item)),
+    );
+    if (draft?.id === id) draft.status = status;
+    if (
+      status === "Aceptado" &&
+      quote.job &&
+      confirm("¿Cambiar el trabajo vinculado a En producción?")
+    )
+      window.vidresChangeJobStatus?.(quote.job, "En producción");
   };
 })();

@@ -16,6 +16,7 @@
         <nav id="nav" aria-label="Navegación principal">
           <button data-page="inicio" class="active">⌂ Inicio</button
           ><button id="add">+ Nuevo parte</button
+          ><button id="quick-note-add">+ Nota rápida</button
           ><button data-page="trabajos">▤ Trabajos activos</button
           ><button data-page="presupuestos">€ Presupuestos</button
           ><button data-page="herramientas">▦ Herramientas</button
@@ -105,6 +106,12 @@
               No se guardará nada sin pulsar Guardar.
             </p>
           </details>
+          <label class="template-start" id="template-start" hidden>
+            Empezar desde plantilla
+            <select id="start-template">
+              <option value="">Sin plantilla</option>
+            </select>
+          </label>
           <label
             >Cliente<input
               name="cliente"
@@ -114,9 +121,8 @@
               autocomplete="organization" /></label
           ><datalist id="known-clients"></datalist
           ><label
-            >Descripción<input
+            >Descripción (opcional)<input
               name="descripcion"
-              required
               maxlength="180"
               placeholder="Ej. Sustituir vidrio de escaparate" /></label
           ><label
@@ -171,6 +177,25 @@
             </label>
           </details>
           <section id="new-job-measures" class="new-job-measures">
+            <h3>Foto de medidas en papel</h3>
+            <div class="measure-photo-actions">
+              <label class="exp-upload"
+                >📷 Foto de medidas<input
+                  class="job-measure-photo"
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  hidden /></label
+              ><label class="exp-upload"
+                >Elegir de la galería<input
+                  class="job-measure-photo"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  hidden
+              /></label>
+            </div>
+            <div id="job-measure-photo-list" class="measure-paper-grid"></div>
             <h3>Medidas del trabajo</h3>
             <p class="muted">
               Añade las piezas que ya tengas medidas. Puedes dejarlo vacío y
@@ -185,6 +210,51 @@
         </div>
         <div class="actions">
           <button type="button" id="cancel">Cancelar</button
+          ><button class="primary" type="submit">Guardar</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="measure-photo-viewer" class="measure-photo-viewer">
+      <button type="button" class="measure-photo-close" aria-label="Cerrar">
+        Cerrar
+      </button>
+      <img alt="Foto de medidas ampliada" />
+    </dialog>
+    <dialog id="quote-message-dialog" aria-labelledby="quote-message-title">
+      <form id="quote-message-form">
+        <h2 id="quote-message-title">Mensaje de WhatsApp</h2>
+        <p class="muted">Puedes corregir el texto antes de enviarlo.</p>
+        <textarea name="mensaje" rows="14" maxlength="5000" required></textarea>
+        <div class="actions">
+          <button type="button" id="quote-message-cancel">Cancelar</button
+          ><button type="submit" class="primary">Abrir WhatsApp</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="quick-note-dialog" aria-labelledby="quick-note-title">
+      <form id="quick-note-form">
+        <h2 id="quick-note-title">Nota rápida</h2>
+        <input type="hidden" name="id" />
+        <label
+          >¿Qué necesitas recordar?<textarea
+            name="texto"
+            rows="5"
+            maxlength="1000"
+            required
+            autofocus
+            placeholder="Ej. Calcular precio a Canturri"
+          ></textarea></label
+        ><label
+          >Cliente (opcional)<input
+            name="cliente"
+            maxlength="100"
+            list="quick-note-clients" /></label
+        ><datalist id="quick-note-clients"></datalist
+        ><label
+          >Fecha de aviso (opcional)<input name="aviso" type="date"
+        /></label>
+        <div class="actions">
+          <button type="button" id="quick-note-cancel">Cancelar</button
           ><button class="primary" type="submit">Guardar</button>
         </div>
       </form>
@@ -208,6 +278,37 @@
         </div>
       </form>
     </dialog>
+    <dialog id="plantilla-editor" aria-labelledby="plantilla-title">
+      <form id="plantilla-form">
+        <h2 id="plantilla-title">Nueva plantilla</h2>
+        <input type="hidden" name="id" />
+        <label>Nombre<input name="nombre" required maxlength="80" /></label>
+        <label
+          >Descripción por defecto<input
+            name="descripcion"
+            maxlength="180"
+            placeholder="Ej. Instalar mampara de ducha" /></label
+        ><label
+          >Tipo de cliente<select name="tipoCliente">
+            <option>Particular</option>
+            <option>Vitralia</option>
+            <option>Mapfre</option>
+            <option>Otros</option>
+          </select></label
+        ><label
+          >Notas<textarea name="notas" rows="3" maxlength="1000"></textarea>
+        </label>
+        <fieldset class="plantilla-piezas">
+          <legend>Piezas (opcional, sin medidas)</legend>
+          <div id="plantilla-piezas"></div>
+          <button type="button" id="plantilla-add-pieza">+ Añadir pieza</button>
+        </fieldset>
+        <div class="actions">
+          <button type="button" id="plantilla-cancel">Cancelar</button
+          ><button class="primary" type="submit">Guardar plantilla</button>
+        </div>
+      </form>
+    </dialog>
     <dialog id="measure-editor" aria-labelledby="measure-title">
       <form id="measure-form">
         <h2 id="measure-title">Medición de vidrio</h2>
@@ -223,7 +324,7 @@
               type="number"
               inputmode="decimal"
               min="0.1"
-              step="0.1"
+              step="0.01"
               required /></label
           ><label
             >Alto (cm)<input
@@ -231,7 +332,7 @@
               type="number"
               inputmode="decimal"
               min="0.1"
-              step="0.1"
+              step="0.01"
               required /></label
           ><label
             >Espesor (mm)<input

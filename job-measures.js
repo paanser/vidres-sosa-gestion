@@ -19,13 +19,13 @@
         4,
       ) + " m² reales";
   }
-  function addPiece(draw = false) {
+  function createPiece() {
     const row = document.createElement("fieldset");
     row.className = "new-measure-piece";
     row.innerHTML = `<legend>Pieza ${++sequence}</legend>
       <div class="measure-fields">
-        <label>Ancho (cm)<input data-new-measure="ancho" type="number" inputmode="decimal" min="0.1" step="0.1" required></label>
-        <label>Alto (cm)<input data-new-measure="alto" type="number" inputmode="decimal" min="0.1" step="0.1" required></label>
+        <label>Ancho (cm)<input data-new-measure="ancho" type="number" inputmode="decimal" min="0.1" step="0.01" required></label>
+        <label>Alto (cm)<input data-new-measure="alto" type="number" inputmode="decimal" min="0.1" step="0.01" required></label>
         <label>Cantidad<input data-new-measure="cantidad" type="number" inputmode="numeric" min="1" step="1" value="1" required></label>
         <label>Espesor (mm)<input data-new-measure="espesor" type="number" inputmode="decimal" min="0" step="0.1"></label>
       </div>
@@ -33,8 +33,35 @@
       <label>Observaciones de la pieza<textarea data-new-measure="observaciones" rows="2" maxlength="500"></textarea></label>
       <div class="new-measure-sketch"></div><output aria-live="polite">0.0000 m² reales</output>
       <button type="button" data-new-measure-remove>Quitar pieza</button>`;
+    window.vidresSketch.mount(
+      row.querySelector(".new-measure-sketch"),
+      undefined,
+      {
+        onUseDims: ({ ancho, alto }) => {
+          const setMeasure = (key, value) => {
+            if (value == null) return;
+            const input = row.querySelector(`[data-new-measure="${key}"]`);
+            if (!input) return;
+            if (
+              input.value.trim() !== "" &&
+              !confirm(
+                `El campo ${key} ya tiene ${input.value}. ¿Sustituirlo por ${value}?`,
+              )
+            )
+              return;
+            input.value = value;
+            updateArea(row);
+          };
+          setMeasure("ancho", ancho);
+          setMeasure("alto", alto);
+        },
+      },
+    );
+    return row;
+  }
+  function addPiece(draw = false) {
+    const row = createPiece();
     list.appendChild(row);
-    window.vidresSketch.mount(row.querySelector(".new-measure-sketch"));
     if (draw)
       window.vidresSketch.open(row.querySelector(".new-measure-sketch"));
     else row.querySelector("input").focus();
@@ -65,6 +92,24 @@
       list.replaceChildren();
       sequence = 0;
       section.hidden = Boolean(editing);
+    },
+    applyTemplatePieces(piezas = []) {
+      list
+        .querySelectorAll(".new-measure-sketch")
+        .forEach((host) => window.vidresSketch.destroy(host));
+      list.replaceChildren();
+      sequence = 0;
+      for (const p of piezas || []) {
+        const row = createPiece();
+        if (p.tipo)
+          row.querySelector('[data-new-measure="tipo"]').value = p.tipo;
+        if (p.espesor)
+          row.querySelector('[data-new-measure="espesor"]').value = p.espesor;
+        if (p.observaciones)
+          row.querySelector('[data-new-measure="observaciones"]').value =
+            p.observaciones;
+        list.appendChild(row);
+      }
     },
     read(jobId) {
       return [...list.querySelectorAll("fieldset")].map((row) => ({

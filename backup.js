@@ -7,6 +7,8 @@
     tarifas: "vs-tariffs-prototype-v1",
     configuracion: "vs-config-v1",
     numeracion: "vs-quote-sequence-v1",
+    notas: "vidres-notas-v1",
+    plantillas: "vidres-plantillas-v1",
   };
   const stamp = "vidres-last-backup-v1",
     start = "vidres-backup-start-v1";
@@ -166,6 +168,44 @@
     )
       throw Error("Clientes no válidos");
     if (
+      data.notas !== undefined &&
+      (!Array.isArray(data.notas) ||
+        !unique(data.notas) ||
+        data.notas.some(
+          (n) =>
+            !text(n, "id") ||
+            !text(n, "texto") ||
+            !text(n, "cliente") ||
+            !text(n, "aviso") ||
+            typeof n.hecha !== "boolean" ||
+            !text(n, "creada") ||
+            !text(n, "parte"),
+        ))
+    )
+      throw Error("Notas rápidas no válidas");
+    if (
+      data.plantillas !== undefined &&
+      (!Array.isArray(data.plantillas) ||
+        !unique(data.plantillas) ||
+        data.plantillas.some(
+          (t) =>
+            !text(t, "id") ||
+            !text(t, "nombre") ||
+            (t.descripcion !== undefined && !text(t, "descripcion")) ||
+            (t.tipoCliente !== undefined && !text(t, "tipoCliente")) ||
+            (t.notas !== undefined && !text(t, "notas")) ||
+            !Array.isArray(t.piezas) ||
+            t.piezas.some(
+              (p) =>
+                !p ||
+                !text(p, "tipo") ||
+                (p.espesor !== undefined && !text(p, "espesor")) ||
+                (p.observaciones !== undefined && !text(p, "observaciones")),
+            ),
+        ))
+    )
+      throw Error("Plantillas no válidas");
+    if (
       data.mediciones !== undefined &&
       (!Array.isArray(data.mediciones) ||
         !unique(data.mediciones) ||
@@ -199,6 +239,24 @@
         )
       )
         throw Error("Croquis no válido");
+      if (
+        s.dims !== undefined &&
+        (!Array.isArray(s.dims) ||
+          s.dims.some(
+            (d) =>
+              !d ||
+              typeof d.id !== "string" ||
+              !Array.isArray(d.a) ||
+              d.a.length !== 2 ||
+              !Array.isArray(d.b) ||
+              d.b.length !== 2 ||
+              [d.a, d.b].some((p) =>
+                p.some((n) => typeof n !== "number" || !Number.isFinite(n)),
+              ) ||
+              typeof d.valor !== "string",
+          ))
+      )
+        throw Error("Cotas del croquis no válidas");
     }
     if (
       data.presupuestos !== undefined &&

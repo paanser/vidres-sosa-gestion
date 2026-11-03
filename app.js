@@ -277,13 +277,17 @@ window.vidresAppReady = (async () => {
     const today = localToday(),
       active = jobs.filter((j) => !isClosed(j)),
       due = active.filter((j) => j.fecha === today),
-      critical = active.filter((j) => j.estado === "Crítico");
+      critical = active.filter((j) => j.estado === "Crítico"),
+      pendingNotes = notes.filter((n) => !n.hecha),
+      followups = window.vidresQuoteFollowUps?.() || [];
     const counts = [
       ["Trabajos activos", active.length],
       ["Para hoy", due.length],
       ["Críticos", critical.length],
       ["Atrasados", active.filter((j) => j.fecha && j.fecha < today).length],
       ["Sin fecha", active.filter((j) => !j.fecha).length],
+      ["Pendientes", pendingNotes.length],
+      ["Por reclamar", followups.length],
     ];
     const preview = [...active]
       .sort(
@@ -333,12 +337,15 @@ window.vidresAppReady = (async () => {
             .join("") +
           "</div>"
         : '<p class="muted">No hay trabajos activos. Puedes crear un parte desde el menú.</p>') +
-      "</section>"
+      "</section>" +
+      pendingNotesHtml(pendingNotes, today) +
+      followupsHtml(followups)
     );
   }
 
   // Fichas locales de clientes y mediciones por pieza; se conserva la estructura de trabajos existente.
   const CLIENT_KEY = "vidres-clientes-v1",
+    NOTE_KEY = "vidres-notas-v1",
     MEASURE_KEY = "vidres-mediciones-v1";
   const safeRead = (key, fallback) => {
     try {
@@ -349,7 +356,84 @@ window.vidresAppReady = (async () => {
     }
   };
   let clients = safeRead(CLIENT_KEY, []),
+    notes = safeRead(NOTE_KEY, []),
     measurements = VSStorage.measurements.get();
+  function saveNotes(next = notes) {
+    VSStorage.write(NOTE_KEY, next);
+    notes = next;
+  }
+  function pendingNotesHtml(items, today) {
+    const ordered = [...items].sort(
+      (a, b) =>
+        Boolean(b.aviso && b.aviso < today) -
+          Boolean(a.aviso && a.aviso < today) ||
+        (a.aviso || "9999").localeCompare(b.aviso || "9999") ||
+        a.creada.localeCompare(b.creada),
+    );
+    return (
+      '<section class="panel quick-notes"><div class="simple-section-head"><h2>Pendientes</h2><button type="button" data-note-new>+ Nota rápida</button></div>' +
+      (ordered.length
+        ? '<div class="quick-note-list">' +
+          ordered
+            .map(
+              (n) =>
+                '<article class="quick-note ' +
+                (n.aviso && n.aviso < today ? "overdue" : "") +
+                '"><label class="quick-note-check"><input type="checkbox" data-note-done="' +
+                esc(n.id) +
+                '"><span><strong>' +
+                esc(n.texto) +
+                "</strong>" +
+                (n.cliente
+                  ? "<small>Cliente: " + esc(n.cliente) + "</small>"
+                  : "") +
+                (n.aviso ? "<small>Aviso: " + esc(n.aviso) + "</small>" : "") +
+                '</span></label><div class="quick-note-actions"><button type="button" data-note-convert="' +
+                esc(n.id) +
+                '">Convertir en parte</button><button type="button" data-note-edit="' +
+                esc(n.id) +
+                '">Editar</button><button type="button" data-note-delete="' +
+                esc(n.id) +
+                '">Eliminar</button></div></article>',
+            )
+            .join("") +
+          "</div>"
+        : '<p class="muted">No hay notas pendientes.</p>') +
+      "</section>"
+    );
+  }
+  function followupsHtml(items) {
+    return (
+      '<section class="panel quote-followups"><h2>Presupuestos por reclamar</h2>' +
+      (items.length
+        ? '<div class="followup-list">' +
+          items
+            .map(
+              (quote) =>
+                '<article class="followup-item"><div><strong>' +
+                esc(quote.client || "Sin cliente") +
+                " · " +
+                esc(quote.id) +
+                "</strong><span>" +
+                money(quote.total) +
+                " · enviado hace " +
+                quote.days +
+                ' día(s)</span></div><div><button type="button" data-followup-whatsapp="' +
+                esc(quote.id) +
+                '">Escribir por WhatsApp</button><button type="button" data-followup-status="Aceptado" data-quote-id="' +
+                esc(quote.id) +
+                '">Marcar aceptado</button><button type="button" data-followup-status="Rechazado" data-quote-id="' +
+                esc(quote.id) +
+                '">Marcar rechazado</button><button type="button" data-followup-postpone="' +
+                esc(quote.id) +
+                '">Posponer 3 días</button></div></article>',
+            )
+            .join("") +
+          "</div>"
+        : '<p class="muted">No hay presupuestos pendientes de respuesta.</p>') +
+      "</section>"
+    );
+  }
   const normName = (name) =>
     String(name || "")
       .trim()
@@ -508,17 +592,37 @@ window.vidresAppReady = (async () => {
     window.vidresSketch.mount(
       document.querySelector("#measure-sketch"),
       m?.croquis,
-      m
-        ? {
-            onAccept: async (croquis) => {
-              const next = measurements.map((item) =>
-                item.id === m.id ? { ...item, croquis } : item,
-              );
-              await VSStorage.measurements.replace(next);
-              measurements = next;
-            },
-          }
-        : {},
+      {
+        ...(m
+          ? {
+              onAccept: async (croquis) => {
+                const next = measurements.map((item) =>
+                  item.id === m.id ? { ...item, croquis } : item,
+                );
+                await VSStorage.measurements.replace(next);
+                measurements = next;
+              },
+            }
+          : {}),
+        onUseDims: ({ ancho, alto }) => {
+          const measureForm = document.querySelector("#measure-form");
+          const setMeasure = (name, value) => {
+            if (value == null) return;
+            const input = measureForm.elements[name];
+            if (!input) return;
+            if (
+              input.value.trim() !== "" &&
+              !confirm(
+                `El campo ${name} ya tiene ${input.value}. ¿Sustituirlo por ${value}?`,
+              )
+            )
+              return;
+            input.value = value;
+          };
+          setMeasure("ancho", ancho);
+          setMeasure("alto", alto);
+        },
+      },
     );
     dialog.showModal();
     if (draw)
@@ -733,11 +837,60 @@ window.vidresAppReady = (async () => {
   }
   const dlg = $("#editor"),
     form = $("#form");
-  function open(id) {
+  let pendingMeasurePhotos = [],
+    pendingPhotoUrls = [];
+  function clearPendingPhotoUrls() {
+    pendingPhotoUrls.forEach((url) => URL.revokeObjectURL(url));
+    pendingPhotoUrls = [];
+  }
+  function renderPendingMeasurePhotos() {
+    clearPendingPhotoUrls();
+    const host = $("#job-measure-photo-list");
+    host.innerHTML = pendingMeasurePhotos
+      .map((photo, index) => {
+        const url = URL.createObjectURL(photo.blob);
+        pendingPhotoUrls.push(url);
+        return (
+          '<figure><img src="' +
+          url +
+          '" alt="' +
+          esc(photo.nombre) +
+          '"><figcaption>' +
+          esc(photo.nombre) +
+          '</figcaption><button type="button" data-pending-photo-delete="' +
+          index +
+          '">Quitar</button></figure>'
+        );
+      })
+      .join("");
+  }
+  let convertingNote = "";
+  function open(id, prefill = {}) {
     editing = id;
+    convertingNote = id ? "" : prefill.noteId || "";
     form.reset();
     form.querySelectorAll("details").forEach((el) => (el.open = false));
     window.vidresNewMeasures.reset(id);
+    const tplWrap = $("#template-start"),
+      tplSelect = $("#start-template");
+    if (tplWrap && tplSelect) {
+      tplWrap.hidden = Boolean(id);
+      tplSelect.innerHTML =
+        '<option value="">Sin plantilla</option>' +
+        (window.vidresPlantillasList?.() || [])
+          .map(
+            (t) =>
+              '<option value="' +
+              esc(t.id) +
+              '">' +
+              esc(t.nombre) +
+              "</option>",
+          )
+          .join("");
+      tplSelect.value = "";
+    }
+    pendingMeasurePhotos = [];
+    renderPendingMeasurePhotos();
     for (const [selector, field] of [
       ["#known-clients", "cliente"],
       ["#known-workers", "responsable"],
@@ -765,9 +918,42 @@ window.vidresAppReady = (async () => {
       ])
         form.elements[key].value = job[key] || "";
       form.elements["tipoCliente"].value = job.tipoCliente || "Particular";
+    } else {
+      form.elements.cliente.value = prefill.cliente || "";
+      form.elements.descripcion.value = prefill.descripcion || "";
     }
     dlg.showModal();
   }
+  function applyTemplate(id) {
+    const select = $("#start-template");
+    if (!id) return;
+    const t = (window.vidresPlantillasList?.() || []).find((x) => x.id === id);
+    if (!t) return;
+    const hasInfo =
+      form.elements.descripcion.value.trim() !== "" ||
+      form.elements.notas.value.trim() !== "" ||
+      (form.elements.tipoCliente.value || "Particular") !== "Particular" ||
+      document.querySelectorAll(".new-measure-piece").length > 0;
+    if (
+      hasInfo &&
+      !confirm(
+        "Ya hay información escrita. ¿Sustituirla por la plantilla «" +
+          t.nombre +
+          "»?",
+      )
+    ) {
+      select.value = "";
+      return;
+    }
+    form.elements.descripcion.value = t.descripcion || "";
+    form.elements.tipoCliente.value = t.tipoCliente || "Particular";
+    form.elements.notas.value = t.notas || "";
+    window.vidresNewMeasures.applyTemplatePieces?.(t.piezas || []);
+    select.value = "";
+  }
+  $("#start-template")?.addEventListener("change", (e) =>
+    applyTemplate(e.target.value),
+  );
   window.vidresOpenJobEditor = open;
   window.vidresChangeJobStatus = (id, status) => {
     const next = jobs.map((j) =>
@@ -821,6 +1007,7 @@ window.vidresAppReady = (async () => {
   window.vidresReloadData = () => {
     jobs = VSStorage.read(KEY, []);
     clients = VSStorage.read(CLIENT_KEY, []);
+    notes = VSStorage.read(NOTE_KEY, []);
     measurements = VSStorage.measurements.get();
     window.dispatchEvent(new Event("vidres-data-restored"));
     render();
@@ -830,7 +1017,105 @@ window.vidresAppReady = (async () => {
   window.vidresOpenMeasurement = measurementEditor;
   $("#add").addEventListener("click", () => open(null));
   $("#cancel").addEventListener("click", () => dlg.close());
+  form.addEventListener("change", async (e) => {
+    if (!e.target.classList.contains("job-measure-photo")) return;
+    const files = [...e.target.files];
+    if (files.length > 12) {
+      alert("Añade un máximo de 12 fotos por operación.");
+      e.target.value = "";
+      return;
+    }
+    for (const file of files) {
+      if (!file.type.startsWith("image/") || file.size > 20_000_000) {
+        alert("Archivo no admitido: " + file.name);
+        continue;
+      }
+      try {
+        const record = {
+          id: crypto.randomUUID(),
+          trabajo: editing || "",
+          tipo: "medidas",
+          nota: "",
+          nombre: file.name.slice(0, 100),
+          blob: await VSFiles.compressImage(file),
+          fecha: new Date().toISOString(),
+        };
+        if (editing) await VSFiles.put("photos", record);
+        else pendingMeasurePhotos.push(record);
+      } catch (error) {
+        alert("No se pudo preparar " + file.name + ": " + error.message);
+      }
+    }
+    e.target.value = "";
+    renderPendingMeasurePhotos();
+  });
+  form.addEventListener("click", (e) => {
+    const button = e.target.closest("[data-pending-photo-delete]");
+    if (!button) return;
+    pendingMeasurePhotos.splice(Number(button.dataset.pendingPhotoDelete), 1);
+    renderPendingMeasurePhotos();
+  });
   $("#content").addEventListener("click", async (e) => {
+    const followupWhatsApp = e.target.closest("[data-followup-whatsapp]");
+    if (followupWhatsApp) {
+      window.vidresQuoteFollowupWhatsApp?.(
+        followupWhatsApp.dataset.followupWhatsapp,
+      );
+      return;
+    }
+    const followupStatus = e.target.closest("[data-followup-status]");
+    if (followupStatus) {
+      window.vidresQuoteUpdateStatus?.(
+        followupStatus.dataset.quoteId,
+        followupStatus.dataset.followupStatus,
+      );
+      render();
+      return;
+    }
+    const postpone = e.target.closest("[data-followup-postpone]");
+    if (postpone) {
+      window.vidresQuotePostpone?.(postpone.dataset.followupPostpone, 3);
+      render();
+      return;
+    }
+    if (e.target.closest("[data-note-new]")) {
+      openQuickNote();
+      return;
+    }
+    const noteDone = e.target.closest("[data-note-done]");
+    if (noteDone) {
+      saveNotes(
+        notes.map((n) =>
+          n.id === noteDone.dataset.noteDone ? { ...n, hecha: true } : n,
+        ),
+      );
+      render();
+      return;
+    }
+    const noteEdit = e.target.closest("[data-note-edit]");
+    if (noteEdit) {
+      openQuickNote(noteEdit.dataset.noteEdit);
+      return;
+    }
+    const noteDelete = e.target.closest("[data-note-delete]");
+    if (noteDelete) {
+      if (confirm("¿Eliminar esta nota rápida?")) {
+        saveNotes(notes.filter((n) => n.id !== noteDelete.dataset.noteDelete));
+        render();
+      }
+      return;
+    }
+    const noteConvert = e.target.closest("[data-note-convert]");
+    if (noteConvert) {
+      const note = notes.find((n) => n.id === noteConvert.dataset.noteConvert);
+      if (note)
+        open(null, {
+          cliente: note.cliente,
+          descripcion: note.texto,
+          noteId: note.id,
+        });
+      return;
+    }
     if (e.target.closest("#backup-export-full")) {
       try {
         await VSBackup.exportData(true);
@@ -943,6 +1228,7 @@ window.vidresAppReady = (async () => {
   });
   $("#content").addEventListener("input", (e) => {
     if (page === "consultor") window.vidresToolsInput?.(e);
+    else if (page === "presupuestos") window.vidresQuoteInput?.(e);
   });
   document.querySelector("#client-form").addEventListener("submit", (e) => {
     e.preventDefault();
@@ -1039,7 +1325,7 @@ window.vidresAppReady = (async () => {
           "tipoCliente",
         ].map((k) => [k, String(data.get(k) || "").trim()]),
       );
-    if (!values.cliente || !values.descripcion) return;
+    if (!values.cliente) return;
     if (
       values.duracion &&
       (!Number.isInteger(Number(values.duracion)) ||
@@ -1051,6 +1337,7 @@ window.vidresAppReady = (async () => {
     }
     let nextJobs = [...jobs],
       nextMeasurements = measurements;
+    let createdJobId = "";
     if (editing) {
       const i = jobs.findIndex((j) => j.id === editing);
       if (i < 0) return;
@@ -1070,6 +1357,7 @@ window.vidresAppReady = (async () => {
         0,
       );
       const id = "VS-" + String(max + 1).padStart(4, "0");
+      createdJobId = id;
       const added = window.vidresNewMeasures.read(id);
       nextJobs.push({
         id,
@@ -1089,7 +1377,8 @@ window.vidresAppReady = (async () => {
     let previousJobs,
       previousMeasurements,
       wroteJobs = false,
-      wroteMeasurements = false;
+      wroteMeasurements = false,
+      writtenPhotoIds = [];
     try {
       previousJobs = VSStorage.local.getItem(KEY);
       previousMeasurements = measurements;
@@ -1099,8 +1388,25 @@ window.vidresAppReady = (async () => {
         await VSStorage.measurements.replace(nextMeasurements);
         wroteMeasurements = true;
       }
+      if (createdJobId && pendingMeasurePhotos.length) {
+        for (const photo of pendingMeasurePhotos) {
+          const record = { ...photo, trabajo: createdJobId };
+          await VSFiles.put("photos", record);
+          writtenPhotoIds.push(record.id);
+        }
+      }
+      if (createdJobId && convertingNote) {
+        saveNotes(
+          notes.map((n) =>
+            n.id === convertingNote
+              ? { ...n, hecha: true, parte: createdJobId }
+              : n,
+          ),
+        );
+      }
     } catch {
       try {
+        for (const id of writtenPhotoIds) await VSFiles.remove("photos", id);
         if (wroteMeasurements) {
           await VSStorage.measurements.replace(previousMeasurements);
         }
@@ -1122,7 +1428,54 @@ window.vidresAppReady = (async () => {
     jobs = nextJobs;
     measurements = nextMeasurements;
     dlg.close();
+    pendingMeasurePhotos = [];
+    clearPendingPhotoUrls();
     render();
+  });
+  const quickNoteDialog = $("#quick-note-dialog"),
+    quickNoteForm = $("#quick-note-form");
+  function openQuickNote(id = "") {
+    const note = notes.find((n) => n.id === id);
+    quickNoteForm.reset();
+    quickNoteForm.elements.id.value = note?.id || "";
+    quickNoteForm.elements.texto.value = note?.texto || "";
+    quickNoteForm.elements.cliente.value = note?.cliente || "";
+    quickNoteForm.elements.aviso.value = note?.aviso || "";
+    $("#quick-note-title").textContent = note
+      ? "Editar nota rápida"
+      : "Nota rápida";
+    $("#quick-note-clients").innerHTML = clientNames()
+      .map((name) => '<option value="' + esc(name) + '"></option>')
+      .join("");
+    quickNoteDialog.showModal();
+    requestAnimationFrame(() => quickNoteForm.elements.texto.focus());
+  }
+  $("#quick-note-add").addEventListener("click", () => openQuickNote());
+  $("#quick-note-cancel").addEventListener("click", () =>
+    quickNoteDialog.close(),
+  );
+  quickNoteForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    if (!quickNoteForm.reportValidity()) return;
+    const data = new FormData(quickNoteForm),
+      id = String(data.get("id") || ""),
+      old = notes.find((n) => n.id === id),
+      item = {
+        id: old?.id || "N-" + crypto.randomUUID(),
+        texto: String(data.get("texto") || "").trim(),
+        cliente: String(data.get("cliente") || "").trim(),
+        aviso: String(data.get("aviso") || ""),
+        hecha: old?.hecha || false,
+        creada: old?.creada || new Date().toISOString(),
+        parte: old?.parte || "",
+      };
+    if (!item.texto) return;
+    saveNotes(
+      old ? notes.map((n) => (n.id === id ? item : n)) : [...notes, item],
+    );
+    quickNoteDialog.close();
+    if (page !== "inicio") window.vidresNavigate("inicio");
+    else render();
   });
   render();
 })().catch((error) => {

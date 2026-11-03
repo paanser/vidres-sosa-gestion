@@ -12,6 +12,9 @@
   let quotes = read(key, []),
     tariffs = read(tariffKey, []),
     draft = null;
+  window.addEventListener("vidres-tariffs-change", () => {
+    tariffs = read(tariffKey, []);
+  });
   const money = (n) =>
     Number(n || 0).toLocaleString("es-ES", {
       style: "currency",
@@ -472,7 +475,7 @@
         if (file.size > 250000)
           throw Error("Archivo demasiado grande (máximo 250 KB).");
         const items = parseCSV(await file.text());
-        tariffs.push(...items);
+        tariffs = window.vidresTariffs.merge(tariffs, items);
         save();
         sync();
         document.querySelector("#tariff-notice").textContent =

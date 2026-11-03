@@ -123,8 +123,7 @@
       const m = text.match(
         /\b(?:para|de)\s+((?:don|doña|señor|señora)\s+)?([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+){1,2})(?=\s*[,.;]|$)/,
       );
-      if (m && !street.test(m[0]))
-        values.cliente = clean(m[1] || "" + " " + m[2]) || clean(m[2]);
+      if (m && !street.test(m[0])) values.cliente = clean(m[2]);
     }
     if (values.estado) {
       const s = values.estado.toLowerCase();

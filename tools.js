@@ -88,6 +88,30 @@
           "</tbody></table></div>"
       : '<p class="muted">No hay resultados. Importa una tarifa CSV desde Ajustes o cambia la búsqueda.</p>';
   }
+  function tariffList() {
+    const items = catalog();
+    return (
+      '<div class="tariff-list">' +
+      items
+        .map(
+          (t) =>
+            '<div class="quote-saved"><span>' +
+            esc(t.name) +
+            " · " +
+            euro(t.price) +
+            "/m² · " +
+            euro(t.edge) +
+            '/ml</span><button type="button" data-tariff-delete="' +
+            esc(t.id) +
+            '">Eliminar</button></div>',
+        )
+        .join("") +
+      (items.length
+        ? '<button type="button" id="tariffs-clear">Eliminar todas las tarifas</button>'
+        : "<p>No hay tarifas.</p>") +
+      "</div>"
+    );
+  }
   function settings() {
     const c = config(),
       pdfs = read(P, []);
@@ -98,7 +122,9 @@
       (c.unit === "mm" ? "selected" : "") +
       '>Milímetros (mm)</option></select></label><label>Recargo energético actual (valor de referencia)<input id="cfg-energy" type="number" inputmode="decimal" step="0.01" min="0" placeholder="Pendiente de definir" value="' +
       esc(c.energy) +
-      '"></label></div><p class="muted">El recargo energético no se aplica a los cálculos hasta que definamos si es porcentaje o €/m². Las medidas siguen redondeándose a múltiplos de 6 cm (60 mm).</p><button id="cfg-save" class="primary">Guardar configuración</button><p id="cfg-notice" role="status"></p></section><section class="panel"><h2>Tarifas y documentos PDF</h2><p class="muted">Tarifas de precios: importa un CSV con columnas nombre,precio_m2,precio_ml. Cada fila se puede consultar desde Herramientas.</p><label class="tariff-upload">Importar tarifas CSV<input id="cfg-csv" type="file" accept=".csv,text/csv"></label><div id="csv-notice" role="status"></div><p class="muted">Para consultar precios, importa tarifas estructuradas en CSV desde el gestor de tarifas. Los PDF se pueden seleccionar para revisión, pero todavía no se extraen sus precios ni se suben al servidor.</p><label class="tariff-upload">Seleccionar PDF de tarifa<input id="cfg-pdf" type="file" accept="application/pdf,.pdf"></label><div id="pdf-notice" role="status"></div><h3>PDF pendientes de procesamiento</h3>' +
+      '"></label></div><p class="muted">El recargo energético no se aplica a los cálculos hasta que definamos si es porcentaje o €/m². Las medidas siguen redondeándose a múltiplos de 6 cm (60 mm).</p><button id="cfg-save" class="primary">Guardar configuración</button><p id="cfg-notice" role="status"></p></section><section class="panel"><h2>Tarifas y documentos PDF</h2><p class="muted">Tarifas de precios: importa un CSV con columnas nombre,precio_m2,precio_ml. Cada fila se puede consultar desde Herramientas.</p><label class="tariff-upload">Importar tarifas CSV<input id="cfg-csv" type="file" accept=".csv,text/csv"></label><div id="csv-notice" role="status"></div>' +
+      tariffList() +
+      '<p class="muted">Para consultar precios, importa tarifas estructuradas en CSV desde el gestor de tarifas. Los PDF se pueden seleccionar para revisión, pero todavía no se extraen sus precios ni se suben al servidor.</p><label class="tariff-upload">Seleccionar PDF de tarifa<input id="cfg-pdf" type="file" accept="application/pdf,.pdf"></label><div id="pdf-notice" role="status"></div><h3>PDF pendientes de procesamiento</h3>' +
       (!pdfs.length
         ? '<p class="muted">Ningún documento registrado.</p>'
         : pdfs
@@ -131,6 +157,27 @@
     if (!t) return false;
     if (t.dataset.toolGo) {
       navigate(t.dataset.toolGo);
+      return true;
+    }
+    if (t.dataset.tariffDelete || t.id === "tariffs-clear") {
+      if (
+        !confirm(
+          t.id === "tariffs-clear"
+            ? "¿Eliminar todas las tarifas? Los presupuestos conservan sus precios guardados."
+            : "¿Eliminar esta tarifa?",
+        )
+      )
+        return true;
+      localStorage.setItem(
+        T,
+        JSON.stringify(
+          t.id === "tariffs-clear"
+            ? []
+            : catalog().filter((x) => x.id !== t.dataset.tariffDelete),
+        ),
+      );
+      window.dispatchEvent(new Event("vidres-tariffs-change"));
+      window.vidresNavigate("ajustes");
       return true;
     }
     if (t.id === "cfg-save") {
@@ -181,9 +228,9 @@
         if (file.size > 250000)
           throw Error("CSV demasiado grande (máximo 250 KB).");
         const raw = (await file.text())
-          .replace(/^\\uFEFF/, "")
+          .replace(/^\uFEFF/, "")
           .trim()
-          .split(/\\r?\\n/);
+          .split(/\r?\n/);
         const sep = raw[0].includes(";") ? ";" : ",";
         const head = raw
           .shift()
@@ -212,9 +259,14 @@
           return { id: "T-" + Date.now() + "-" + i, name, price, edge };
         });
         if (!items.length) throw Error("CSV sin artículos.");
-        localStorage.setItem(T, JSON.stringify([...catalog(), ...items]));
-        notice.textContent =
-          items.length + " artículos importados en este dispositivo.";
+        localStorage.setItem(
+          T,
+          JSON.stringify(window.vidresTariffs.merge(catalog(), items)),
+        );
+        window.dispatchEvent(new Event("vidres-tariffs-change"));
+        window.vidresNavigate("ajustes");
+        document.querySelector("#csv-notice").textContent =
+          items.length + " artículos importados o actualizados.";
       } catch (err) {
         notice.textContent = err.message;
       }

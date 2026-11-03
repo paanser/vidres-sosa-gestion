@@ -1,32 +1,18 @@
 "use strict";
 (() => {
+  const { esc, num, money, round6 } = VSUtils;
+
   const T = "vs-tariffs-prototype-v1",
     C = "vs-config-v1",
     P = "vs-pdf-catalog-v1";
   const read = (k, f) => {
     try {
-      return JSON.parse(localStorage.getItem(k)) ?? f;
+      return JSON.parse(VSStorage.local.getItem(k)) ?? f;
     } catch {
       return f;
     }
   };
-  const esc = (s) =>
-    String(s ?? "").replace(
-      /[&<>"']/g,
-      (c) =>
-        ({
-          "&": "&amp;",
-          "<": "&lt;",
-          ">": "&gt;",
-          '"': "&quot;",
-          "'": "&#39;",
-        })[c],
-    );
-  const euro = (n) =>
-    Number(n || 0).toLocaleString("es-ES", {
-      style: "currency",
-      currency: "EUR",
-    });
+  const euro = money;
   const config = () => ({
     ...{ unit: "cm", energy: "", energyMode: "pending" },
     ...read(C, {}),
@@ -168,7 +154,7 @@
         )
       )
         return true;
-      localStorage.setItem(
+      VSStorage.local.setItem(
         T,
         JSON.stringify(
           t.id === "tariffs-clear"
@@ -183,7 +169,7 @@
     if (t.id === "cfg-save") {
       const unit = document.querySelector("#cfg-unit").value,
         energy = document.querySelector("#cfg-energy").value;
-      localStorage.setItem(
+      VSStorage.local.setItem(
         C,
         JSON.stringify({ unit, energy, energyMode: "pending" }),
       );
@@ -194,7 +180,7 @@
     if (t.dataset.pdfRemove !== undefined) {
       const pdfs = read(P, []);
       pdfs.splice(Number(t.dataset.pdfRemove), 1);
-      localStorage.setItem(P, JSON.stringify(pdfs));
+      VSStorage.local.setItem(P, JSON.stringify(pdfs));
       window.vidresToolsRender("ajustes");
       return true;
     }
@@ -259,7 +245,7 @@
           return { id: "T-" + Date.now() + "-" + i, name, price, edge };
         });
         if (!items.length) throw Error("CSV sin artículos.");
-        localStorage.setItem(
+        VSStorage.local.setItem(
           T,
           JSON.stringify(window.vidresTariffs.merge(catalog(), items)),
         );
@@ -292,7 +278,7 @@
         name: file.name,
         date: new Date().toLocaleDateString("es-ES"),
       });
-      localStorage.setItem(P, JSON.stringify(pdfs));
+      VSStorage.local.setItem(P, JSON.stringify(pdfs));
       window.vidresToolsRender("ajustes");
       document.querySelector("#pdf-notice").textContent =
         "PDF registrado por nombre. El archivo NO se ha guardado ni enviado al servidor; queda pendiente de procesamiento.";

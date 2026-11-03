@@ -1,21 +1,11 @@
 "use strict";
 (() => {
+  const { esc, num, money, round6 } = VSUtils;
+
   const dialog = document.querySelector("#expediente");
   if (!dialog) return;
   const body = dialog.querySelector("#exp-body"),
     heading = dialog.querySelector("#exp-title");
-  const esc = (s) =>
-    String(s ?? "").replace(
-      /[&<>"']/g,
-      (c) =>
-        ({
-          "&": "&amp;",
-          "<": "&lt;",
-          ">": "&gt;",
-          '"': "&quot;",
-          "'": "&#39;",
-        })[c],
-    );
   let current = null,
     tab = "resumen",
     revision = 0;
@@ -37,7 +27,7 @@
   try {
     scale = Math.min(
       1.5,
-      Math.max(0.9, Number(localStorage.getItem("vidres-text-scale")) || 1),
+      Math.max(0.9, Number(VSStorage.local.getItem("vidres-text-scale")) || 1),
     );
   } catch {}
   document.documentElement.style.setProperty("--vs-text-scale", String(scale));
@@ -160,11 +150,6 @@
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 60000);
   }
-  const money = (n) =>
-    Number(n || 0).toLocaleString("es-ES", {
-      style: "currency",
-      currency: "EUR",
-    });
   function compress(file) {
     return new Promise((resolve, reject) => {
       const url = URL.createObjectURL(file),
@@ -459,7 +444,7 @@
       String(scale),
     );
     try {
-      localStorage.setItem("vidres-text-scale", String(scale));
+      VSStorage.local.setItem("vidres-text-scale", String(scale));
     } catch {}
     document
       .querySelectorAll('[data-text-scale="0"]')

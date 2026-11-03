@@ -173,11 +173,11 @@
     preview.querySelector("button").addEventListener("click", enlarge);
     expanded
       .querySelector("[data-sketch-return]")
-      .addEventListener("click", () => {
+      .addEventListener("click", async () => {
         if (pointer !== null) return;
         try {
           const result = read();
-          options.onAccept?.(result);
+          await options.onAccept?.(result);
           accepted = structuredClone(result);
           updatePreview();
           expanded.close();

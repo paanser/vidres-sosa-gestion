@@ -1,10 +1,12 @@
 "use strict";
 (() => {
+  const { esc, num, money, round6 } = VSUtils;
+
   const key = "vs-quote-prototype-v1",
     tariffKey = "vs-tariffs-prototype-v1";
   const read = (k, f) => {
     try {
-      return JSON.parse(localStorage.getItem(k)) ?? f;
+      return JSON.parse(VSStorage.local.getItem(k)) ?? f;
     } catch {
       return f;
     }
@@ -15,31 +17,10 @@
   window.addEventListener("vidres-tariffs-change", () => {
     tariffs = read(tariffKey, []);
   });
-  const money = (n) =>
-    Number(n || 0).toLocaleString("es-ES", {
-      style: "currency",
-      currency: "EUR",
-    });
-  const num = (v) => {
-    const n = Number(String(v ?? "").replace(",", "."));
-    return Number.isFinite(n) && n >= 0 ? n : 0;
-  };
-  const esc = (v) =>
-    String(v ?? "").replace(
-      /[&<>"']/g,
-      (c) =>
-        ({
-          "&": "&amp;",
-          "<": "&lt;",
-          ">": "&gt;",
-          '"': "&quot;",
-          "'": "&#39;",
-        })[c],
-    );
   const unit = () => {
     try {
-      return JSON.parse(localStorage.getItem("vs-config-v1") || "{}").unit ===
-        "mm"
+      return JSON.parse(VSStorage.local.getItem("vs-config-v1") || "{}")
+        .unit === "mm"
         ? "mm"
         : "cm";
     } catch {
@@ -48,7 +29,6 @@
   };
   const displayed = (cm) =>
     unit() === "mm" ? String(Number((num(cm) * 10).toFixed(1))) : cm;
-  const round6 = (cm) => Math.ceil((cm - 1e-9) / 6) * 6;
   const qty = (line) => Math.max(1, Math.floor(num(line.qty) || 1));
   const calc = (line) => {
     const w = num(line.w),
@@ -77,8 +57,8 @@
     };
   };
   const save = () => {
-    localStorage.setItem(key, JSON.stringify(quotes));
-    localStorage.setItem(tariffKey, JSON.stringify(tariffs));
+    VSStorage.local.setItem(key, JSON.stringify(quotes));
+    VSStorage.local.setItem(tariffKey, JSON.stringify(tariffs));
   };
   const totals = (lines) => {
     const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;

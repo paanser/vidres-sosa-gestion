@@ -287,3 +287,16 @@ nav button[data-page="criticos"]:hover,nav button[data-page="criticos"].active{b
 .sketch-expanded .sketch-book{display:block}
 .sketch-expanded .sketch-editor{display:flex;flex-direction:column;height:100%;min-height:0;position:relative}
 .sketch-expanded .sketch-editor>p:not(.sketch-message){display:none}
+
+/* Nuevo parte y edición en una pantalla completa, con acciones fijas. */
+#editor{inset:0;width:100vw;max-width:100vw;height:100dvh;max-height:100dvh;margin:0;padding:0;border:0;border-radius:0;overflow:hidden;background:#f7f9f8}
+#editor #form{height:100%;display:flex;flex-direction:column;gap:0;min-width:0}
+.job-editor-header{flex:0 0 auto;padding:18px clamp(16px,3vw,48px);background:white;border-bottom:1px solid #dce7df}
+#editor #formtitle{margin:0;font-size:calc(24px * var(--vs-text-scale));color:#15523e}
+.job-editor-body{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-content:start;padding:24px clamp(16px,3vw,48px)}
+.job-editor-body>details,.job-editor-body>section{grid-column:1/-1;min-width:0}
+#editor label{min-width:0;font-size:calc(15px * var(--vs-text-scale))}
+#editor input,#editor select,#editor textarea{min-height:48px;font-size:calc(16px * var(--vs-text-scale));padding:12px}
+#editor #form>.actions{flex:0 0 auto;margin:0;padding:14px clamp(16px,3vw,48px) max(14px,env(safe-area-inset-bottom));border-top:1px solid #dce7df;background:white}
+#editor #form>.actions button{min-height:48px;min-width:140px;font-size:calc(16px * var(--vs-text-scale));padding:12px 20px}
+@media(max-width:700px){.job-editor-body{grid-template-columns:minmax(0,1fr);gap:16px;padding:16px}.job-editor-header{padding:16px}#editor #formtitle{font-size:calc(22px * var(--vs-text-scale))}#editor #form>.actions{gap:10px;padding-left:16px;padding-right:16px}#editor #form>.actions button{flex:1;min-width:0}}

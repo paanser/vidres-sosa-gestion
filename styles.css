@@ -2878,3 +2878,27 @@ nav button[data-page="criticos"].active {
   flex-wrap: wrap;
   gap: 8px;
 }
+
+#pwa-update {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 100;
+  background: #15523e;
+  color: white;
+  padding: 12px;
+  border-radius: 10px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+#pwa-update button {
+  min-height: 44px;
+  padding: 10px;
+  border: 0;
+  border-radius: 8px;
+  background: white;
+  color: #15523e;
+}

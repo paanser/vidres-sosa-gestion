@@ -24,6 +24,7 @@ jobs:
       - name: Asignar versión a los recursos
         run: |
           python3 -c 'import json, os; open("version.json", "w").write(json.dumps({"version": os.environ["GITHUB_SHA"]}))'
+          python3 -c 'import os; p="sw.js"; s=open(p).read(); open(p,"w").write(s.replace("__BUILD_VERSION__", os.environ["GITHUB_SHA"]))'
       - name: Empaquetar web
         uses: actions/upload-pages-artifact@v3
         with:

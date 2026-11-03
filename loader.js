@@ -25,6 +25,7 @@ document.querySelectorAll("#nav button").forEach((b) => (b.disabled = true));
     "voice",
     "enhancements",
     "expediente",
+    "pwa",
   ]) {
     await new Promise((resolve, reject) => {
       const script = document.createElement("script");

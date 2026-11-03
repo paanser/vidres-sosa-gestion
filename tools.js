@@ -211,6 +211,7 @@
         vat = document.querySelector("#cfg-vat").value,
         energyMode = document.querySelector("#cfg-energy-mode").value;
       if (
+        vat.trim() === "" ||
         !Number.isFinite(Number(vat)) ||
         Number(vat) < 0 ||
         Number(vat) > 100 ||

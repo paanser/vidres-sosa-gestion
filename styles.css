@@ -2734,6 +2734,62 @@ nav button[data-page="criticos"].active {
 }
 
 /* Nuevo parte y edición en una pantalla completa, con acciones fijas. */
+
+.quick-notes {
+  margin-top: 1rem;
+}
+.quick-note-list {
+  display: grid;
+  gap: 0.75rem;
+}
+.quick-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem;
+  border: 1px solid var(--line, #d8dfdc);
+  border-radius: 0.75rem;
+}
+.quick-note.overdue {
+  border-left: 5px solid #b42318;
+}
+.quick-note-check {
+  display: flex;
+  flex: 1;
+  align-items: flex-start;
+  gap: 0.65rem;
+}
+.quick-note-check input {
+  width: 1.4rem;
+  height: 1.4rem;
+}
+.quick-note-check span,
+.quick-note-check small {
+  display: block;
+}
+.quick-note-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+#quick-note-dialog {
+  width: min(92vw, 34rem);
+}
+#quick-note-form textarea {
+  min-height: 9rem;
+  font-size: 1.1rem;
+}
+@media (max-width: 700px) {
+  .quick-note {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .quick-note-actions button {
+    min-height: 44px;
+    flex: 1 1 9rem;
+  }
+}
 #editor {
   inset: 0;
   width: 100vw;

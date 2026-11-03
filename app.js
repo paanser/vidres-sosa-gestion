@@ -277,13 +277,15 @@ window.vidresAppReady = (async () => {
     const today = localToday(),
       active = jobs.filter((j) => !isClosed(j)),
       due = active.filter((j) => j.fecha === today),
-      critical = active.filter((j) => j.estado === "Crítico");
+      critical = active.filter((j) => j.estado === "Crítico"),
+      pendingNotes = notes.filter((n) => !n.hecha);
     const counts = [
       ["Trabajos activos", active.length],
       ["Para hoy", due.length],
       ["Críticos", critical.length],
       ["Atrasados", active.filter((j) => j.fecha && j.fecha < today).length],
       ["Sin fecha", active.filter((j) => !j.fecha).length],
+      ["Pendientes", pendingNotes.length],
     ];
     const preview = [...active]
       .sort(
@@ -333,12 +335,14 @@ window.vidresAppReady = (async () => {
             .join("") +
           "</div>"
         : '<p class="muted">No hay trabajos activos. Puedes crear un parte desde el menú.</p>') +
-      "</section>"
+      "</section>" +
+      pendingNotesHtml(pendingNotes, today)
     );
   }
 
   // Fichas locales de clientes y mediciones por pieza; se conserva la estructura de trabajos existente.
   const CLIENT_KEY = "vidres-clientes-v1",
+    NOTE_KEY = "vidres-notas-v1",
     MEASURE_KEY = "vidres-mediciones-v1";
   const safeRead = (key, fallback) => {
     try {
@@ -349,7 +353,52 @@ window.vidresAppReady = (async () => {
     }
   };
   let clients = safeRead(CLIENT_KEY, []),
+    notes = safeRead(NOTE_KEY, []),
     measurements = VSStorage.measurements.get();
+  function saveNotes(next = notes) {
+    VSStorage.write(NOTE_KEY, next);
+    notes = next;
+  }
+  function pendingNotesHtml(items, today) {
+    const ordered = [...items].sort(
+      (a, b) =>
+        Boolean(b.aviso && b.aviso < today) -
+          Boolean(a.aviso && a.aviso < today) ||
+        (a.aviso || "9999").localeCompare(b.aviso || "9999") ||
+        a.creada.localeCompare(b.creada),
+    );
+    return (
+      '<section class="panel quick-notes"><div class="simple-section-head"><h2>Pendientes</h2><button type="button" data-note-new>+ Nota rápida</button></div>' +
+      (ordered.length
+        ? '<div class="quick-note-list">' +
+          ordered
+            .map(
+              (n) =>
+                '<article class="quick-note ' +
+                (n.aviso && n.aviso < today ? "overdue" : "") +
+                '"><label class="quick-note-check"><input type="checkbox" data-note-done="' +
+                esc(n.id) +
+                '"><span><strong>' +
+                esc(n.texto) +
+                "</strong>" +
+                (n.cliente
+                  ? "<small>Cliente: " + esc(n.cliente) + "</small>"
+                  : "") +
+                (n.aviso ? "<small>Aviso: " + esc(n.aviso) + "</small>" : "") +
+                '</span></label><div class="quick-note-actions"><button type="button" data-note-convert="' +
+                esc(n.id) +
+                '">Convertir en parte</button><button type="button" data-note-edit="' +
+                esc(n.id) +
+                '">Editar</button><button type="button" data-note-delete="' +
+                esc(n.id) +
+                '">Eliminar</button></div></article>',
+            )
+            .join("") +
+          "</div>"
+        : '<p class="muted">No hay notas pendientes.</p>') +
+      "</section>"
+    );
+  }
   const normName = (name) =>
     String(name || "")
       .trim()
@@ -733,8 +782,10 @@ window.vidresAppReady = (async () => {
   }
   const dlg = $("#editor"),
     form = $("#form");
-  function open(id) {
+  let convertingNote = "";
+  function open(id, prefill = {}) {
     editing = id;
+    convertingNote = id ? "" : prefill.noteId || "";
     form.reset();
     form.querySelectorAll("details").forEach((el) => (el.open = false));
     window.vidresNewMeasures.reset(id);
@@ -765,6 +816,9 @@ window.vidresAppReady = (async () => {
       ])
         form.elements[key].value = job[key] || "";
       form.elements["tipoCliente"].value = job.tipoCliente || "Particular";
+    } else {
+      form.elements.cliente.value = prefill.cliente || "";
+      form.elements.descripcion.value = prefill.descripcion || "";
     }
     dlg.showModal();
   }
@@ -821,6 +875,7 @@ window.vidresAppReady = (async () => {
   window.vidresReloadData = () => {
     jobs = VSStorage.read(KEY, []);
     clients = VSStorage.read(CLIENT_KEY, []);
+    notes = VSStorage.read(NOTE_KEY, []);
     measurements = VSStorage.measurements.get();
     window.dispatchEvent(new Event("vidres-data-restored"));
     render();
@@ -831,6 +886,44 @@ window.vidresAppReady = (async () => {
   $("#add").addEventListener("click", () => open(null));
   $("#cancel").addEventListener("click", () => dlg.close());
   $("#content").addEventListener("click", async (e) => {
+    if (e.target.closest("[data-note-new]")) {
+      openQuickNote();
+      return;
+    }
+    const noteDone = e.target.closest("[data-note-done]");
+    if (noteDone) {
+      saveNotes(
+        notes.map((n) =>
+          n.id === noteDone.dataset.noteDone ? { ...n, hecha: true } : n,
+        ),
+      );
+      render();
+      return;
+    }
+    const noteEdit = e.target.closest("[data-note-edit]");
+    if (noteEdit) {
+      openQuickNote(noteEdit.dataset.noteEdit);
+      return;
+    }
+    const noteDelete = e.target.closest("[data-note-delete]");
+    if (noteDelete) {
+      if (confirm("¿Eliminar esta nota rápida?")) {
+        saveNotes(notes.filter((n) => n.id !== noteDelete.dataset.noteDelete));
+        render();
+      }
+      return;
+    }
+    const noteConvert = e.target.closest("[data-note-convert]");
+    if (noteConvert) {
+      const note = notes.find((n) => n.id === noteConvert.dataset.noteConvert);
+      if (note)
+        open(null, {
+          cliente: note.cliente,
+          descripcion: note.texto,
+          noteId: note.id,
+        });
+      return;
+    }
     if (e.target.closest("#backup-export-full")) {
       try {
         await VSBackup.exportData(true);
@@ -1039,7 +1132,7 @@ window.vidresAppReady = (async () => {
           "tipoCliente",
         ].map((k) => [k, String(data.get(k) || "").trim()]),
       );
-    if (!values.cliente || !values.descripcion) return;
+    if (!values.cliente) return;
     if (
       values.duracion &&
       (!Number.isInteger(Number(values.duracion)) ||
@@ -1051,6 +1144,7 @@ window.vidresAppReady = (async () => {
     }
     let nextJobs = [...jobs],
       nextMeasurements = measurements;
+    let createdJobId = "";
     if (editing) {
       const i = jobs.findIndex((j) => j.id === editing);
       if (i < 0) return;
@@ -1070,6 +1164,7 @@ window.vidresAppReady = (async () => {
         0,
       );
       const id = "VS-" + String(max + 1).padStart(4, "0");
+      createdJobId = id;
       const added = window.vidresNewMeasures.read(id);
       nextJobs.push({
         id,
@@ -1099,6 +1194,15 @@ window.vidresAppReady = (async () => {
         await VSStorage.measurements.replace(nextMeasurements);
         wroteMeasurements = true;
       }
+      if (createdJobId && convertingNote) {
+        saveNotes(
+          notes.map((n) =>
+            n.id === convertingNote
+              ? { ...n, hecha: true, parte: createdJobId }
+              : n,
+          ),
+        );
+      }
     } catch {
       try {
         if (wroteMeasurements) {
@@ -1123,6 +1227,51 @@ window.vidresAppReady = (async () => {
     measurements = nextMeasurements;
     dlg.close();
     render();
+  });
+  const quickNoteDialog = $("#quick-note-dialog"),
+    quickNoteForm = $("#quick-note-form");
+  function openQuickNote(id = "") {
+    const note = notes.find((n) => n.id === id);
+    quickNoteForm.reset();
+    quickNoteForm.elements.id.value = note?.id || "";
+    quickNoteForm.elements.texto.value = note?.texto || "";
+    quickNoteForm.elements.cliente.value = note?.cliente || "";
+    quickNoteForm.elements.aviso.value = note?.aviso || "";
+    $("#quick-note-title").textContent = note
+      ? "Editar nota rápida"
+      : "Nota rápida";
+    $("#quick-note-clients").innerHTML = clientNames()
+      .map((name) => '<option value="' + esc(name) + '"></option>')
+      .join("");
+    quickNoteDialog.showModal();
+    requestAnimationFrame(() => quickNoteForm.elements.texto.focus());
+  }
+  $("#quick-note-add").addEventListener("click", () => openQuickNote());
+  $("#quick-note-cancel").addEventListener("click", () =>
+    quickNoteDialog.close(),
+  );
+  quickNoteForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    if (!quickNoteForm.reportValidity()) return;
+    const data = new FormData(quickNoteForm),
+      id = String(data.get("id") || ""),
+      old = notes.find((n) => n.id === id),
+      item = {
+        id: old?.id || "N-" + crypto.randomUUID(),
+        texto: String(data.get("texto") || "").trim(),
+        cliente: String(data.get("cliente") || "").trim(),
+        aviso: String(data.get("aviso") || ""),
+        hecha: old?.hecha || false,
+        creada: old?.creada || new Date().toISOString(),
+        parte: old?.parte || "",
+      };
+    if (!item.texto) return;
+    saveNotes(
+      old ? notes.map((n) => (n.id === id ? item : n)) : [...notes, item],
+    );
+    quickNoteDialog.close();
+    if (page !== "inicio") window.vidresNavigate("inicio");
+    else render();
   });
   render();
 })().catch((error) => {

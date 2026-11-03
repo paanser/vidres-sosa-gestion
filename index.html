@@ -16,6 +16,7 @@
         <nav id="nav" aria-label="Navegación principal">
           <button data-page="inicio" class="active">⌂ Inicio</button
           ><button id="add">+ Nuevo parte</button
+          ><button id="quick-note-add">+ Nota rápida</button
           ><button data-page="trabajos">▤ Trabajos activos</button
           ><button data-page="presupuestos">€ Presupuestos</button
           ><button data-page="herramientas">▦ Herramientas</button
@@ -114,9 +115,8 @@
               autocomplete="organization" /></label
           ><datalist id="known-clients"></datalist
           ><label
-            >Descripción<input
+            >Descripción (opcional)<input
               name="descripcion"
-              required
               maxlength="180"
               placeholder="Ej. Sustituir vidrio de escaparate" /></label
           ><label
@@ -185,6 +185,34 @@
         </div>
         <div class="actions">
           <button type="button" id="cancel">Cancelar</button
+          ><button class="primary" type="submit">Guardar</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="quick-note-dialog" aria-labelledby="quick-note-title">
+      <form id="quick-note-form">
+        <h2 id="quick-note-title">Nota rápida</h2>
+        <input type="hidden" name="id" />
+        <label
+          >¿Qué necesitas recordar?<textarea
+            name="texto"
+            rows="5"
+            maxlength="1000"
+            required
+            autofocus
+            placeholder="Ej. Calcular precio a Canturri"
+          ></textarea></label
+        ><label
+          >Cliente (opcional)<input
+            name="cliente"
+            maxlength="100"
+            list="quick-note-clients" /></label
+        ><datalist id="quick-note-clients"></datalist
+        ><label
+          >Fecha de aviso (opcional)<input name="aviso" type="date"
+        /></label>
+        <div class="actions">
+          <button type="button" id="quick-note-cancel">Cancelar</button
           ><button class="primary" type="submit">Guardar</button>
         </div>
       </form>

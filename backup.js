@@ -7,6 +7,7 @@
     tarifas: "vs-tariffs-prototype-v1",
     configuracion: "vs-config-v1",
     numeracion: "vs-quote-sequence-v1",
+    notas: "vidres-notas-v1",
   };
   const stamp = "vidres-last-backup-v1",
     start = "vidres-backup-start-v1";
@@ -165,6 +166,22 @@
         ))
     )
       throw Error("Clientes no válidos");
+    if (
+      data.notas !== undefined &&
+      (!Array.isArray(data.notas) ||
+        !unique(data.notas) ||
+        data.notas.some(
+          (n) =>
+            !text(n, "id") ||
+            !text(n, "texto") ||
+            !text(n, "cliente") ||
+            !text(n, "aviso") ||
+            typeof n.hecha !== "boolean" ||
+            !text(n, "creada") ||
+            !text(n, "parte"),
+        ))
+    )
+      throw Error("Notas rápidas no válidas");
     if (
       data.mediciones !== undefined &&
       (!Array.isArray(data.mediciones) ||

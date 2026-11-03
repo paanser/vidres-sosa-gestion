@@ -871,6 +871,24 @@ window.vidresAppReady = (async () => {
     form.reset();
     form.querySelectorAll("details").forEach((el) => (el.open = false));
     window.vidresNewMeasures.reset(id);
+    const tplWrap = $("#template-start"),
+      tplSelect = $("#start-template");
+    if (tplWrap && tplSelect) {
+      tplWrap.hidden = Boolean(id);
+      tplSelect.innerHTML =
+        '<option value="">Sin plantilla</option>' +
+        (window.vidresPlantillasList?.() || [])
+          .map(
+            (t) =>
+              '<option value="' +
+              esc(t.id) +
+              '">' +
+              esc(t.nombre) +
+              "</option>",
+          )
+          .join("");
+      tplSelect.value = "";
+    }
     pendingMeasurePhotos = [];
     renderPendingMeasurePhotos();
     for (const [selector, field] of [
@@ -906,6 +924,36 @@ window.vidresAppReady = (async () => {
     }
     dlg.showModal();
   }
+  function applyTemplate(id) {
+    const select = $("#start-template");
+    if (!id) return;
+    const t = (window.vidresPlantillasList?.() || []).find((x) => x.id === id);
+    if (!t) return;
+    const hasInfo =
+      form.elements.descripcion.value.trim() !== "" ||
+      form.elements.notas.value.trim() !== "" ||
+      (form.elements.tipoCliente.value || "Particular") !== "Particular" ||
+      document.querySelectorAll(".new-measure-piece").length > 0;
+    if (
+      hasInfo &&
+      !confirm(
+        "Ya hay información escrita. ¿Sustituirla por la plantilla «" +
+          t.nombre +
+          "»?",
+      )
+    ) {
+      select.value = "";
+      return;
+    }
+    form.elements.descripcion.value = t.descripcion || "";
+    form.elements.tipoCliente.value = t.tipoCliente || "Particular";
+    form.elements.notas.value = t.notas || "";
+    window.vidresNewMeasures.applyTemplatePieces?.(t.piezas || []);
+    select.value = "";
+  }
+  $("#start-template")?.addEventListener("change", (e) =>
+    applyTemplate(e.target.value),
+  );
   window.vidresOpenJobEditor = open;
   window.vidresChangeJobStatus = (id, status) => {
     const next = jobs.map((j) =>

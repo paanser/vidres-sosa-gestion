@@ -3186,3 +3186,88 @@ nav button[data-page="criticos"].active {
   color: #fff;
   border-color: #15523e;
 }
+
+/* Plantillas de trabajo. */
+.template-start {
+  grid-column: 1 / -1;
+}
+.template-start[hidden] {
+  display: none !important;
+}
+.plantilla-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+.plantilla-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px;
+  border: 1px solid #d8dfdc;
+  border-radius: 10px;
+  background: #fff;
+}
+.plantilla-item p {
+  margin: 4px 0 0;
+  color: #526b59;
+}
+.plantilla-item button {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid #b9d0c0;
+  border-radius: 8px;
+  background: #f2f8f4;
+  color: #15523e;
+}
+.plantilla-item button[data-plantilla-delete] {
+  color: #b42318;
+  border-color: #d9a6a2;
+}
+#plantilla-editor {
+  width: min(94vw, 40rem);
+}
+#plantilla-editor .plantilla-piezas {
+  margin-top: 12px;
+  border: 1px solid #d5dfd8;
+  border-radius: 8px;
+  padding: 12px;
+}
+.plantilla-piece {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid #d5dfd8;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  background: #f7faf8;
+}
+.plantilla-piece label {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+.plantilla-piece button[data-pp-remove] {
+  grid-column: 1 / -1;
+  min-height: 44px;
+  border: 1px solid #d9a6a2;
+  border-radius: 8px;
+  background: #fff;
+  color: #b42318;
+}
+#plantilla-add-pieza {
+  min-height: 44px;
+  border: 1px dashed #b9d0c0;
+  border-radius: 8px;
+  background: #fff;
+  color: #15523e;
+  width: 100%;
+}
+@media (max-width: 600px) {
+  .plantilla-piece {
+    grid-template-columns: 1fr;
+  }
+}

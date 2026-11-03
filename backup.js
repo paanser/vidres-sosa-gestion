@@ -8,6 +8,7 @@
     configuracion: "vs-config-v1",
     numeracion: "vs-quote-sequence-v1",
     notas: "vidres-notas-v1",
+    plantillas: "vidres-plantillas-v1",
   };
   const stamp = "vidres-last-backup-v1",
     start = "vidres-backup-start-v1";
@@ -182,6 +183,28 @@
         ))
     )
       throw Error("Notas rápidas no válidas");
+    if (
+      data.plantillas !== undefined &&
+      (!Array.isArray(data.plantillas) ||
+        !unique(data.plantillas) ||
+        data.plantillas.some(
+          (t) =>
+            !text(t, "id") ||
+            !text(t, "nombre") ||
+            (t.descripcion !== undefined && !text(t, "descripcion")) ||
+            (t.tipoCliente !== undefined && !text(t, "tipoCliente")) ||
+            (t.notas !== undefined && !text(t, "notas")) ||
+            !Array.isArray(t.piezas) ||
+            t.piezas.some(
+              (p) =>
+                !p ||
+                !text(p, "tipo") ||
+                (p.espesor !== undefined && !text(p, "espesor")) ||
+                (p.observaciones !== undefined && !text(p, "observaciones")),
+            ),
+        ))
+    )
+      throw Error("Plantillas no válidas");
     if (
       data.mediciones !== undefined &&
       (!Array.isArray(data.mediciones) ||

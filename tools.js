@@ -4,7 +4,8 @@
 
   const T = "vs-tariffs-prototype-v1",
     C = "vs-config-v1",
-    P = "vs-pdf-catalog-v1";
+    P = "vs-pdf-catalog-v1",
+    PL = "vidres-plantillas-v1";
   const read = (k, f) => {
     try {
       return JSON.parse(VSStorage.local.getItem(k)) ?? f;
@@ -12,6 +13,49 @@
       return f;
     }
   };
+  function defaultPlantillas() {
+    return [
+      {
+        id: "T-" + crypto.randomUUID(),
+        nombre: "Mampara de ducha",
+        descripcion: "Instalar mampara de ducha",
+        tipoCliente: "Particular",
+        notas: "",
+        piezas: [
+          { tipo: "Templado", espesor: "8", observaciones: "Cantos pulidos" },
+        ],
+      },
+      {
+        id: "T-" + crypto.randomUUID(),
+        nombre: "Escaparate",
+        descripcion: "Sustituir vidrio de escaparate",
+        tipoCliente: "Particular",
+        notas: "",
+        piezas: [
+          {
+            tipo: "Laminado",
+            espesor: "6",
+            observaciones: "Vidrio de seguridad",
+          },
+        ],
+      },
+      {
+        id: "T-" + crypto.randomUUID(),
+        nombre: "Cambio de luna",
+        descripcion: "Cambio de luna",
+        tipoCliente: "Particular",
+        notas: "",
+        piezas: [{ tipo: "Monolítico", espesor: "4", observaciones: "" }],
+      },
+    ];
+  }
+  function plantillas() {
+    const v = read(PL, null);
+    if (Array.isArray(v)) return v;
+    const seed = defaultPlantillas();
+    VSStorage.local.setItem(PL, JSON.stringify(seed));
+    return seed;
+  }
   const euro = money;
   const config = () => ({
     ...{ unit: "cm", energy: "", energyMode: "pending" },
@@ -98,6 +142,35 @@
       "</div>"
     );
   }
+  function plantillasHtml() {
+    const items = plantillas();
+    return (
+      '<section class="panel"><h2>Plantillas de trabajo</h2><p class="muted">Plantillas para empezar un nuevo parte: descripción, tipo de cliente, notas y piezas sin medidas.</p><button type="button" id="plantilla-new" class="primary">+ Nueva plantilla</button>' +
+      (items.length
+        ? '<div class="plantilla-list">' +
+          items
+            .map(
+              (t) =>
+                '<article class="plantilla-item"><div><strong>' +
+                esc(t.nombre) +
+                "</strong><p>" +
+                esc(t.descripcion || "") +
+                " · " +
+                esc(t.tipoCliente || "Particular") +
+                " · " +
+                (Array.isArray(t.piezas) ? t.piezas.length : 0) +
+                ' pieza(s)</p></div><div><button type="button" data-plantilla-edit="' +
+                esc(t.id) +
+                '">Editar</button><button type="button" data-plantilla-delete="' +
+                esc(t.id) +
+                '">Eliminar</button></div></article>',
+            )
+            .join("") +
+          "</div>"
+        : '<p class="muted">No hay plantillas.</p>') +
+      "</section>"
+    );
+  }
   function settings() {
     const c = config(),
       company = c.company || {},
@@ -171,7 +244,8 @@
             '">Quitar</button></div>',
         )
         .join("") +
-      "</section>"
+      "</section>" +
+      plantillasHtml()
     );
   }
   window.vidresToolsRender = (page) => {
@@ -268,6 +342,26 @@
       pdfs.splice(Number(t.dataset.pdfRemove), 1);
       VSStorage.local.setItem(P, JSON.stringify(pdfs));
       window.vidresToolsRender("ajustes");
+      return true;
+    }
+    if (t.id === "plantilla-new") {
+      openPlantillaEditor();
+      return true;
+    }
+    if (t.dataset.plantillaEdit) {
+      openPlantillaEditor(t.dataset.plantillaEdit);
+      return true;
+    }
+    if (t.dataset.plantillaDelete) {
+      if (confirm("¿Eliminar esta plantilla?")) {
+        VSStorage.local.setItem(
+          PL,
+          JSON.stringify(
+            plantillas().filter((x) => x.id !== t.dataset.plantillaDelete),
+          ),
+        );
+        window.vidresToolsRender("ajustes");
+      }
       return true;
     }
     return false;
@@ -371,4 +465,106 @@
       return;
     }
   };
+  const plantillaTypes = [
+    "Laminado",
+    "Templado",
+    "Cámara",
+    "Monolítico",
+    "Otro",
+  ];
+  function plantillaPieceRow(p = {}) {
+    const row = document.createElement("div");
+    row.className = "plantilla-piece";
+    row.innerHTML =
+      '<label>Tipo de vidrio<select data-pp="tipo">' +
+      plantillaTypes
+        .map(
+          (o) =>
+            "<option" +
+            (p.tipo === o ? " selected" : "") +
+            ">" +
+            esc(o) +
+            "</option>",
+        )
+        .join("") +
+      '</select></label><label>Espesor (mm)<input data-pp="espesor" type="number" inputmode="decimal" min="0" step="0.1" value="' +
+      esc(p.espesor || "") +
+      '"></label><label>Observaciones<input data-pp="observaciones" maxlength="500" value="' +
+      esc(p.observaciones || "") +
+      '"></label><button type="button" data-pp-remove>Quitar pieza</button>';
+    return row;
+  }
+  function openPlantillaEditor(id = "") {
+    const dialog = document.querySelector("#plantilla-editor");
+    if (!dialog) return;
+    const form = dialog.querySelector("#plantilla-form"),
+      t = id ? plantillas().find((x) => x.id === id) : null;
+    form.reset();
+    form.elements.id.value = t?.id || "";
+    form.elements.nombre.value = t?.nombre || "";
+    form.elements.descripcion.value = t?.descripcion || "";
+    form.elements.tipoCliente.value = t?.tipoCliente || "Particular";
+    form.elements.notas.value = t?.notas || "";
+    const list = dialog.querySelector("#plantilla-piezas");
+    list.replaceChildren();
+    for (const p of t?.piezas || []) list.appendChild(plantillaPieceRow(p));
+    dialog.querySelector("#plantilla-title").textContent = t
+      ? "Editar plantilla"
+      : "Nueva plantilla";
+    dialog.showModal();
+  }
+  const plantillaDialog = document.querySelector("#plantilla-editor");
+  if (plantillaDialog) {
+    const form = plantillaDialog.querySelector("#plantilla-form");
+    plantillaDialog
+      .querySelector("#plantilla-cancel")
+      .addEventListener("click", () => plantillaDialog.close());
+    plantillaDialog
+      .querySelector("#plantilla-add-pieza")
+      .addEventListener("click", () => {
+        plantillaDialog
+          .querySelector("#plantilla-piezas")
+          .appendChild(plantillaPieceRow());
+      });
+    plantillaDialog
+      .querySelector("#plantilla-piezas")
+      .addEventListener("click", (e) => {
+        const b = e.target.closest("[data-pp-remove]");
+        if (b) b.closest(".plantilla-piece").remove();
+      });
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const data = new FormData(form),
+        nombre = String(data.get("nombre") || "").trim();
+      if (!nombre) return;
+      const piezas = [
+        ...plantillaDialog.querySelectorAll(".plantilla-piece"),
+      ].map((row) => ({
+        tipo: row.querySelector('[data-pp="tipo"]').value,
+        espesor: row.querySelector('[data-pp="espesor"]').value.trim(),
+        observaciones: row
+          .querySelector('[data-pp="observaciones"]')
+          .value.trim(),
+      }));
+      const item = {
+        id: String(data.get("id") || "") || "T-" + crypto.randomUUID(),
+        nombre,
+        descripcion: String(data.get("descripcion") || "").trim(),
+        tipoCliente: String(data.get("tipoCliente") || "Particular"),
+        notas: String(data.get("notas") || "").trim(),
+        piezas,
+      };
+      const list = plantillas(),
+        i = list.findIndex((x) => x.id === item.id);
+      if (i < 0) list.push(item);
+      else list[i] = item;
+      VSStorage.local.setItem(PL, JSON.stringify(list));
+      plantillaDialog.close();
+      window.vidresToolsRender("ajustes");
+    });
+  }
+  window.vidresPlantillasList = plantillas;
+  window.vidresPlantillasSave = (arr) =>
+    VSStorage.local.setItem(PL, JSON.stringify(arr));
+  plantillas();
 })();

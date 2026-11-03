@@ -106,6 +106,12 @@
               No se guardará nada sin pulsar Guardar.
             </p>
           </details>
+          <label class="template-start" id="template-start" hidden>
+            Empezar desde plantilla
+            <select id="start-template">
+              <option value="">Sin plantilla</option>
+            </select>
+          </label>
           <label
             >Cliente<input
               name="cliente"
@@ -269,6 +275,37 @@
           <button type="button" onclick="this.closest('dialog').close()">
             Cancelar</button
           ><button class="primary" type="submit">Guardar ficha</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="plantilla-editor" aria-labelledby="plantilla-title">
+      <form id="plantilla-form">
+        <h2 id="plantilla-title">Nueva plantilla</h2>
+        <input type="hidden" name="id" />
+        <label>Nombre<input name="nombre" required maxlength="80" /></label>
+        <label
+          >Descripción por defecto<input
+            name="descripcion"
+            maxlength="180"
+            placeholder="Ej. Instalar mampara de ducha" /></label
+        ><label
+          >Tipo de cliente<select name="tipoCliente">
+            <option>Particular</option>
+            <option>Vitralia</option>
+            <option>Mapfre</option>
+            <option>Otros</option>
+          </select></label
+        ><label
+          >Notas<textarea name="notas" rows="3" maxlength="1000"></textarea>
+        </label>
+        <fieldset class="plantilla-piezas">
+          <legend>Piezas (opcional, sin medidas)</legend>
+          <div id="plantilla-piezas"></div>
+          <button type="button" id="plantilla-add-pieza">+ Añadir pieza</button>
+        </fieldset>
+        <div class="actions">
+          <button type="button" id="plantilla-cancel">Cancelar</button
+          ><button class="primary" type="submit">Guardar plantilla</button>
         </div>
       </form>
     </dialog>

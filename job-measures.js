@@ -31,7 +31,7 @@
   section.querySelector("#new-measure-draw").addEventListener("click",()=>addPiece(true));
   list.addEventListener("click", event => {
     const button = event.target.closest("[data-new-measure-remove]");
-    if (button) button.closest("fieldset").remove();
+    if (button) {const row=button.closest("fieldset");window.vidresSketch.destroy(row.querySelector(".new-measure-sketch"));row.remove();}
   });
   list.addEventListener("input", event => {
     const row = event.target.closest("fieldset");
@@ -39,6 +39,7 @@
   });
   window.vidresNewMeasures = {
     reset(editing) {
+      list.querySelectorAll(".new-measure-sketch").forEach(host=>window.vidresSketch.destroy(host));
       list.replaceChildren();
       sequence = 0;
       section.hidden = Boolean(editing);

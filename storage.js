@@ -64,10 +64,22 @@
   async function all() {
     const d = await db();
     return new Promise((resolve, reject) => {
-      const tx = d.transaction("mediciones");
-      const r = tx.objectStore("mediciones").getAll();
-      r.onsuccess = () => resolve(r.result);
-      r.onerror = () => reject(r.error);
+      const tx = d.transaction(["mediciones", "meta"]),
+        records = tx.objectStore("mediciones").getAll(),
+        order = tx.objectStore("meta").get("measurements-order");
+      tx.oncomplete = () => {
+        const map = new Map(records.result.map((x) => [x.id, x])),
+          result = [];
+        for (const id of order.result || []) {
+          if (map.has(id)) {
+            result.push(map.get(id));
+            map.delete(id);
+          }
+        }
+        resolve([...result, ...map.values()]);
+      };
+      tx.onerror = tx.onabort = () =>
+        reject(tx.error || Error("No se pudieron leer las mediciones"));
     });
   }
   async function replace(items) {
@@ -79,8 +91,12 @@
       throw Error("Mediciones no válidas o referencias duplicadas");
     const d = await db();
     await new Promise((resolve, reject) => {
-      const tx = d.transaction("mediciones", "readwrite"),
+      const tx = d.transaction(["mediciones", "meta"], "readwrite"),
         store = tx.objectStore("mediciones");
+      tx.objectStore("meta").put(
+        items.map((x) => x.id),
+        "measurements-order",
+      );
       store.clear();
       items.forEach((x) => store.put(x));
       tx.oncomplete = resolve;

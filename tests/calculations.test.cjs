@@ -50,3 +50,19 @@ test("vacíos negativos y coma decimal sin NaN", () => {
   assert.equal(calc({ w: "", h: -10, price: -30 }).total, 0);
   assert.deepEqual(totals([]), { base: 0, iva: 0, total: 0 });
 });
+test("IVA y recargo explícito por porcentaje o m²", () => {
+  const line = { w: 100, h: 100, price: 100, qty: 2 };
+  assert.deepEqual(
+    totals([line], { vat: 10, energy: 10, energyMode: "percent" }),
+    { base: 228.89, iva: 22.89, total: 251.78 },
+  );
+  assert.deepEqual(totals([line], { vat: 0, energy: 5, energyMode: "m2" }), {
+    base: 218.48,
+    iva: 0,
+    total: 218.48,
+  });
+  assert.deepEqual(
+    totals([line], { energy: 50, energyMode: "pending" }),
+    totals([line]),
+  );
+});

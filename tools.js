@@ -100,31 +100,70 @@
   }
   function settings() {
     const c = config(),
+      company = c.company || {},
       pdfs = read(P, []);
     return (
-      '<section class="panel"><h2>Configuración general</h2><p class="muted">Preferencias guardadas solo en este navegador.</p><div class="quote-fields"><label>Unidad de entrada para vidrio<select id="cfg-unit"><option value="cm" ' +
-      (c.unit === "cm" ? "selected" : "") +
-      '>Centímetros (cm)</option><option value="mm" ' +
+      '<section class="panel"><h2>Configuración general</h2><div class="quote-fields"><label>Unidad de entrada<select id="cfg-unit"><option value="cm" ' +
+      (c.unit !== "mm" ? "selected" : "") +
+      '>Centímetros</option><option value="mm" ' +
       (c.unit === "mm" ? "selected" : "") +
-      '>Milímetros (mm)</option></select></label><label>Recargo energético actual (valor de referencia)<input id="cfg-energy" type="number" inputmode="decimal" step="0.01" min="0" placeholder="Pendiente de definir" value="' +
-      esc(c.energy) +
-      '"></label></div><p class="muted">El recargo energético no se aplica a los cálculos hasta que definamos si es porcentaje o €/m². Las medidas siguen redondeándose a múltiplos de 6 cm (60 mm).</p><button id="cfg-save" class="primary">Guardar configuración</button><p id="cfg-notice" role="status"></p></section><section class="panel"><h2>Tarifas y documentos PDF</h2><p class="muted">Tarifas de precios: importa un CSV con columnas nombre,precio_m2,precio_ml. Cada fila se puede consultar desde Herramientas.</p><label class="tariff-upload">Importar tarifas CSV<input id="cfg-csv" type="file" accept=".csv,text/csv"></label><div id="csv-notice" role="status"></div>' +
+      '>Milímetros</option></select></label><label>IVA (%)<input id="cfg-vat" type="number" min="0" max="100" step="0.01" value="' +
+      esc(c.vat ?? 21) +
+      '"></label><label>Recargo energético<input id="cfg-energy" type="number" min="0" step="0.01" value="' +
+      esc(c.energy || "") +
+      '"></label><label>Aplicar recargo como<select id="cfg-energy-mode">' +
+      [
+        ["pending", "Sin aplicar"],
+        ["percent", "Porcentaje"],
+        ["m2", "Euros por m²"],
+      ]
+        .map(
+          ([v, t]) =>
+            '<option value="' +
+            v +
+            '" ' +
+            (c.energyMode === v ? "selected" : "") +
+            ">" +
+            t +
+            "</option>",
+        )
+        .join("") +
+      '</select></label></div><details><summary>Datos de empresa y condiciones del presupuesto</summary><div class="quote-fields">' +
+      [
+        ["name", "Nombre"],
+        ["taxId", "CIF/NIF"],
+        ["address", "Dirección"],
+        ["phone", "Teléfono"],
+        ["email", "Correo"],
+      ]
+        .map(
+          ([k, t]) =>
+            "<label>" +
+            t +
+            '<input data-company="' +
+            k +
+            '" value="' +
+            esc(company[k] || "") +
+            '"></label>',
+        )
+        .join("") +
+      '<label>Validez (días)<input data-company="validity" type="number" min="1" value="' +
+      esc(company.validity || 30) +
+      '"></label></div><label>Condiciones<textarea data-company="conditions" rows="4">' +
+      esc(company.conditions || "") +
+      '</textarea></label></details><p>Los impuestos y recargos se copian a los presupuestos nuevos. Los guardados conservan sus condiciones.</p><button id="cfg-save" class="primary">Guardar configuración</button><p id="cfg-notice" role="status"></p></section><section class="panel"><h2>Tarifas y documentos PDF</h2><label>Importar tarifas CSV<input id="cfg-csv" type="file" accept=".csv,text/csv"></label><p id="csv-notice" role="status"></p>' +
       tariffList() +
-      '<p class="muted">Para consultar precios, importa tarifas estructuradas en CSV desde el gestor de tarifas. Los PDF se pueden seleccionar para revisión, pero todavía no se extraen sus precios ni se suben al servidor.</p><label class="tariff-upload">Seleccionar PDF de tarifa<input id="cfg-pdf" type="file" accept="application/pdf,.pdf"></label><div id="pdf-notice" role="status"></div><h3>PDF pendientes de procesamiento</h3>' +
-      (!pdfs.length
-        ? '<p class="muted">Ningún documento registrado.</p>'
-        : pdfs
-            .map(
-              (p, i) =>
-                '<div class="quote-saved"><span>' +
-                esc(p.name) +
-                " · " +
-                esc(p.date) +
-                ' · Pendiente de importar</span><button data-pdf-remove="' +
-                i +
-                '">Quitar</button></div>',
-            )
-            .join("")) +
+      '<label>Seleccionar PDF de tarifa<input id="cfg-pdf" type="file" accept=".pdf,application/pdf"></label><p id="pdf-notice" role="status"></p><p>El catálogo PDF solo registra el nombre, no guarda el archivo. Los documentos de cada expediente se guardan en su sección Documentos.</p>' +
+      pdfs
+        .map(
+          (p, i) =>
+            '<div class="quote-saved">' +
+            esc(p.name) +
+            ' <button data-pdf-remove="' +
+            i +
+            '">Quitar</button></div>',
+        )
+        .join("") +
       "</section>"
     );
   }
@@ -168,11 +207,40 @@
     }
     if (t.id === "cfg-save") {
       const unit = document.querySelector("#cfg-unit").value,
-        energy = document.querySelector("#cfg-energy").value;
-      VSStorage.local.setItem(
-        C,
-        JSON.stringify({ unit, energy, energyMode: "pending" }),
+        energy = document.querySelector("#cfg-energy").value,
+        vat = document.querySelector("#cfg-vat").value,
+        energyMode = document.querySelector("#cfg-energy-mode").value;
+      if (
+        !Number.isFinite(Number(vat)) ||
+        Number(vat) < 0 ||
+        Number(vat) > 100 ||
+        !Number.isFinite(Number(energy)) ||
+        Number(energy) < 0
+      ) {
+        alert("Revisa el IVA y recargo");
+        return true;
+      }
+      const company = Object.fromEntries(
+        [...document.querySelectorAll("[data-company]")].map((el) => [
+          el.dataset.company,
+          el.value.trim(),
+        ]),
       );
+      if (
+        !Number.isInteger(Number(company.validity)) ||
+        Number(company.validity) < 1
+      ) {
+        alert("La validez debe ser un número de días positivo");
+        return true;
+      }
+      VSStorage.write(C, {
+        ...config(),
+        unit,
+        energy,
+        vat: Number(vat),
+        energyMode,
+        company,
+      });
       document.querySelector("#cfg-notice").textContent =
         "Configuración guardada en este dispositivo.";
       return true;

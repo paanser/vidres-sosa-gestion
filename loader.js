@@ -13,6 +13,7 @@ document.querySelectorAll("#nav button").forEach((b) => (b.disabled = true));
     "utils",
     "storage",
     "calculations",
+    "files",
     "tariffs",
     "tools",
     "quotes",

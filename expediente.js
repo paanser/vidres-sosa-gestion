@@ -205,7 +205,11 @@
       "</strong></div><div><small>Responsable</small><strong>" +
       esc(j.responsable || "Sin asignar") +
       "</strong></div><div><small>Fecha prevista</small><strong>" +
-      esc(j.fecha || "Sin fecha") +
+      esc(
+        (j.fecha || "Sin fecha") +
+          (j.hora ? " · " + j.hora : "") +
+          (j.duracion ? " · " + j.duracion + " min" : ""),
+      ) +
       "</strong></div><div><small>Tipo de cliente</small><strong>" +
       esc(j.tipoCliente || "Particular") +
       "</strong></div></div>";
@@ -230,6 +234,30 @@
         (Array.isArray(j.historial) ? j.historial.length : 0) +
         " movimientos registrados</p></section></div>" +
         '<section id="exp-summary-photos" class="exp-section exp-summary-photos" hidden></section>';
+      const client = VSStorage.read("vidres-clientes-v1", []).find(
+        (c) =>
+          String(c.nombre || "")
+            .trim()
+            .toLocaleLowerCase("es") ===
+          String(j.cliente || "")
+            .trim()
+            .toLocaleLowerCase("es"),
+      );
+      if (client?.telefono) {
+        let tel = String(client.telefono).replace(/[^+0-9]/g, "");
+        let wa = tel.replace(/^\+|^00/, "");
+        if (/^\d{9}$/.test(wa)) wa = "34" + wa;
+        body.insertAdjacentHTML(
+          "beforeend",
+          '<section class="exp-section"><h3>Contacto</h3><p>' +
+            esc(client.telefono) +
+            '</p><a href="tel:' +
+            esc(tel) +
+            '">Llamar</a> · <a target="_blank" rel="noopener noreferrer" href="https://wa.me/' +
+            esc(wa) +
+            '">WhatsApp</a></section>',
+        );
+      }
       try {
         const items = await photos(jobId);
         if (!active()) return;
@@ -265,7 +293,7 @@
     }
     if (tab === "medidas")
       body.innerHTML =
-        '<div class="exp-section"><div class="exp-section-head"><h3>Mediciones del expediente</h3><button class="primary" data-exp-draw-measure>✎ Dibujar medidas</button><button type="button" data-exp-add-measure>+ Añadir medida</button></div>' +
+        '<div class="exp-section"><div class="exp-section-head"><h3>Mediciones del expediente</h3><button class="primary" data-exp-draw-measure>✎ Dibujar medidas</button><button type="button" data-exp-add-measure>+ Añadir medida</button><button type="button" data-exp-quote-measures>Crear presupuesto desde medidas</button></div>' +
         (measures.length
           ? '<div class="exp-measure-grid">' +
             measures
@@ -336,7 +364,7 @@
                   '<article class="exp-quote-item"><div><strong>' +
                   esc(q.id) +
                   "</strong><p>" +
-                  esc(q.date) +
+                  esc(q.date + " · " + (q.status || "Borrador")) +
                   " · " +
                   q.lines +
                   " concepto(s)</p><span>Base: " +
@@ -478,6 +506,18 @@
     } else if (b.dataset.expTab) {
       tab = b.dataset.expTab;
       await render();
+    } else if (b.hasAttribute("data-exp-delete")) {
+      if (await window.vidresDeleteJob(current)) dialog.close();
+    } else if (b.hasAttribute("data-exp-quote-measures")) {
+      const pieces = (window.vidresGetMeasurements?.() || []).filter(
+        (m) => m.trabajo === current,
+      );
+      if (!pieces.length) {
+        alert("Añade primero una medida al expediente");
+        return;
+      }
+      dialog.close();
+      window.vidresQuoteStartForJob(current, getJob()?.cliente, pieces);
     } else if (b.hasAttribute("data-exp-new-quote")) {
       dialog.close();
       window.vidresQuoteStartForJob?.(current, getJob()?.cliente);

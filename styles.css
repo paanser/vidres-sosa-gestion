@@ -2451,7 +2451,7 @@ nav button[data-page="criticos"].active {
 .stats.simple-stats {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
-.simple-stats .stat:last-child {
+.simple-stats .stat.critical-stat {
   background: #fff1f0;
   color: #b42318;
 }
@@ -2826,4 +2826,55 @@ nav button[data-page="criticos"].active {
     flex: 1;
     min-width: 0;
   }
+}
+
+#quote-print {
+  display: none;
+}
+@media print {
+  body > * {
+    display: none !important;
+  }
+  body > #quote-print {
+    display: block !important;
+    color: #17251e;
+    font:
+      12px Arial,
+      sans-serif;
+  }
+  #quote-print h1 {
+    color: #15523e;
+    font-size: 22px;
+  }
+  #quote-print table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10px;
+  }
+  #quote-print td,
+  #quote-print th {
+    padding: 8px;
+    border-bottom: 1px solid #ccc;
+    text-align: right;
+  }
+  #quote-print td:first-child,
+  #quote-print th:first-child {
+    text-align: left;
+  }
+  #quote-print tr {
+    break-inside: avoid;
+  }
+  @page {
+    size: A4;
+    margin: 14mm;
+  }
+}
+.quote-saved {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.quote-saved > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }

@@ -86,7 +86,11 @@ window.vidresAppReady = (async () => {
               '" title="' +
               esc(j.descripcion) +
               '">' +
-              esc(j.cliente) +
+              esc(
+                (j.hora ? j.hora + " · " : "") +
+                  j.cliente +
+                  (j.duracion ? " (" + j.duracion + " min)" : ""),
+              ) +
               " · " +
               esc(j.descripcion) +
               "</button>",
@@ -172,7 +176,8 @@ window.vidresAppReady = (async () => {
       String(d.getDate()).padStart(2, "0")
     );
   };
-  let jobScope = "activos";
+  let jobScope = "activos",
+    jobFocus = "";
   const usagePanel = document.querySelector(".ai-usage");
   let filters = { estado: "", responsable: "", tipoCliente: "" };
   const options = (values, selected) =>
@@ -276,6 +281,8 @@ window.vidresAppReady = (async () => {
       ["Trabajos activos", active.length],
       ["Para hoy", due.length],
       ["Críticos", critical.length],
+      ["Atrasados", active.filter((j) => j.fecha && j.fecha < today).length],
+      ["Sin fecha", active.filter((j) => !j.fecha).length],
     ];
     const preview = [...active]
       .sort(
@@ -289,11 +296,19 @@ window.vidresAppReady = (async () => {
       counts
         .map(
           ([label, n]) =>
-            '<div class="stat"><small>' +
+            "<" +
+            (label === "Atrasados"
+              ? 'button type="button" data-job-focus="late"'
+              : "div") +
+            ' class="stat ' +
+            (label === "Críticos" ? "critical-stat" : "") +
+            '"><small>' +
             label +
             "</small><b>" +
             n +
-            "</b></div>",
+            "</b></" +
+            (label === "Atrasados" ? "button" : "div") +
+            ">",
         )
         .join("") +
       '</div><section class="panel"><div class="simple-section-head"><h2>Próximos trabajos</h2><button type="button" data-go="trabajos">Ver trabajos activos</button></div>' +
@@ -556,23 +571,43 @@ window.vidresAppReady = (async () => {
     if (page === "inicio") {
       html = dashboardHtml();
     } else if (page === "trabajos") {
-      const q = search.toLocaleLowerCase("es");
+      const q = /^[+\d\s()-]+$/.test(search)
+        ? search.replace(/\D/g, "")
+        : search.toLocaleLowerCase("es");
       const filtered = jobs.filter(
         (j) =>
+          (jobFocus !== "late" || (j.fecha && j.fecha < localToday())) &&
           (jobScope === "todos" ||
             (jobScope === "finalizados" ? isClosed(j) : !isClosed(j))) &&
           (!filters.estado || j.estado === filters.estado) &&
           (!filters.responsable || j.responsable === filters.responsable) &&
           (!filters.tipoCliente ||
             (j.tipoCliente || "Particular") === filters.tipoCliente) &&
-          [j.id, j.cliente, j.descripcion, j.direccion, j.responsable].some(
-            (v) =>
-              String(v || "")
-                .toLocaleLowerCase("es")
-                .includes(q),
+          [
+            j.id,
+            j.cliente,
+            j.descripcion,
+            j.direccion,
+            j.responsable,
+            j.notas,
+            clients.find((c) => normName(c.nombre) === normName(j.cliente))
+              ?.telefono,
+            String(
+              clients.find((c) => normName(c.nombre) === normName(j.cliente))
+                ?.telefono || "",
+            ).replace(/\D/g, ""),
+          ].some((v) =>
+            String(v || "")
+              .toLocaleLowerCase("es")
+              .includes(q),
           ),
       );
-      html = workFilters() + jobCards(filtered);
+      html =
+        (jobFocus
+          ? '<button type="button" data-clear-focus>Quitar filtro de atrasados</button>'
+          : "") +
+        workFilters() +
+        jobCards(filtered);
     } else if (page === "criticos") {
       const criticalJobs = jobs.filter((j) => j.estado === "Crítico");
       html =
@@ -640,6 +675,7 @@ window.vidresAppReady = (async () => {
     if (scope)
       scope.addEventListener("change", () => {
         jobScope = scope.value;
+        jobFocus = "";
         filters = { estado: "", responsable: "", tipoCliente: "" };
         render();
       });
@@ -663,11 +699,12 @@ window.vidresAppReady = (async () => {
     search = "";
     render();
   };
-  document
-    .querySelectorAll("[data-page]")
-    .forEach((b) =>
-      b.addEventListener("click", () => window.vidresNavigate(b.dataset.page)),
-    );
+  document.querySelectorAll("[data-page]").forEach((b) =>
+    b.addEventListener("click", () => {
+      jobFocus = "";
+      window.vidresNavigate(b.dataset.page);
+    }),
+  );
   function downloadBackup() {
     const payload = {
       format: "vidres-sosa-backup",
@@ -760,6 +797,8 @@ window.vidresAppReady = (async () => {
         "direccion",
         "responsable",
         "fecha",
+        "hora",
+        "duracion",
         "estado",
         "notas",
       ])
@@ -769,16 +808,103 @@ window.vidresAppReady = (async () => {
     dlg.showModal();
   }
   window.vidresOpenJobEditor = open;
+  window.vidresChangeJobStatus = (id, status) => {
+    const next = jobs.map((j) =>
+      j.id === id
+        ? {
+            ...j,
+            estado: status,
+            historial: [
+              ...(j.historial || []),
+              {
+                de: j.estado,
+                a: status,
+                fecha: new Date().toISOString(),
+                responsable: j.responsable || "Sin indicar",
+              },
+            ],
+          }
+        : j,
+    );
+    VSStorage.write(KEY, next);
+    jobs = next;
+  };
+  window.vidresDeleteJob = async (id) => {
+    if (
+      prompt(
+        "Para eliminar el trabajo y sus medidas, fotos y documentos, escribe " +
+          id,
+      ) !== id
+    )
+      return false;
+    const before = {
+      jobs: structuredClone(jobs),
+      measurements: structuredClone(measurements),
+      quotes: VSStorage.read("vs-quote-prototype-v1", []),
+      photos: await VSFiles.all("photos"),
+      documents: await VSFiles.all("documents"),
+    };
+    try {
+      await VSStorage.measurements.replace(
+        measurements.filter((m) => m.trabajo !== id),
+      );
+      for (const kind of ["photos", "documents"])
+        await VSFiles.replace(
+          kind,
+          before[kind].filter((x) => x.trabajo !== id),
+        );
+      VSStorage.write(
+        "vs-quote-prototype-v1",
+        before.quotes.map((q) => (q.job === id ? { ...q, job: "" } : q)),
+      );
+      VSStorage.write(
+        KEY,
+        jobs.filter((j) => j.id !== id),
+      );
+      jobs = jobs.filter((j) => j.id !== id);
+      measurements = VSStorage.measurements.get();
+      render();
+      return true;
+    } catch (e) {
+      try {
+        await VSStorage.measurements.replace(before.measurements);
+        for (const kind of ["photos", "documents"])
+          await VSFiles.replace(kind, before[kind]);
+        VSStorage.write("vs-quote-prototype-v1", before.quotes);
+        VSStorage.write(KEY, before.jobs);
+      } catch {
+        alert(
+          "No se pudo restaurar todo el estado anterior. Conserva la sesión y exporta una copia antes de continuar.",
+        );
+      }
+      alert("No se pudo eliminar el trabajo: " + e.message);
+      return false;
+    }
+  };
   window.vidresGetJobs = () => jobs;
   window.vidresGetMeasurements = () => measurements;
   window.vidresOpenMeasurement = measurementEditor;
   $("#add").addEventListener("click", () => open(null));
   $("#cancel").addEventListener("click", () => dlg.close());
   $("#content").addEventListener("click", async (e) => {
+    const focus = e.target.closest("[data-job-focus]");
+    if (focus) {
+      jobScope = "activos";
+      jobFocus = "late";
+      filters = { estado: "", responsable: "", tipoCliente: "" };
+      window.vidresNavigate("trabajos");
+      return;
+    }
+    if (e.target.closest("[data-clear-focus]")) {
+      jobFocus = "";
+      render();
+      return;
+    }
     const go = e.target.closest("[data-go]");
     if (go) {
       if (go.dataset.go === "trabajos") {
         jobScope = "activos";
+        jobFocus = "";
         filters = { estado: "", responsable: "", tipoCliente: "" };
       }
       window.vidresNavigate(go.dataset.go);
@@ -954,12 +1080,23 @@ window.vidresAppReady = (async () => {
           "direccion",
           "responsable",
           "fecha",
+          "hora",
+          "duracion",
           "estado",
           "notas",
           "tipoCliente",
         ].map((k) => [k, String(data.get(k) || "").trim()]),
       );
     if (!values.cliente || !values.descripcion) return;
+    if (
+      values.duracion &&
+      (!Number.isInteger(Number(values.duracion)) ||
+        Number(values.duracion) < 1 ||
+        Number(values.duracion) > 1440)
+    ) {
+      alert("Revisa la duración: de 1 a 1440 minutos");
+      return;
+    }
     let nextJobs = [...jobs],
       nextMeasurements = measurements;
     if (editing) {

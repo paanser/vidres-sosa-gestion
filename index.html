@@ -138,6 +138,16 @@
           >
           <details class="job-extra-fields">
             <summary>Más datos del trabajo</summary>
+            <label
+              >Hora prevista (opcional)<input name="hora" type="time" /></label
+            ><label
+              >Duración prevista (minutos, opcional)<input
+                name="duracion"
+                type="number"
+                min="1"
+                max="1440"
+                step="1"
+            /></label>
             <label>Dirección<input name="direccion" maxlength="180" /></label>
             <div class="location-actions">
               <button type="button" id="location-get">
@@ -270,6 +280,7 @@
             <h2 id="exp-title"></h2>
           </div>
           <div class="exp-header-actions">
+            <button type="button" data-exp-delete>Eliminar trabajo</button>
             <button type="button" data-exp-edit class="primary">
               Editar trabajo</button
             ><button

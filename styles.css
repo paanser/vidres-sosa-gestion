@@ -3064,3 +3064,125 @@ nav button[data-page="criticos"].active {
   background: white;
   color: #15523e;
 }
+
+/* Cotas numéricas del croquis. */
+.sketch-cota-btn,
+.sketch-use-dims-btn {
+  grid-column: 1 / -1;
+  min-height: 48px;
+  font-weight: 750;
+}
+.sketch-cota-btn {
+  background: #15523e;
+  color: #fff;
+  font-size: 17px;
+}
+.sketch-dim-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0 0 10px;
+}
+.sketch-dim-tools[hidden] {
+  display: none;
+}
+.sketch-dim-tools-label {
+  font-size: 13px;
+  color: #315c42;
+  font-weight: 700;
+}
+.sketch-dim-tools button {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid #a9c4b3;
+  border-radius: 8px;
+  background: #fff;
+  color: #15523e;
+}
+.sketch-dim-tools button[data-dim-delete] {
+  color: #b42318;
+  border-color: #d9a6a2;
+}
+.sketch-book canvas.is-cota {
+  cursor: crosshair;
+}
+.sketch-keypad {
+  border: 0;
+  border-radius: 16px;
+  padding: 0;
+  width: min(360px, 92vw);
+  background: #fff;
+  box-shadow: 0 12px 40px #10251b4d;
+}
+.sketch-keypad::backdrop {
+  background: #10251bd9;
+}
+.sketch-keypad-form {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+}
+.sketch-keypad-title {
+  margin: 0;
+  font-weight: 750;
+  color: #15523e;
+}
+.sketch-keypad-value {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  font-size: 28px;
+  font-weight: 700;
+  padding: 8px 14px;
+  border: 1px solid #cbdcd1;
+  border-radius: 10px;
+  background: #f5f9f6;
+}
+.sketch-keypad-value.empty {
+  color: #98a79d;
+}
+.sketch-keypad-unit {
+  margin: 0;
+  font-size: 13px;
+  color: #526b59;
+  text-align: right;
+}
+.sketch-keypad-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.sketch-keypad-grid button {
+  min-height: 56px;
+  min-width: 56px;
+  font-size: 22px;
+  font-weight: 650;
+  border: 1px solid #cbdcd1;
+  border-radius: 10px;
+  background: #fff;
+  color: #192b22;
+  touch-action: manipulation;
+}
+.sketch-keypad-grid button:active {
+  background: #e8f2ec;
+}
+.sketch-keypad-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.sketch-keypad-actions button {
+  min-height: 56px;
+  font-weight: 750;
+  border-radius: 10px;
+  border: 1px solid #a9c4b3;
+  background: #fff;
+  color: #15523e;
+}
+.sketch-keypad-actions button.primary {
+  background: #15523e;
+  color: #fff;
+  border-color: #15523e;
+}

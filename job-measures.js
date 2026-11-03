@@ -24,8 +24,8 @@
     row.className = "new-measure-piece";
     row.innerHTML = `<legend>Pieza ${++sequence}</legend>
       <div class="measure-fields">
-        <label>Ancho (cm)<input data-new-measure="ancho" type="number" inputmode="decimal" min="0.1" step="0.1" required></label>
-        <label>Alto (cm)<input data-new-measure="alto" type="number" inputmode="decimal" min="0.1" step="0.1" required></label>
+        <label>Ancho (cm)<input data-new-measure="ancho" type="number" inputmode="decimal" min="0.1" step="0.01" required></label>
+        <label>Alto (cm)<input data-new-measure="alto" type="number" inputmode="decimal" min="0.1" step="0.01" required></label>
         <label>Cantidad<input data-new-measure="cantidad" type="number" inputmode="numeric" min="1" step="1" value="1" required></label>
         <label>Espesor (mm)<input data-new-measure="espesor" type="number" inputmode="decimal" min="0" step="0.1"></label>
       </div>
@@ -34,7 +34,30 @@
       <div class="new-measure-sketch"></div><output aria-live="polite">0.0000 m² reales</output>
       <button type="button" data-new-measure-remove>Quitar pieza</button>`;
     list.appendChild(row);
-    window.vidresSketch.mount(row.querySelector(".new-measure-sketch"));
+    window.vidresSketch.mount(
+      row.querySelector(".new-measure-sketch"),
+      undefined,
+      {
+        onUseDims: ({ ancho, alto }) => {
+          const setMeasure = (key, value) => {
+            if (value == null) return;
+            const input = row.querySelector(`[data-new-measure="${key}"]`);
+            if (!input) return;
+            if (
+              input.value.trim() !== "" &&
+              !confirm(
+                `El campo ${key} ya tiene ${input.value}. ¿Sustituirlo por ${value}?`,
+              )
+            )
+              return;
+            input.value = value;
+            updateArea(row);
+          };
+          setMeasure("ancho", ancho);
+          setMeasure("alto", alto);
+        },
+      },
+    );
     if (draw)
       window.vidresSketch.open(row.querySelector(".new-measure-sketch"));
     else row.querySelector("input").focus();

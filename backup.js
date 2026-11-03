@@ -216,6 +216,24 @@
         )
       )
         throw Error("Croquis no válido");
+      if (
+        s.dims !== undefined &&
+        (!Array.isArray(s.dims) ||
+          s.dims.some(
+            (d) =>
+              !d ||
+              typeof d.id !== "string" ||
+              !Array.isArray(d.a) ||
+              d.a.length !== 2 ||
+              !Array.isArray(d.b) ||
+              d.b.length !== 2 ||
+              [d.a, d.b].some((p) =>
+                p.some((n) => typeof n !== "number" || !Number.isFinite(n)),
+              ) ||
+              typeof d.valor !== "string",
+          ))
+      )
+        throw Error("Cotas del croquis no válidas");
     }
     if (
       data.presupuestos !== undefined &&

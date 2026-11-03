@@ -22,7 +22,46 @@
       currency: "EUR",
     });
   const round6 = (cm) => Math.ceil((num(cm) - 1e-9) / 6) * 6;
-  const api = { esc, num, money, round6 };
+  // Valida el valor introducido en una cota: no vacío, no cero, no negativo,
+  // un único separador decimal y hasta dos decimales.
+  const parseDimension = (text) => {
+    const s = String(text ?? "").trim();
+    if (!s) return { ok: false, error: "El valor no puede estar vacío." };
+    if (s.length > 12)
+      return { ok: false, error: "El valor no puede superar 12 caracteres." };
+    if (!/^\d+([.,]\d{1,2})?$/.test(s))
+      return {
+        ok: false,
+        error:
+          "Escribe un número con una única coma decimal y hasta dos decimales.",
+      };
+    const value = Number(s.replace(",", "."));
+    if (!Number.isFinite(value))
+      return { ok: false, error: "El valor no es válido." };
+    if (value <= 0)
+      return {
+        ok: false,
+        error:
+          value === 0
+            ? "El valor no puede ser cero."
+            : "El valor no puede ser negativo.",
+      };
+    return { ok: true, value };
+  };
+  // Convierte un valor de cota (en la unidad configurada) a centímetros,
+  // que es la unidad interna de las mediciones.
+  const dimensionToCm = (value, unit) => {
+    const n = unit === "mm" ? num(value) / 10 : num(value);
+    return Math.round(n * 100) / 100;
+  };
+  const api = {
+    esc,
+    num,
+    money,
+    round6,
+    parseDimension,
+    dimensionToCm,
+  };
   if (typeof module !== "undefined") module.exports = api;
   else root.VSUtils = api;
 })(globalThis);

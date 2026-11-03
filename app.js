@@ -592,17 +592,37 @@ window.vidresAppReady = (async () => {
     window.vidresSketch.mount(
       document.querySelector("#measure-sketch"),
       m?.croquis,
-      m
-        ? {
-            onAccept: async (croquis) => {
-              const next = measurements.map((item) =>
-                item.id === m.id ? { ...item, croquis } : item,
-              );
-              await VSStorage.measurements.replace(next);
-              measurements = next;
-            },
-          }
-        : {},
+      {
+        ...(m
+          ? {
+              onAccept: async (croquis) => {
+                const next = measurements.map((item) =>
+                  item.id === m.id ? { ...item, croquis } : item,
+                );
+                await VSStorage.measurements.replace(next);
+                measurements = next;
+              },
+            }
+          : {}),
+        onUseDims: ({ ancho, alto }) => {
+          const measureForm = document.querySelector("#measure-form");
+          const setMeasure = (name, value) => {
+            if (value == null) return;
+            const input = measureForm.elements[name];
+            if (!input) return;
+            if (
+              input.value.trim() !== "" &&
+              !confirm(
+                `El campo ${name} ya tiene ${input.value}. ¿Sustituirlo por ${value}?`,
+              )
+            )
+              return;
+            input.value = value;
+          };
+          setMeasure("ancho", ancho);
+          setMeasure("alto", alto);
+        },
+      },
     );
     dialog.showModal();
     if (draw)

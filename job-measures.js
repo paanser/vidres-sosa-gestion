@@ -8,7 +8,7 @@
     const value = key => Number(row.querySelector(`[data-new-measure="${key}"]`).value);
     row.querySelector("output").textContent = (value("ancho") * value("alto") * value("cantidad") / 10000).toFixed(4) + " m² reales";
   }
-  section.querySelector("#new-measure-add").addEventListener("click", () => {
+  function addPiece(draw=false) {
     const row = document.createElement("fieldset");
     row.className = "new-measure-piece";
     row.innerHTML = `<legend>Pieza ${++sequence}</legend>
@@ -24,11 +24,14 @@
       <button type="button" data-new-measure-remove>Quitar pieza</button>`;
     list.appendChild(row);
     window.vidresSketch.mount(row.querySelector(".new-measure-sketch"));
-    row.querySelector("input").focus();
-  });
+    if(draw)window.vidresSketch.open(row.querySelector(".new-measure-sketch"));
+    else row.querySelector("input").focus();
+  }
+  section.querySelector("#new-measure-add").addEventListener("click",()=>addPiece());
+  section.querySelector("#new-measure-draw").addEventListener("click",()=>addPiece(true));
   list.addEventListener("click", event => {
     const button = event.target.closest("[data-new-measure-remove]");
-    if (button) button.closest("fieldset").remove();
+    if (button) {const row=button.closest("fieldset");window.vidresSketch.destroy(row.querySelector(".new-measure-sketch"));row.remove();}
   });
   list.addEventListener("input", event => {
     const row = event.target.closest("fieldset");
@@ -36,6 +39,7 @@
   });
   window.vidresNewMeasures = {
     reset(editing) {
+      list.querySelectorAll(".new-measure-sketch").forEach(host=>window.vidresSketch.destroy(host));
       list.replaceChildren();
       sequence = 0;
       section.hidden = Boolean(editing);

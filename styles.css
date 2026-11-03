@@ -1934,6 +1934,37 @@ textarea:focus {
   min-height: 18rem;
   font-size: 1rem;
 }
+.followup-list {
+  display: grid;
+  gap: 0.75rem;
+}
+.followup-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem;
+  border: 1px solid #e0b33d;
+  border-left: 5px solid #d89b00;
+  border-radius: 0.75rem;
+}
+.followup-item span {
+  display: block;
+  margin-top: 0.25rem;
+}
+.followup-item > div:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+@media (max-width: 700px) {
+  .followup-item {
+    flex-direction: column;
+  }
+  .followup-item button {
+    min-height: 44px;
+    flex: 1 1 9rem;
+  }
+}
 
 /* Escala de lectura configurable para ordenador y móvil */
 :root {

@@ -278,7 +278,8 @@ window.vidresAppReady = (async () => {
       active = jobs.filter((j) => !isClosed(j)),
       due = active.filter((j) => j.fecha === today),
       critical = active.filter((j) => j.estado === "Crítico"),
-      pendingNotes = notes.filter((n) => !n.hecha);
+      pendingNotes = notes.filter((n) => !n.hecha),
+      followups = window.vidresQuoteFollowUps?.() || [];
     const counts = [
       ["Trabajos activos", active.length],
       ["Para hoy", due.length],
@@ -286,6 +287,7 @@ window.vidresAppReady = (async () => {
       ["Atrasados", active.filter((j) => j.fecha && j.fecha < today).length],
       ["Sin fecha", active.filter((j) => !j.fecha).length],
       ["Pendientes", pendingNotes.length],
+      ["Por reclamar", followups.length],
     ];
     const preview = [...active]
       .sort(
@@ -336,7 +338,8 @@ window.vidresAppReady = (async () => {
           "</div>"
         : '<p class="muted">No hay trabajos activos. Puedes crear un parte desde el menú.</p>') +
       "</section>" +
-      pendingNotesHtml(pendingNotes, today)
+      pendingNotesHtml(pendingNotes, today) +
+      followupsHtml(followups)
     );
   }
 
@@ -396,6 +399,38 @@ window.vidresAppReady = (async () => {
             .join("") +
           "</div>"
         : '<p class="muted">No hay notas pendientes.</p>') +
+      "</section>"
+    );
+  }
+  function followupsHtml(items) {
+    return (
+      '<section class="panel quote-followups"><h2>Presupuestos por reclamar</h2>' +
+      (items.length
+        ? '<div class="followup-list">' +
+          items
+            .map(
+              (quote) =>
+                '<article class="followup-item"><div><strong>' +
+                esc(quote.client || "Sin cliente") +
+                " · " +
+                esc(quote.id) +
+                "</strong><span>" +
+                money(quote.total) +
+                " · enviado hace " +
+                quote.days +
+                ' día(s)</span></div><div><button type="button" data-followup-whatsapp="' +
+                esc(quote.id) +
+                '">Escribir por WhatsApp</button><button type="button" data-followup-status="Aceptado" data-quote-id="' +
+                esc(quote.id) +
+                '">Marcar aceptado</button><button type="button" data-followup-status="Rechazado" data-quote-id="' +
+                esc(quote.id) +
+                '">Marcar rechazado</button><button type="button" data-followup-postpone="' +
+                esc(quote.id) +
+                '">Posponer 3 días</button></div></article>',
+            )
+            .join("") +
+          "</div>"
+        : '<p class="muted">No hay presupuestos pendientes de respuesta.</p>') +
       "</section>"
     );
   }
@@ -953,6 +988,28 @@ window.vidresAppReady = (async () => {
     renderPendingMeasurePhotos();
   });
   $("#content").addEventListener("click", async (e) => {
+    const followupWhatsApp = e.target.closest("[data-followup-whatsapp]");
+    if (followupWhatsApp) {
+      window.vidresQuoteFollowupWhatsApp?.(
+        followupWhatsApp.dataset.followupWhatsapp,
+      );
+      return;
+    }
+    const followupStatus = e.target.closest("[data-followup-status]");
+    if (followupStatus) {
+      window.vidresQuoteUpdateStatus?.(
+        followupStatus.dataset.quoteId,
+        followupStatus.dataset.followupStatus,
+      );
+      render();
+      return;
+    }
+    const postpone = e.target.closest("[data-followup-postpone]");
+    if (postpone) {
+      window.vidresQuotePostpone?.(postpone.dataset.followupPostpone, 3);
+      render();
+      return;
+    }
     if (e.target.closest("[data-note-new]")) {
       openQuickNote();
       return;

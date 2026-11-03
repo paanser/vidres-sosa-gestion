@@ -14,6 +14,12 @@
   const calc = (line) => VSCalculations.calc(line, pricing(draft));
   const sum = (q) => VSCalculations.totals(q.lines, pricing(q));
   const statuses = ["Borrador", "Enviado", "Aceptado", "Rechazado"];
+  const localToday = () => new Date().toLocaleDateString("en-CA");
+  function addDays(date, days) {
+    const value = new Date(date + "T12:00:00");
+    value.setDate(value.getDate() + days);
+    return value.toLocaleDateString("en-CA");
+  }
   const unit = () => (config().unit === "mm" ? "mm" : "cm"),
     display = (v) => (unit() === "mm" ? String(num(v) * 10) : v);
   const glassName = (l) =>
@@ -35,7 +41,7 @@
       client: "",
       job: "",
       status: "Borrador",
-      date: new Date().toLocaleDateString("en-CA"),
+      date: localToday(),
       pricing: {
         vat: c.vat ?? 21,
         energy: c.energy || "",
@@ -194,11 +200,16 @@
     if (/^\d{9}$/.test(phone)) phone = "34" + phone;
     return phone;
   }
-  let messageTarget = null;
-  function openQuoteMessage(q) {
+  let messageTarget = null,
+    messageKind = "quote";
+  function openQuoteMessage(q, kind = "quote") {
     messageTarget = q;
+    messageKind = kind;
     const dialog = document.querySelector("#quote-message-dialog");
-    dialog.querySelector('[name="mensaje"]').value = messageQuote(q);
+    dialog.querySelector('[name="mensaje"]').value =
+      kind === "followup"
+        ? `Hola${q.client && q.client !== "Sin cliente" ? " " + q.client : ""}, ¿has podido revisar el presupuesto ${q.id}? Si tienes cualquier duda, estamos a tu disposición.\n\n${config().company?.name || "Vidres Sosa"}`
+        : messageQuote(q);
     dialog.showModal();
     requestAnimationFrame(() =>
       dialog.querySelector('[name="mensaje"]').focus(),
@@ -322,6 +333,12 @@
       const list = quotes(),
         old = list.find((q) => q.id === draft.id);
       if (!draft.id) draft.id = nextId();
+      if (draft.status === "Enviado") {
+        draft.enviado = draft.enviado || localToday();
+        draft.seguimiento =
+          draft.seguimiento ||
+          addDays(draft.enviado, Number(config().followupDays) || 4);
+      }
       const i = list.findIndex((q) => q.id === draft.id),
         copy = structuredClone(draft);
       if (i < 0) list.push(copy);
@@ -452,7 +469,7 @@
           );
           draft.id = null;
           draft.status = "Borrador";
-          draft.date = new Date().toLocaleDateString("en-CA");
+          draft.date = localToday();
           sync();
         }
       }
@@ -545,21 +562,89 @@
       "noopener,noreferrer",
     );
     messageDialog.close();
-    if (targetId && confirm("¿Marcar este presupuesto como Enviado?")) {
-      const today = new Date().toLocaleDateString("en-CA");
+    if (
+      messageKind === "quote" &&
+      targetId &&
+      confirm("¿Marcar este presupuesto como Enviado?")
+    ) {
+      const today = localToday(),
+        followup = addDays(today, Number(config().followupDays) || 4);
       VSStorage.write(
         Q,
         quotes().map((quote) =>
           quote.id === targetId
-            ? { ...quote, status: "Enviado", enviado: today }
+            ? {
+                ...quote,
+                status: "Enviado",
+                enviado: today,
+                seguimiento: followup,
+              }
             : quote,
         ),
       );
       if (draft?.id === targetId) {
         draft.status = "Enviado";
         draft.enviado = today;
+        draft.seguimiento = followup;
       }
       sync();
     }
   });
+  window.vidresQuoteFollowUps = () => {
+    const today = localToday();
+    return quotes()
+      .filter(
+        (quote) =>
+          (quote.status || "Borrador") === "Enviado" &&
+          quote.seguimiento &&
+          quote.seguimiento <= today,
+      )
+      .map((quote) => ({
+        id: quote.id,
+        client: quote.client,
+        sent: quote.enviado || "",
+        followup: quote.seguimiento,
+        total: sum(quote).total,
+        days: quote.enviado
+          ? Math.max(
+              0,
+              Math.floor(
+                (new Date(today + "T12:00:00") -
+                  new Date(quote.enviado + "T12:00:00")) /
+                  86400000,
+              ),
+            )
+          : 0,
+      }));
+  };
+  window.vidresQuoteFollowupWhatsApp = (id) => {
+    const quote = quotes().find((item) => item.id === id);
+    if (quote) openQuoteMessage(quote, "followup");
+  };
+  window.vidresQuotePostpone = (id, days = 3) => {
+    const date = addDays(localToday(), days);
+    VSStorage.write(
+      Q,
+      quotes().map((quote) =>
+        quote.id === id ? { ...quote, seguimiento: date } : quote,
+      ),
+    );
+    if (draft?.id === id) draft.seguimiento = date;
+  };
+  window.vidresQuoteUpdateStatus = (id, status) => {
+    const list = quotes(),
+      quote = list.find((item) => item.id === id);
+    if (!quote || !statuses.includes(status)) return;
+    VSStorage.write(
+      Q,
+      list.map((item) => (item.id === id ? { ...item, status } : item)),
+    );
+    if (draft?.id === id) draft.status = status;
+    if (
+      status === "Aceptado" &&
+      quote.job &&
+      confirm("¿Cambiar el trabajo vinculado a En producción?")
+    )
+      window.vidresChangeJobStatus?.(quote.job, "En producción");
+  };
 })();

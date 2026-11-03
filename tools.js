@@ -107,7 +107,9 @@
       (c.unit !== "mm" ? "selected" : "") +
       '>Centímetros</option><option value="mm" ' +
       (c.unit === "mm" ? "selected" : "") +
-      '>Milímetros</option></select></label><label>IVA (%)<input id="cfg-vat" type="number" min="0" max="100" step="0.01" value="' +
+      '>Milímetros</option></select></label><label>Días hasta reclamar un presupuesto<input id="cfg-followup-days" type="number" min="1" max="365" step="1" value="' +
+      esc(c.followupDays || 4) +
+      '"></label><label>IVA (%)<input id="cfg-vat" type="number" min="0" max="100" step="0.01" value="' +
       esc(c.vat ?? 21) +
       '"></label><label>Recargo energético<input id="cfg-energy" type="number" min="0" step="0.01" value="' +
       esc(c.energy || "") +
@@ -214,16 +216,22 @@
       const unit = document.querySelector("#cfg-unit").value,
         energy = document.querySelector("#cfg-energy").value,
         vat = document.querySelector("#cfg-vat").value,
-        energyMode = document.querySelector("#cfg-energy-mode").value;
+        energyMode = document.querySelector("#cfg-energy-mode").value,
+        followupDays = Number(
+          document.querySelector("#cfg-followup-days").value,
+        );
       if (
         vat.trim() === "" ||
         !Number.isFinite(Number(vat)) ||
         Number(vat) < 0 ||
         Number(vat) > 100 ||
         !Number.isFinite(Number(energy)) ||
-        Number(energy) < 0
+        Number(energy) < 0 ||
+        !Number.isInteger(followupDays) ||
+        followupDays < 1 ||
+        followupDays > 365
       ) {
-        alert("Revisa el IVA y recargo");
+        alert("Revisa el IVA, recargo y días de seguimiento");
         return true;
       }
       const company = Object.fromEntries(
@@ -245,6 +253,7 @@
         energy,
         vat: Number(vat),
         energyMode,
+        followupDays,
         company,
         whatsappTemplate: document
           .querySelector("#cfg-whatsapp-template")

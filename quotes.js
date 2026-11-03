@@ -15,6 +15,8 @@
   const statuses = ["Borrador", "Enviado", "Aceptado", "Rechazado"];
   const unit = () => (config().unit === "mm" ? "mm" : "cm"),
     display = (v) => (unit() === "mm" ? String(num(v) * 10) : v);
+  const glassName = (l) =>
+    l.glass || tariffs().find((t) => t.id === l.tariff)?.name || "";
   const emptyLine = () => ({
     w: "",
     h: "",
@@ -81,7 +83,7 @@
       )
       .join(
         "",
-      )}<label>Tipo de vidrio<input data-field="glass" list="glass-options-${i}" value="${esc(l.glass || "")}"></label><datalist id="glass-options-${i}">${tariffs()
+      )}<label>Tipo de vidrio<input data-field="glass" list="glass-options-${i}" value="${esc(glassName(l))}"></label><datalist id="glass-options-${i}">${tariffs()
       .map((t) => `<option value="${esc(t.name)}"></option>`)
       .join(
         "",
@@ -201,7 +203,7 @@
     host.innerHTML = `<h1>${esc(company.name || "Vidres Sosa")} · Presupuesto</h1><p>${[company.taxId, company.address, company.phone, company.email].filter(Boolean).map(esc).join("<br>")}</p><p>Referencia: ${esc(draft.id || "Borrador sin referencia")}<br>Fecha: ${esc(draft.date)}<br>Cliente: ${esc(draft.client)}<br>${esc(client.telefono || "")}<br>${esc(client.direccion || job?.direccion || "")}</p><table><thead><tr><th>Vidrio</th><th>Uds.</th><th>Real cm</th><th>m²/pieza reales</th><th>Aplicada cm</th><th>m²/pieza aplicados</th><th>ml/pieza canto</th><th>Importe</th></tr></thead><tbody>${draft.lines
       .map((l) => {
         const a = calc(l);
-        return `<tr><td>${esc(l.glass || "Vidrio")}</td><td>${a.qty}</td><td>${a.w} × ${a.h}</td><td>${a.real.toFixed(4)}</td><td>${a.aw} × ${a.ah}</td><td>${a.area.toFixed(4)}</td><td>${a.ml.toFixed(2)}</td><td>${money(a.total)}</td></tr>`;
+        return `<tr><td>${esc(glassName(l) || "Vidrio")}</td><td>${a.qty}</td><td>${a.w} × ${a.h}</td><td>${a.real.toFixed(4)}</td><td>${a.aw} × ${a.ah}</td><td>${a.area.toFixed(4)}</td><td>${a.ml.toFixed(2)}</td><td>${money(a.total)}</td></tr>`;
       })
       .join(
         "",

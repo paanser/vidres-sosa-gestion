@@ -19,6 +19,7 @@ Cada fase está en un commit independiente. Usa únicamente datos ficticios y un
 - Pruebas Node de medidas, áreas, lados de canto, cantidades, redondeos fiscales, entradas inválidas, IVA/recargos y Worker simulado.
 - Chromium con contextos aislados para CSV, dictado, migración verificada y fallo de IndexedDB sin borrar origen, presupuestos desde piezas, estado aceptado/producción, duplicado/borrado, impresión sin popup, contacto, eliminación en cascada y hora/duración.
 - Exportación y restauración de archivos con sus bytes, descarga previa a la importación, validación que rechaza copias incorrectas sin modificar datos y recuperación de una operación interrumpida.
+- Compatibilidad con presupuestos anteriores: se conserva el nombre del vidrio vinculado por tarifa, la referencia y la fiscalidad del 21 %. Durante un guardado asíncrono del croquis, se bloquea la cancelación hasta terminar para evitar estados contradictorios.
 - Se comprueba que las piezas conservan su orden después de migrar y recargar. GitHub comprueba también pruebas y formato en las PR antes de publicar.
 - PWA: arranque y creación de parte sin red, cambio de versión, renovación de caché y conservación de datos.
 

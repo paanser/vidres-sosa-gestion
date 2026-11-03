@@ -71,6 +71,8 @@ localStorage tiene un límite pequeño, habitualmente alrededor de 5 MB. Indexed
 
 Los presupuestos nuevos reservan una referencia anual al guardarse, conservando un contador para evitar reutilizar referencias borradas. Los presupuestos anteriores conservan su identificador. Un fallo después de reservar una referencia puede dejar un salto; la seguridad de no repetirla tiene prioridad. Los presupuestos guardan sus condiciones numéricas de IVA y recargo; cambiar Ajustes afecta a presupuestos nuevos. Los antiguos sin esos campos mantienen el cálculo original del 21 % sin recargo.
 
+El recargo porcentual se aplica al subtotal de vidrio y cantos antes del IVA. El recargo en €/m² usa la superficie aplicada (redondeada) multiplicada por la cantidad. Se mantiene desactivado hasta que se elige expresamente un modo y un valor. Para WhatsApp se presupone el prefijo español 34 cuando la ficha contiene nueve dígitos sin prefijo.
+
 ## Copias y recuperación
 
 En Ajustes:

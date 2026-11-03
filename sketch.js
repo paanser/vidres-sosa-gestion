@@ -170,11 +170,17 @@
       expanded.showModal();
       requestAnimationFrame(fitSheet);
     }
+    let saving = false;
     preview.querySelector("button").addEventListener("click", enlarge);
     expanded
       .querySelector("[data-sketch-return]")
       .addEventListener("click", async () => {
-        if (pointer !== null) return;
+        if (pointer !== null || saving) return;
+        saving = true;
+        editor.inert = true;
+        expanded
+          .querySelectorAll("[data-sketch-return],[data-sketch-cancel]")
+          .forEach((b) => (b.disabled = true));
         try {
           const result = read();
           await options.onAccept?.(result);
@@ -185,9 +191,16 @@
           message.textContent =
             "No se pudo guardar el croquis. Conserva esta pantalla e inténtalo de nuevo.";
           alert(message.textContent);
+        } finally {
+          saving = false;
+          editor.inert = false;
+          expanded
+            .querySelectorAll("[data-sketch-return],[data-sketch-cancel]")
+            .forEach((b) => (b.disabled = false));
         }
       });
     function cancel() {
+      if (saving) return;
       if (
         JSON.stringify({
           strokes: state.strokes,
@@ -380,7 +393,7 @@
       state.strokes.reduce((n, s) => n + s.points.length, 0) +
       (active?.points.length || 0);
     canvas.addEventListener("pointerdown", (e) => {
-      if (pointer !== null || !e.isPrimary || e.button !== 0) return;
+      if (saving || pointer !== null || !e.isPrimary || e.button !== 0) return;
       if (count() >= limit) {
         message.textContent =
           "Hoja llena. Deshaz algún trazo antes de seguir dibujando.";

@@ -167,6 +167,7 @@ window.vidresAppReady = (async () => {
     );
   }
   const isClosed = (j) => ["Instalado", "Finalizado"].includes(j.estado);
+  const isArchived = (j) => Boolean(j.archivadoEn);
   const localToday = () => {
     const d = new Date();
     return (
@@ -221,7 +222,10 @@ window.vidresAppReady = (async () => {
             esc(j.tipoCliente || "Particular") +
             '</span></div><button type="button" class="job-open" data-id="' +
             esc(j.id) +
-            '">Ver y editar trabajo</button></article>',
+            '">Ver y editar trabajo</button>' +
+            (j.estado === "Finalizado" && !isArchived(j) ? '<button type="button" class="job-archive" data-job-archive="' + esc(j.id) + '">Archivar</button>' : "") +
+            (isArchived(j) ? '<button type="button" class="job-unarchive" data-job-unarchive="' + esc(j.id) + '">Reabrir expediente</button>' : "") +
+            '</article>',
         )
         .join("") +
       "</div>"
@@ -244,7 +248,8 @@ window.vidresAppReady = (async () => {
       '"></label><label>Mostrar<select id="job-scope">' +
       [
         ["activos", "Activos"],
-        ["finalizados", "Finalizados"],
+        ["finalizados", "Finalizados sin archivar"],
+        ["archivo", "Archivo"],
         ["todos", "Todos los trabajos"],
       ]
         .map(
@@ -275,7 +280,7 @@ window.vidresAppReady = (async () => {
   }
   function dashboardHtml() {
     const today = localToday(),
-      active = jobs.filter((j) => !isClosed(j)),
+      active = jobs.filter((j) => !isClosed(j) && !isArchived(j)),
       due = active.filter((j) => j.fecha === today),
       critical = active.filter((j) => j.estado === "Crítico"),
       pendingNotes = notes.filter((n) => !n.hecha),
@@ -662,7 +667,9 @@ window.vidresAppReady = (async () => {
       trabajos:
         jobScope === "todos"
           ? "Todos los trabajos"
-          : jobScope === "finalizados"
+          : jobScope === "archivo"
+            ? "Archivo de trabajos"
+            : jobScope === "finalizados"
             ? "Trabajos finalizados"
             : "Trabajos activos",
       criticos: "Trabajos críticos",
@@ -694,7 +701,7 @@ window.vidresAppReady = (async () => {
           (jobFocus !== "today" || j.fecha === localToday()) &&
           (jobFocus !== "undated" || !j.fecha) &&
           (jobScope === "todos" ||
-            (jobScope === "finalizados" ? isClosed(j) : !isClosed(j))) &&
+            (jobScope === "archivo" ? isArchived(j) : jobScope === "finalizados" ? isClosed(j) && !isArchived(j) : !isClosed(j) && !isArchived(j))) &&
           (!filters.estado || j.estado === filters.estado) &&
           (!filters.responsable || j.responsable === filters.responsable) &&
           (!filters.tipoCliente ||
@@ -930,6 +937,8 @@ window.vidresAppReady = (async () => {
       ])
         form.elements[key].value = job[key] || "";
       form.elements["tipoCliente"].value = job.tipoCliente || "Particular";
+      if(form.elements.facturado)form.elements.facturado.checked=Boolean(job.facturado);
+      if(form.elements.cobrado)form.elements.cobrado.checked=Boolean(job.cobrado);
     } else {
       form.elements.cliente.value = prefill.cliente || "";
       form.elements.descripcion.value = prefill.descripcion || "";
@@ -1068,6 +1077,14 @@ window.vidresAppReady = (async () => {
     renderPendingMeasurePhotos();
   });
   $("#content").addEventListener("click", async (e) => {
+    const archiveButton=e.target.closest("[data-job-archive], [data-job-unarchive]");
+    if(archiveButton){const id=archiveButton.dataset.jobArchive || archiveButton.dataset.jobUnarchive;const job=jobs.find(j=>j.id===id);if(!job)return;
+      const archive=archiveButton.hasAttribute("data-job-archive");
+      if(archive && job.estado!=="Finalizado"){alert("Solo se pueden archivar trabajos finalizados.");return;}
+      if(!confirm(archive?"¿Archivar este trabajo? Seguirá disponible en Archivo.":"¿Sacar este expediente del archivo?"))return;
+      const next=jobs.map(j=>j.id===id?{...j,archivadoEn:archive?new Date().toISOString():null}:j);
+      try{VSStorage.local.setItem(KEY,JSON.stringify(next));jobs=next;render();}catch{alert("No se pudo guardar el cambio. No se ha archivado el trabajo.");}return;
+    }
     const followupWhatsApp = e.target.closest("[data-followup-whatsapp]");
     if (followupWhatsApp) {
       window.vidresQuoteFollowupWhatsApp?.(
@@ -1362,7 +1379,11 @@ window.vidresAppReady = (async () => {
           fecha: new Date().toISOString(),
           responsable: values.responsable || "Sin indicar",
         });
-      nextJobs[i] = { ...old, ...values, historial: history };
+      nextJobs[i] = { ...old, ...values, historial: history,
+        finalizadoEn: values.estado === "Finalizado" ? (old.estado === "Finalizado" ? old.finalizadoEn || new Date().toISOString() : new Date().toISOString()) : null,
+        facturado: Boolean(form.elements.facturado?.checked),
+        cobrado: Boolean(form.elements.cobrado?.checked),
+        archivadoEn: values.estado === "Finalizado" ? old.archivadoEn || null : null };
     } else {
       const max = jobs.reduce(
         (n, j) => Math.max(n, Number(j.id.replace("VS-", "")) || 0),
@@ -1374,6 +1395,10 @@ window.vidresAppReady = (async () => {
       nextJobs.push({
         id,
         ...values,
+        finalizadoEn: values.estado === "Finalizado" ? new Date().toISOString() : null,
+        facturado: Boolean(form.elements.facturado?.checked),
+        cobrado: Boolean(form.elements.cobrado?.checked),
+        archivadoEn: null,
         historial: [
           {
             de: "",

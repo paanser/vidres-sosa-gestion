@@ -237,6 +237,127 @@
     };
   }
 
+  // ---------------------------------------------------------------------
+  // C3 · Cálculo económico
+  // ---------------------------------------------------------------------
+
+  // Importe del descuento (porcentaje o euros) sobre una base.
+  function discountAmount(base, d) {
+    if (!d || !num(d.valor)) return 0;
+    if (d.tipo === "€" || d.tipo === "euro")
+      return Math.min(base, num(d.valor));
+    return (base * num(d.valor)) / 100;
+  }
+
+  // Neto de una línea: subtotal - descuento de línea, más IVA propio.
+  function lineNet(l, config = {}) {
+    const r = calcLine(l, config);
+    const descuento = round2(discountAmount(r.total, l.descuento));
+    const base = round2(r.total - descuento);
+    const rate =
+      l.iva == null || l.iva === "" ? num(config.vat ?? 21) : num(l.iva);
+    const iva = round2((base * rate) / 100);
+    return {
+      tipo: r.tipo,
+      subtotal: r.total,
+      descuento,
+      base,
+      rate,
+      iva,
+      total: round2(base + iva),
+    };
+  }
+
+  // Desglose económico completo de un presupuesto (líneas planas).
+  function breakdown(lines, opts = {}) {
+    const items = lines.filter(isCounted).map((l) => lineNet(l, opts));
+    const baseLineas = round2(items.reduce((n, it) => n + it.base, 0));
+    const descuentoGlobal = round2(
+      discountAmount(baseLineas, opts.descuentoGlobal),
+    );
+    let recargosTotal = 0;
+    const recargos = (opts.recargos || []).map((r) => {
+      const importe = round2(
+        r.tipo === "€" || r.tipo === "euro"
+          ? num(r.valor)
+          : ((baseLineas - descuentoGlobal) * num(r.valor)) / 100,
+      );
+      recargosTotal += importe;
+      return {
+        nombre: r.nombre,
+        tipo: r.tipo,
+        valor: r.valor,
+        importe: round2(importe),
+      };
+    });
+    recargosTotal = round2(recargosTotal);
+    const base = round2(baseLineas - descuentoGlobal + recargosTotal);
+    const ivaPorTipo = {};
+    for (const it of items) {
+      const k = String(it.rate);
+      ivaPorTipo[k] = ivaPorTipo[k] || { base: 0, iva: 0 };
+      ivaPorTipo[k].base = round2(ivaPorTipo[k].base + it.base);
+      ivaPorTipo[k].iva = round2(ivaPorTipo[k].iva + it.iva);
+    }
+    const totalIva = round2(items.reduce((n, it) => n + it.iva, 0));
+    const total = round2(base + totalIva);
+    const anticipo =
+      opts.anticipo && num(opts.anticipo.valor)
+        ? round2(
+            opts.anticipo.tipo === "€" || opts.anticipo.tipo === "euro"
+              ? num(opts.anticipo.valor)
+              : (total * num(opts.anticipo.valor)) / 100,
+          )
+        : 0;
+    return {
+      items,
+      baseLineas,
+      descuentoGlobal,
+      recargos,
+      recargosTotal,
+      base,
+      ivaPorTipo,
+      totalIva,
+      total,
+      anticipo,
+      pendiente: round2(total - anticipo),
+    };
+  }
+
+  // Coste total interno (solo vidrios con coste declarado).
+  function costeTotal(lines, config = {}) {
+    return round2(
+      lines.filter(isCounted).reduce((n, l) => {
+        if ((l.tipo || "vidrio") === "vidrio") {
+          const r = calcGlass(l, config);
+          return n + num(l.coste) * r.area * r.qty;
+        }
+        return n + num(l.coste || 0);
+      }, 0),
+    );
+  }
+
+  // Margen en euros y porcentaje sobre el precio de venta.
+  function margen(venta, coste) {
+    const v = num(venta),
+      c = num(coste);
+    const enEuros = round2(v - c);
+    const enPct = v > 0 ? round2(((v - c) / v) * 100) : 0;
+    return { enEuros, enPct };
+  }
+
+  // Calculadora inversa: precio necesario para un margen % dado.
+  function reverseMargin(pct, coste) {
+    const p = num(pct);
+    if (p >= 100) return 0;
+    return round2(num(coste) / (1 - p / 100));
+  }
+
+  // Precio final con IVA → base imponible.
+  function priceWithVat(totalConIva, rate) {
+    return round2(num(totalConIva) / (1 + num(rate) / 100));
+  }
+
   const api = {
     calc,
     totals,
@@ -248,6 +369,13 @@
     isCounted,
     quoteTotals,
     planchas,
+    discountAmount,
+    lineNet,
+    breakdown,
+    costeTotal,
+    margen,
+    reverseMargin,
+    priceWithVat,
   };
   if (typeof module !== "undefined") module.exports = api;
   else root.VSCalculations = api;

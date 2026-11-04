@@ -14,7 +14,17 @@
   const pricing = (q) =>
     q?.pricing || { vat: 21, energyMode: "pending", energy: "" };
   const allLines = (q) => (q?.capitulos || []).flatMap((c) => c.lineas || []);
-  const sum = (q) => VSCalculations.quoteTotals(allLines(q), pricing(q));
+  const breakdownOf = (q) =>
+    VSCalculations.breakdown(allLines(q), {
+      ...pricing(q),
+      descuentoGlobal: q.descuentoGlobal,
+      recargos: q.recargos,
+      anticipo: q.anticipo,
+    });
+  const sum = (q) => {
+    const b = breakdownOf(q);
+    return { base: b.base, iva: b.totalIva, total: b.total };
+  };
   const calcLine = (l) => VSCalculations.calcLine(l, pricing(draft));
   const statuses = ["Borrador", "Enviado", "Aceptado", "Rechazado"];
   const localToday = () => new Date().toLocaleDateString("en-CA");
@@ -37,6 +47,48 @@
     ["residuos", "Retirada y residuos"],
     ["texto", "Texto / nota"],
   ];
+
+  // Recargos como texto: una línea por recargo, "Nombre=valor" o "Nombre=€valor".
+  function recargosText(recargos) {
+    return (recargos || [])
+      .map(
+        (r) => `${r.nombre || ""}=${r.tipo === "€" ? "€" : ""}${r.valor ?? ""}`,
+      )
+      .join("\n");
+  }
+  function parseRecargos(text) {
+    return String(text || "")
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const m = line.match(/^(.*?)[=:]\s*(€)?\s*([\d.,]+)\s*$/);
+        if (m && m[1].trim())
+          return {
+            nombre: m[1].trim(),
+            tipo: m[2] ? "€" : "%",
+            valor: m[3].replace(",", "."),
+          };
+        return null;
+      })
+      .filter(Boolean);
+  }
+
+  // Descuento e IVA propios de una línea.
+  function lineExtrasHtml(l) {
+    const iva = l.iva == null || l.iva === "" ? "" : String(l.iva);
+    return `<div class="quote-line-extras"><label>Dto. %<input type="number" inputmode="decimal" min="0" max="100" step="0.1" data-field="dtovalor" value="${esc(l.descuento?.valor ?? "")}"></label><label>IVA<select data-field="iva">${[
+      ["", "Según config."],
+      ["21", "21 %"],
+      ["10", "10 %"],
+      ["0", "0 %"],
+    ]
+      .map(
+        ([v, t]) =>
+          `<option value="${v}" ${iva === v ? "selected" : ""}>${t}</option>`,
+      )
+      .join("")}</select></label></div>`;
+  }
 
   function emptyLine(tipo = "vidrio") {
     const id = "L-" + nid();
@@ -318,7 +370,7 @@
         `<option value="${v}" ${tipo === v ? "selected" : ""}>${label}</option>`,
     ).join(
       "",
-    )}</select></label></div>${lineFieldsHtml(l, ci, li)}${resultHtml(l)}</div>`;
+    )}</select></label></div>${lineFieldsHtml(l, ci, li)}${lineExtrasHtml(l)}${resultHtml(l)}</div>`;
   }
 
   function chapterHtml(cap, ci) {
@@ -334,8 +386,27 @@
   }
 
   function totalsHtml() {
-    const t = sum(draft);
-    return `Base imponible: <strong>${money(t.base)}</strong><br>IVA (${esc(pricing(draft).vat ?? 21)} %): <strong>${money(t.iva)}</strong><br>Total con IVA: <strong class="quote-grand-total">${money(t.total)}</strong>`;
+    const b = breakdownOf(draft);
+    let html = `Base imponible: <strong>${money(b.base)}</strong>`;
+    if (b.descuentoGlobal > 0)
+      html += `<br>Descuento global: <strong>−${money(b.descuentoGlobal)}</strong>`;
+    b.recargos.forEach((r) => {
+      html += `<br>${esc(r.nombre)}: <strong>+${money(r.importe)}</strong>`;
+    });
+    html += `<br>IVA: <strong>${money(b.totalIva)}</strong>`;
+    const tipos = Object.keys(b.ivaPorTipo);
+    if (tipos.length > 1)
+      for (const k of tipos)
+        html += `<br><span class="muted">· ${k} %: ${money(b.ivaPorTipo[k].iva)}</span>`;
+    html += `<br>Total con IVA: <strong class="quote-grand-total">${money(b.total)}</strong>`;
+    if (b.anticipo > 0)
+      html += `<br>Anticipo: <strong>${money(b.anticipo)}</strong> · Pendiente: <strong>${money(b.pendiente)}</strong>`;
+    const coste = VSCalculations.costeTotal(allLines(draft), pricing(draft));
+    if (coste > 0) {
+      const m = VSCalculations.margen(b.total, coste);
+      html += `<br><span class="muted">Solo interno · Coste: ${money(coste)} · Margen: ${money(m.enEuros)} (${m.enPct} %)</span>`;
+    }
+    return html;
   }
   function updateTotals() {
     const host = document.querySelector(".quote-total-breakdown");
@@ -450,6 +521,7 @@
  <section class="panel quote-editor"><div class="quote-section-heading"><div><p class="quote-eyebrow">PRESUPUESTO</p><h2>${esc(draft.id || "Sin guardar")}${draft.version > 1 ? " · v" + draft.version : ""}</h2></div></div>
  <div class="quote-fields"><label>Cliente<input id="quote-client" maxlength="100" value="${esc(draft.client)}"></label><label>Dirección de obra<input id="quote-obra" maxlength="180" value="${esc(draft.obra)}"></label><label>Parte relacionado<select id="quote-job"><option value="">Sin vincular</option>${jobs.map((j) => `<option value="${esc(j.id)}" ${draft.job === j.id ? "selected" : ""}>${esc(j.id + " · " + j.cliente)}</option>`).join("")}</select></label><label>Estado<select id="quote-status">${statuses.map((s) => `<option ${s === (draft.status || "Borrador") ? "selected" : ""}>${s}</option>`).join("")}</select></label><label>Fecha<input id="quote-date" type="date" value="${esc(draft.date)}"></label><label>Validez (días)<input id="quote-validez" type="number" inputmode="numeric" min="1" max="365" step="1" value="${esc(draft.validezDias ?? 30)}"></label><label>Forma de pago<input id="quote-pago" maxlength="180" value="${esc(draft.pago)}" placeholder="50 % al aceptar…"></label><label>Plazo de entrega<input id="quote-plazo" maxlength="180" value="${esc(draft.plazo)}" placeholder="10 días laborables"></label></div>
  <details class="quote-notes"><summary>Notas y condiciones</summary><div class="quote-fields"><label>Notas para el cliente (salen en el PDF)<textarea id="quote-notas-cliente" rows="2" maxlength="1000">${esc(draft.notasCliente)}</textarea></label><label>Notas internas (no salen en el PDF)<textarea id="quote-notas-internas" rows="2" maxlength="1000">${esc(draft.notasInternas)}</textarea></label></div></details>
+ <details class="quote-notes"><summary>Descuentos, recargos y anticipo</summary><div class="quote-fields"><label>Descuento global (%)<input id="quote-dto-global" type="number" inputmode="decimal" min="0" max="100" step="0.1" value="${esc(draft.descuentoGlobal?.valor || "")}"></label><label>Anticipo (%)<input id="quote-anticipo" type="number" inputmode="decimal" min="0" max="100" step="0.1" value="${esc(draft.anticipo?.valor || "")}"></label><label>Recargos (uno por línea: «Nombre=10» o «Nombre=€50»)<textarea id="quote-recargos" rows="3">${esc(recargosText(draft.recargos))}</textarea></label></div></details>
  <div id="quote-chapters">${draft.capitulos.map((c, i) => chapterHtml(c, i)).join("")}</div><button type="button" class="btn-secondary" id="chapter-add">+ Añadir capítulo</button>
  <div class="quote-total"><div class="quote-total-breakdown">${totalsHtml()}</div></div><div class="quote-toolbar"><button type="button" class="primary" id="quote-save">Guardar presupuesto</button><button type="button" id="quote-whatsapp">Enviar por WhatsApp</button><button type="button" id="quote-pdf">Imprimir / Guardar PDF</button></div></section>
  <section class="panel"><h2>Presupuestos guardados</h2><div id="quote-list">${quoteListHtml()}</div></section>`;
@@ -541,6 +613,9 @@
     draft.plazo = val("#quote-plazo").trim();
     draft.notasInternas = val("#quote-notas-internas").trim();
     draft.notasCliente = val("#quote-notas-cliente").trim();
+    draft.descuentoGlobal = { tipo: "%", valor: val("#quote-dto-global") };
+    draft.anticipo = { tipo: "%", valor: val("#quote-anticipo") };
+    draft.recargos = parseRecargos(val("#quote-recargos"));
     document.querySelectorAll(".quote-chapter").forEach((ch) => {
       const ci = Number(ch.dataset.chapter);
       const cap = draft.capitulos[ci];
@@ -556,6 +631,10 @@
           if (k === "w" || k === "h")
             l[k] =
               unit() === "mm" ? String(num(input.value) / 10) : input.value;
+          else if (k === "dtovalor")
+            l.descuento = { tipo: "%", valor: input.value };
+          else if (k === "iva")
+            l.iva = input.value === "" ? null : Number(input.value);
           else l[k] = input.value;
         });
         l.opcional = el.querySelector("[data-line-opcional]")?.checked || false;

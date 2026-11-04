@@ -3991,3 +3991,18 @@ html[data-theme="dark"] aside {
   color: var(--vs-green);
   background: var(--vs-surface-2);
 }
+.quote-line-extras {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  margin: 10px 0;
+  flex-wrap: wrap;
+}
+.quote-line-extras label {
+  display: grid;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--vs-muted);
+  min-width: 120px;
+}

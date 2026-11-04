@@ -3271,3 +3271,16 @@ nav button[data-page="criticos"].active {
     grid-template-columns: 1fr;
   }
 }
+
+.simple-stats button.stat {
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.simple-stats button.stat:hover {
+  border-color: var(--vs-green);
+}
+.simple-stats button.stat:focus-visible {
+  outline: 2px solid var(--vs-green);
+  outline-offset: 3px;
+}

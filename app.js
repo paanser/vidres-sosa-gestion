@@ -281,11 +281,19 @@ window.vidresAppReady = (async () => {
       pendingNotes = notes.filter((n) => !n.hecha),
       followups = window.vidresQuoteFollowUps?.() || [];
     const counts = [
-      ["Trabajos activos", active.length],
-      ["Para hoy", due.length],
-      ["Críticos", critical.length],
-      ["Atrasados", active.filter((j) => j.fecha && j.fecha < today).length],
-      ["Sin fecha", active.filter((j) => !j.fecha).length],
+      ["Trabajos activos", active.length, 'data-job-focus=""'],
+      ["Para hoy", due.length, 'data-job-focus="today"'],
+      ["Críticos", critical.length, 'data-go="criticos"'],
+      [
+        "Atrasados",
+        active.filter((j) => j.fecha && j.fecha < today).length,
+        'data-job-focus="late"',
+      ],
+      [
+        "Sin fecha",
+        active.filter((j) => !j.fecha).length,
+        'data-job-focus="undated"',
+      ],
       ["Pendientes", pendingNotes.length],
       ["Por reclamar", followups.length],
     ];
@@ -300,11 +308,9 @@ window.vidresAppReady = (async () => {
       '<div class="stats simple-stats">' +
       counts
         .map(
-          ([label, n]) =>
+          ([label, n, action]) =>
             "<" +
-            (label === "Atrasados"
-              ? 'button type="button" data-job-focus="late"'
-              : "div") +
+            (action ? 'button type="button" ' + action : "div") +
             ' class="stat ' +
             (label === "Críticos" ? "critical-stat" : "") +
             '"><small>' +
@@ -312,7 +318,7 @@ window.vidresAppReady = (async () => {
             "</small><b>" +
             n +
             "</b></" +
-            (label === "Atrasados" ? "button" : "div") +
+            (action ? "button" : "div") +
             ">",
         )
         .join("") +
@@ -685,6 +691,8 @@ window.vidresAppReady = (async () => {
       const filtered = jobs.filter(
         (j) =>
           (jobFocus !== "late" || (j.fecha && j.fecha < localToday())) &&
+          (jobFocus !== "today" || j.fecha === localToday()) &&
+          (jobFocus !== "undated" || !j.fecha) &&
           (jobScope === "todos" ||
             (jobScope === "finalizados" ? isClosed(j) : !isClosed(j))) &&
           (!filters.estado || j.estado === filters.estado) &&
@@ -712,7 +720,11 @@ window.vidresAppReady = (async () => {
       );
       html =
         (jobFocus
-          ? '<button type="button" data-clear-focus>Quitar filtro de atrasados</button>'
+          ? '<button type="button" data-clear-focus>Quitar filtro: ' +
+            { late: "Atrasados", today: "Para hoy", undated: "Sin fecha" }[
+              jobFocus
+            ] +
+            "</button>"
           : "") +
         workFilters() +
         jobCards(filtered);
@@ -1127,7 +1139,7 @@ window.vidresAppReady = (async () => {
     const focus = e.target.closest("[data-job-focus]");
     if (focus) {
       jobScope = "activos";
-      jobFocus = "late";
+      jobFocus = focus.dataset.jobFocus;
       filters = { estado: "", responsable: "", tipoCliente: "" };
       window.vidresNavigate("trabajos");
       return;

@@ -104,14 +104,16 @@
         (n, x) => n + x.blob.size,
         0,
       );
-      if (
-        !confirm(
+      const ok = await VSUI.confirm({
+        titulo: "Copia completa",
+        texto:
           "La copia incluirá fotos y documentos (aprox. " +
-            ((bytes * 1.4) / 1e6).toFixed(1) +
-            " MB más los datos). Puede tardar y ocupar memoria. ¿Continuar?",
-        )
-      )
-        return;
+          ((bytes * 1.4) / 1e6).toFixed(1) +
+          " MB más los datos). Puede tardar y ocupar memoria. ¿Continuar?",
+        aceptar: "Continuar",
+        cancelar: "Cancelar",
+      });
+      if (!ok) return;
     }
     download(
       await encode(data, files),
@@ -353,9 +355,13 @@
       }),
     );
     if (
-      !confirm(
-        "Se sustituirán los datos incluidos en la copia. Antes se descargará una copia completa del estado actual. ¿Continuar?",
-      )
+      !(await VSUI.confirm({
+        titulo: "Importar copia",
+        texto:
+          "Se sustituirán los datos incluidos en la copia. Antes se descargará una copia completa del estado actual. ¿Continuar?",
+        aceptar: "Continuar",
+        cancelar: "Cancelar",
+      }))
     )
       return;
     const before = await snapshot();
@@ -365,9 +371,13 @@
     );
     if (
       bytes > 50000000 &&
-      !confirm(
-        "La copia previa contiene más de 50 MB de archivos. ¿Continuar con su descarga?",
-      )
+      !(await VSUI.confirm({
+        titulo: "Copia previa grande",
+        texto:
+          "La copia previa contiene más de 50 MB de archivos. ¿Continuar con su descarga?",
+        aceptar: "Continuar",
+        cancelar: "Cancelar",
+      }))
     )
       return;
     download(
@@ -386,8 +396,9 @@
       after.numeracion[year] = Math.max(n, after.numeracion[year] || 0);
     await transaction(after);
     window.vidresReloadData?.();
-    alert(
+    VSUI.toast(
       "Copia restaurada. La copia anterior se ha enviado a Descargas; comprueba que se haya guardado.",
+      "ok",
     );
   }
   const last = () => VSStorage.local.getItem(stamp);

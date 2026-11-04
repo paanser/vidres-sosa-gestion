@@ -273,6 +273,41 @@ window.vidresAppReady = (async () => {
       "</select></label></div></details>"
     );
   }
+  function filterJobs() {
+    const q = /^[+\d\s()-]+$/.test(search)
+      ? search.replace(/\D/g, "")
+      : search.toLocaleLowerCase("es");
+    return jobs.filter(
+      (j) =>
+        (jobFocus !== "late" || (j.fecha && j.fecha < localToday())) &&
+        (jobFocus !== "today" || j.fecha === localToday()) &&
+        (jobFocus !== "undated" || !j.fecha) &&
+        (jobScope === "todos" ||
+          (jobScope === "finalizados" ? isClosed(j) : !isClosed(j))) &&
+        (!filters.estado || j.estado === filters.estado) &&
+        (!filters.responsable || j.responsable === filters.responsable) &&
+        (!filters.tipoCliente ||
+          (j.tipoCliente || "Particular") === filters.tipoCliente) &&
+        [
+          j.id,
+          j.cliente,
+          j.descripcion,
+          j.direccion,
+          j.responsable,
+          j.notas,
+          clients.find((c) => normName(c.nombre) === normName(j.cliente))
+            ?.telefono,
+          String(
+            clients.find((c) => normName(c.nombre) === normName(j.cliente))
+              ?.telefono || "",
+          ).replace(/\D/g, ""),
+        ].some((v) =>
+          String(v || "")
+            .toLocaleLowerCase("es")
+            .includes(q),
+        ),
+    );
+  }
   function dashboardHtml() {
     const today = localToday(),
       active = jobs.filter((j) => !isClosed(j)),
@@ -610,23 +645,32 @@ window.vidresAppReady = (async () => {
               },
             }
           : {}),
-        onUseDims: ({ ancho, alto }) => {
+        onUseDims: async ({ ancho, alto }) => {
           const measureForm = document.querySelector("#measure-form");
-          const setMeasure = (name, value) => {
+          const setMeasure = async (name, value) => {
             if (value == null) return;
             const input = measureForm.elements[name];
             if (!input) return;
-            if (
-              input.value.trim() !== "" &&
-              !confirm(
-                `El campo ${name} ya tiene ${input.value}. ¿Sustituirlo por ${value}?`,
-              )
-            )
-              return;
+            if (input.value.trim() !== "") {
+              const ok = await VSUI.confirm({
+                titulo: "Sustituir medida",
+                texto:
+                  "El campo " +
+                  name +
+                  " ya tiene " +
+                  input.value +
+                  ". ¿Sustituirlo por " +
+                  value +
+                  "?",
+                aceptar: "Sustituir",
+                cancelar: "Cancelar",
+              });
+              if (!ok) return;
+            }
             input.value = value;
           };
-          setMeasure("ancho", ancho);
-          setMeasure("alto", alto);
+          await setMeasure("ancho", ancho);
+          await setMeasure("alto", alto);
         },
       },
     );
@@ -638,6 +682,20 @@ window.vidresAppReady = (async () => {
     return (
       '<section class="panel"><h2>' + title + "</h2>" + body + "</section>"
     );
+  }
+  // Fundido corto al cambiar de pantalla (respetando menos movimiento).
+  function fadeIn() {
+    const host = $("#content");
+    if (!host || typeof host.animate !== "function") return;
+    if (
+      window.matchMedia &&
+      matchMedia("(prefers-reduced-motion: reduce)").matches
+    )
+      return;
+    host.animate([{ opacity: 0 }, { opacity: 1 }], {
+      duration: 150,
+      easing: "ease",
+    });
   }
   function render() {
     if (usagePanel) {
@@ -685,39 +743,6 @@ window.vidresAppReady = (async () => {
           ? '<p role="status" class="backup-reminder">Hace más de 14 días que no exportas una copia. <button type="button" data-go="ajustes">Hacer copia</button></p>'
           : "") + dashboardHtml();
     } else if (page === "trabajos") {
-      const q = /^[+\d\s()-]+$/.test(search)
-        ? search.replace(/\D/g, "")
-        : search.toLocaleLowerCase("es");
-      const filtered = jobs.filter(
-        (j) =>
-          (jobFocus !== "late" || (j.fecha && j.fecha < localToday())) &&
-          (jobFocus !== "today" || j.fecha === localToday()) &&
-          (jobFocus !== "undated" || !j.fecha) &&
-          (jobScope === "todos" ||
-            (jobScope === "finalizados" ? isClosed(j) : !isClosed(j))) &&
-          (!filters.estado || j.estado === filters.estado) &&
-          (!filters.responsable || j.responsable === filters.responsable) &&
-          (!filters.tipoCliente ||
-            (j.tipoCliente || "Particular") === filters.tipoCliente) &&
-          [
-            j.id,
-            j.cliente,
-            j.descripcion,
-            j.direccion,
-            j.responsable,
-            j.notas,
-            clients.find((c) => normName(c.nombre) === normName(j.cliente))
-              ?.telefono,
-            String(
-              clients.find((c) => normName(c.nombre) === normName(j.cliente))
-                ?.telefono || "",
-            ).replace(/\D/g, ""),
-          ].some((v) =>
-            String(v || "")
-              .toLocaleLowerCase("es")
-              .includes(q),
-          ),
-      );
       html =
         (jobFocus
           ? '<button type="button" data-clear-focus>Quitar filtro: ' +
@@ -727,7 +752,9 @@ window.vidresAppReady = (async () => {
             "</button>"
           : "") +
         workFilters() +
-        jobCards(filtered);
+        '<div id="job-results">' +
+        jobCards(filterJobs()) +
+        "</div>";
     } else if (page === "criticos") {
       const criticalJobs = jobs.filter((j) => j.estado === "Crítico");
       html =
@@ -799,6 +826,7 @@ window.vidresAppReady = (async () => {
       );
     }
     $("#content").innerHTML = html;
+    fadeIn();
     const advanced = $(".advanced-work-filters");
     if (advanced && Object.values(filters).some(Boolean)) advanced.open = true;
     const scope = $("#job-scope");
@@ -819,9 +847,8 @@ window.vidresAppReady = (async () => {
     if (input)
       input.addEventListener("input", (e) => {
         search = e.target.value;
-        render();
-        $("#search").focus();
-        $("#search").setSelectionRange(search.length, search.length);
+        const host = $("#job-results");
+        if (host) host.innerHTML = jobCards(filterJobs());
       });
   }
   window.vidresNavigate = (p) => {
@@ -839,12 +866,12 @@ window.vidresAppReady = (async () => {
     try {
       await VSBackup.exportData(false);
     } catch (e) {
-      alert(e.message);
+      VSUI.toast(e.message, "error");
     }
   }
   function importBackup(file) {
     VSBackup.importFile(file).catch((e) =>
-      alert("No se pudo importar: " + e.message),
+      VSUI.toast("No se pudo importar: " + e.message, "error"),
     );
   }
   const dlg = $("#editor"),
@@ -936,7 +963,7 @@ window.vidresAppReady = (async () => {
     }
     dlg.showModal();
   }
-  function applyTemplate(id) {
+  async function applyTemplate(id) {
     const select = $("#start-template");
     if (!id) return;
     const t = (window.vidresPlantillasList?.() || []).find((x) => x.id === id);
@@ -946,16 +973,20 @@ window.vidresAppReady = (async () => {
       form.elements.notas.value.trim() !== "" ||
       (form.elements.tipoCliente.value || "Particular") !== "Particular" ||
       document.querySelectorAll(".new-measure-piece").length > 0;
-    if (
-      hasInfo &&
-      !confirm(
-        "Ya hay información escrita. ¿Sustituirla por la plantilla «" +
+    if (hasInfo) {
+      const ok = await VSUI.confirm({
+        titulo: "Aplicar plantilla",
+        texto:
+          "Ya hay información escrita. ¿Sustituirla por la plantilla «" +
           t.nombre +
           "»?",
-      )
-    ) {
-      select.value = "";
-      return;
+        aceptar: "Sustituir",
+        cancelar: "Cancelar",
+      });
+      if (!ok) {
+        select.value = "";
+        return;
+      }
     }
     form.elements.descripcion.value = t.descripcion || "";
     form.elements.tipoCliente.value = t.tipoCliente || "Particular";
@@ -989,13 +1020,16 @@ window.vidresAppReady = (async () => {
     jobs = next;
   };
   window.vidresDeleteJob = async (id) => {
-    if (
-      prompt(
+    const confirmado = await VSUI.prompt({
+      titulo: "Eliminar trabajo",
+      texto:
         "Para eliminar el trabajo y sus medidas, fotos y documentos, escribe " +
-          id,
-      ) !== id
-    )
-      return false;
+        id,
+      aceptar: "Eliminar",
+      cancelar: "Cancelar",
+      peligro: true,
+    });
+    if (confirmado !== id) return false;
     try {
       const after = await VSBackup.snapshot();
       after.trabajos = after.trabajos.filter((j) => j.id !== id);
@@ -1011,7 +1045,7 @@ window.vidresAppReady = (async () => {
       render();
       return true;
     } catch (e) {
-      alert("No se pudo eliminar el trabajo: " + e.message);
+      VSUI.toast("No se pudo eliminar el trabajo: " + e.message, "error");
       return false;
     }
   };
@@ -1033,13 +1067,13 @@ window.vidresAppReady = (async () => {
     if (!e.target.classList.contains("job-measure-photo")) return;
     const files = [...e.target.files];
     if (files.length > 12) {
-      alert("Añade un máximo de 12 fotos por operación.");
+      VSUI.toast("Añade un máximo de 12 fotos por operación.", "warn");
       e.target.value = "";
       return;
     }
     for (const file of files) {
       if (!file.type.startsWith("image/") || file.size > 20_000_000) {
-        alert("Archivo no admitido: " + file.name);
+        VSUI.toast("Archivo no admitido: " + file.name, "warn");
         continue;
       }
       try {
@@ -1055,7 +1089,10 @@ window.vidresAppReady = (async () => {
         if (editing) await VSFiles.put("photos", record);
         else pendingMeasurePhotos.push(record);
       } catch (error) {
-        alert("No se pudo preparar " + file.name + ": " + error.message);
+        VSUI.toast(
+          "No se pudo preparar " + file.name + ": " + error.message,
+          "error",
+        );
       }
     }
     e.target.value = "";
@@ -1111,7 +1148,15 @@ window.vidresAppReady = (async () => {
     }
     const noteDelete = e.target.closest("[data-note-delete]");
     if (noteDelete) {
-      if (confirm("¿Eliminar esta nota rápida?")) {
+      if (
+        await VSUI.confirm({
+          titulo: "Eliminar nota",
+          texto: "¿Eliminar esta nota rápida?",
+          aceptar: "Eliminar",
+          cancelar: "Cancelar",
+          peligro: true,
+        })
+      ) {
         saveNotes(notes.filter((n) => n.id !== noteDelete.dataset.noteDelete));
         render();
       }
@@ -1132,7 +1177,7 @@ window.vidresAppReady = (async () => {
       try {
         await VSBackup.exportData(true);
       } catch (error) {
-        alert(error.message);
+        VSUI.toast(error.message, "error");
       }
       return;
     }
@@ -1181,7 +1226,7 @@ window.vidresAppReady = (async () => {
     }
     if (e.target.closest("#measure-add")) {
       if (!jobs.length) {
-        alert("Crea primero un trabajo.");
+        VSUI.toast("Crea primero un trabajo.", "warn");
         return;
       }
       measurementEditor(null);
@@ -1194,7 +1239,15 @@ window.vidresAppReady = (async () => {
     }
     const md = e.target.closest("[data-measure-delete]");
     if (md) {
-      if (confirm("¿Eliminar esta medición?")) {
+      if (
+        await VSUI.confirm({
+          titulo: "Eliminar medición",
+          texto: "¿Eliminar esta medición?",
+          aceptar: "Eliminar",
+          cancelar: "Cancelar",
+          peligro: true,
+        })
+      ) {
         measurements = measurements.filter(
           (x) => x.id !== md.dataset.measureDelete,
         );
@@ -1258,7 +1311,10 @@ window.vidresAppReady = (async () => {
     try {
       VSStorage.local.setItem(CLIENT_KEY, JSON.stringify(clients));
     } catch {
-      alert("No se pudo guardar la ficha. Revisa el espacio disponible.");
+      VSUI.toast(
+        "No se pudo guardar la ficha. Revisa el espacio disponible.",
+        "error",
+      );
       return;
     }
     document.querySelector("#client-editor").close();
@@ -1296,7 +1352,7 @@ window.vidresAppReady = (async () => {
         !Number.isInteger(Number(m.cantidad)) ||
         Number(m.cantidad) <= 0
       ) {
-        alert("Revisa trabajo, ancho, alto y cantidad.");
+        VSUI.toast("Revisa trabajo, ancho, alto y cantidad.", "warn");
         return;
       }
       m.croquis = window.vidresSketch.read(
@@ -1310,8 +1366,9 @@ window.vidresAppReady = (async () => {
       try {
         await VSStorage.measurements.replace(next);
       } catch {
-        alert(
+        VSUI.toast(
           "No se pudo guardar la medición y su croquis. Conserva el formulario e inténtalo de nuevo.",
+          "error",
         );
         return;
       }
@@ -1344,7 +1401,7 @@ window.vidresAppReady = (async () => {
         Number(values.duracion) < 1 ||
         Number(values.duracion) > 1440)
     ) {
-      alert("Revisa la duración: de 1 a 1440 minutos");
+      VSUI.toast("Revisa la duración: de 1 a 1440 minutos", "warn");
       return;
     }
     let nextJobs = [...jobs],
@@ -1427,13 +1484,15 @@ window.vidresAppReady = (async () => {
           else VSStorage.local.setItem(KEY, previousJobs);
         }
       } catch {
-        alert(
+        VSUI.toast(
           "No se pudo completar ni revertir el guardado. Conserva esta ventana y revisa el almacenamiento antes de continuar.",
+          "error",
         );
         return;
       }
-      alert(
+      VSUI.toast(
         "No se pudo guardar el parte y sus medidas. Los datos siguen en el formulario; revisa el espacio disponible e inténtalo de nuevo.",
+        "error",
       );
       return;
     }

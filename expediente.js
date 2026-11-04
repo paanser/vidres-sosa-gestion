@@ -488,7 +488,7 @@
         (m) => m.trabajo === current,
       );
       if (!pieces.length) {
-        alert("Añade primero una medida al expediente");
+        VSUI.toast("Añade primero una medida al expediente", "warn");
         return;
       }
       dialog.close();
@@ -505,15 +505,24 @@
       try {
         await openDocument(b.dataset.expDocOpen);
       } catch {
-        alert("No se pudo descargar el documento.");
+        VSUI.toast("No se pudo descargar el documento.", "error");
       }
     } else if (b.dataset.expDocDelete) {
-      if (!confirm("¿Eliminar este documento del expediente?")) return;
+      if (
+        !(await VSUI.confirm({
+          titulo: "Eliminar documento",
+          texto: "¿Eliminar este documento del expediente?",
+          aceptar: "Eliminar",
+          cancelar: "Cancelar",
+          peligro: true,
+        }))
+      )
+        return;
       try {
         await deleteDocument(b.dataset.expDocDelete);
         render();
       } catch {
-        alert("No se pudo eliminar el documento.");
+        VSUI.toast("No se pudo eliminar el documento.", "error");
       }
     } else if (b.hasAttribute("data-exp-edit")) {
       dialog.close();
@@ -528,7 +537,16 @@
       dialog.close();
       window.vidresOpenMeasurement?.(b.dataset.expMeasure);
     } else if (b.dataset.expDeletePhoto) {
-      if (!confirm("¿Eliminar esta fotografía?")) return;
+      if (
+        !(await VSUI.confirm({
+          titulo: "Eliminar fotografía",
+          texto: "¿Eliminar esta fotografía?",
+          aceptar: "Eliminar",
+          cancelar: "Cancelar",
+          peligro: true,
+        }))
+      )
+        return;
       await removePhoto(b.dataset.expDeletePhoto);
       render();
     } else if (b.dataset.expPaperOpen) {
@@ -550,12 +568,12 @@
     if (e.target.hasAttribute("data-exp-measure-photo")) {
       const files = [...e.target.files];
       if (files.length > 12) {
-        alert("Añade un máximo de 12 fotos por operación.");
+        VSUI.toast("Añade un máximo de 12 fotos por operación.", "warn");
         return;
       }
       for (const file of files) {
         if (!file.type.startsWith("image/") || file.size > 20_000_000) {
-          alert("Archivo no admitido: " + file.name);
+          VSUI.toast("Archivo no admitido: " + file.name, "warn");
           continue;
         }
         try {
@@ -569,7 +587,10 @@
             fecha: new Date().toISOString(),
           });
         } catch (error) {
-          alert("No se pudo guardar " + file.name + ": " + error.message);
+          VSUI.toast(
+            "No se pudo guardar " + file.name + ": " + error.message,
+            "error",
+          );
         }
       }
       render();
@@ -578,13 +599,16 @@
     if (e.target.id === "exp-doc-files") {
       const files = [...e.target.files];
       if (files.length > 12) {
-        alert("Añade como máximo 12 documentos a la vez.");
+        VSUI.toast("Añade como máximo 12 documentos a la vez.", "warn");
         return;
       }
       const allowed = /\.(pdf|txt|csv|doc|docx|xls|xlsx|jpg|jpeg|png)$/i;
       for (const file of files) {
         if (file.size > 8_000_000 || !allowed.test(file.name)) {
-          alert("Documento no admitido (máximo 8 MB): " + file.name);
+          VSUI.toast(
+            "Documento no admitido (máximo 8 MB): " + file.name,
+            "warn",
+          );
           continue;
         }
         try {
@@ -596,7 +620,7 @@
             fecha: new Date().toISOString(),
           });
         } catch {
-          alert("No se pudo guardar " + file.name);
+          VSUI.toast("No se pudo guardar " + file.name, "error");
         }
       }
       render();
@@ -606,12 +630,12 @@
     const photoJobId = current;
     const files = [...e.target.files];
     if (files.length > 12) {
-      alert("Añade un máximo de 12 fotos por operación.");
+      VSUI.toast("Añade un máximo de 12 fotos por operación.", "warn");
       return;
     }
     for (const file of files) {
       if (!file.type.startsWith("image/") || file.size > 20_000_000) {
-        alert("Archivo no admitido: " + file.name);
+        VSUI.toast("Archivo no admitido: " + file.name, "warn");
         continue;
       }
       try {
@@ -625,7 +649,10 @@
           fecha: new Date().toISOString(),
         });
       } catch (err) {
-        alert("No se pudo guardar " + file.name + ": " + err.message);
+        VSUI.toast(
+          "No se pudo guardar " + file.name + ": " + err.message,
+          "error",
+        );
       }
     }
     render();

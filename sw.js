@@ -10,6 +10,7 @@ const ASSETS = [
   "loader.js",
   "styles.css",
   "utils.js",
+  "ui.js",
   "storage.js",
   "calculations.js",
   "files.js",
@@ -28,6 +29,7 @@ const ASSETS = [
   "manifest.json",
   "icons/icon-192.png",
   "icons/icon-512.png",
+  "icons/logo.png",
 ];
 self.addEventListener("install", (event) =>
   event.waitUntil(

@@ -266,7 +266,7 @@
         } catch {
           message.textContent =
             "No se pudo guardar el croquis. Conserva esta pantalla e inténtalo de nuevo.";
-          alert(message.textContent);
+          VSUI.toast(message.textContent, "error");
         } finally {
           saving = false;
           editor.inert = false;
@@ -275,22 +275,28 @@
             .forEach((b) => (b.disabled = false));
         }
       });
-    function cancel() {
+    async function cancel() {
       if (saving) return;
-      if (
+      const changed =
         JSON.stringify({
           strokes: state.strokes,
           notes: notes.value.trim(),
           dims: state.dims,
         }) !==
-          JSON.stringify({
-            strokes: accepted.strokes,
-            notes: accepted.notes,
-            dims: accepted.dims,
-          }) &&
-        !confirm("Hay cambios sin aceptar. ¿Descartarlos y volver al parte?")
-      )
-        return;
+        JSON.stringify({
+          strokes: accepted.strokes,
+          notes: accepted.notes,
+          dims: accepted.dims,
+        });
+      if (changed) {
+        const ok = await VSUI.confirm({
+          titulo: "Descartar croquis",
+          texto: "Hay cambios sin aceptar. ¿Descartarlos y volver al parte?",
+          aceptar: "Descartar",
+          cancelar: "Cancelar",
+        });
+        if (!ok) return;
+      }
       state = clean(accepted);
       notes.value = state.notes;
       history = [];
@@ -594,12 +600,13 @@
       }
       return best;
     }
-    function useDimsAsMeasures() {
+    async function useDimsAsMeasures() {
       const horizontal = state.dims.filter((d) => ejeOf(d) === "h"),
         vertical = state.dims.filter((d) => ejeOf(d) === "v");
       if (!horizontal.length && !vertical.length) {
-        alert(
+        VSUI.toast(
           "No hay cotas horizontales ni verticales. Añade una cota horizontal para el ancho y una vertical para el alto.",
+          "warn",
         );
         return;
       }
@@ -610,14 +617,16 @@
       const parts = [];
       if (hVal != null) parts.push("ancho = " + hVal + " cm");
       if (vVal != null) parts.push("alto = " + vVal + " cm");
-      if (
-        !confirm(
+      const ok = await VSUI.confirm({
+        titulo: "Copiar cotas",
+        texto:
           "¿Copiar las cotas a las medidas de la pieza? " +
-            parts.join(", ") +
-            ".",
-        )
-      )
-        return;
+          parts.join(", ") +
+          ".",
+        aceptar: "Copiar",
+        cancelar: "Cancelar",
+      });
+      if (!ok) return;
       options.onUseDims?.({ ancho: hVal, alto: vVal });
       message.textContent =
         "Cotas aplicadas a las medidas. Revisa los campos antes de guardar.";
@@ -636,7 +645,7 @@
         keypad.querySelector("[data-kp-accept]").focus(),
       );
     }
-    keypad.addEventListener("click", (e) => {
+    keypad.addEventListener("click", async (e) => {
       const b = e.target.closest("button");
       if (!b) return;
       const k = b.dataset.kp;
@@ -652,17 +661,20 @@
       } else if (b.hasAttribute("data-kp-accept")) {
         const res = VSUtils.parseDimension(keypad._value);
         if (!res.ok) {
-          alert(res.error);
+          VSUI.toast(res.error, "warn");
           return;
         }
         const cm = VSUtils.dimensionToCm(res.value, unitName());
-        if (
-          cm > 1000 &&
-          !confirm(
-            "La medida equivale a más de 1000 cm. ¿Confirmar este valor?",
-          )
-        )
-          return;
+        if (cm > 1000) {
+          const ok = await VSUI.confirm({
+            titulo: "Medida grande",
+            texto:
+              "La medida equivale a más de 1000 cm. ¿Confirmar este valor?",
+            aceptar: "Confirmar",
+            cancelar: "Cancelar",
+          });
+          if (!ok) return;
+        }
         const onAccept = keypad._onAccept,
           valor = keypad._value;
         keypad._value = "";
@@ -827,7 +839,7 @@
     canvas.addEventListener("pointerup", finish);
     canvas.addEventListener("pointercancel", finish);
     canvas.addEventListener("lostpointercapture", finish);
-    editor.addEventListener("click", (e) => {
+    editor.addEventListener("click", async (e) => {
       const b = e.target.closest("button");
       if (!b) return;
       if (b.hasAttribute("data-case-toggle")) {
@@ -869,12 +881,21 @@
       }
       if (b.hasAttribute("data-dim-delete")) {
         const d = state.dims.find((x) => x.id === selectedDim);
-        if (d && confirm("¿Eliminar esta cota?")) {
-          remember();
-          state.dims = state.dims.filter((x) => x.id !== selectedDim);
-          selectedDim = null;
-          message.textContent = "Cota eliminada.";
-          redraw();
+        if (d) {
+          const ok = await VSUI.confirm({
+            titulo: "Eliminar cota",
+            texto: "¿Eliminar esta cota?",
+            aceptar: "Eliminar",
+            cancelar: "Cancelar",
+            peligro: true,
+          });
+          if (ok) {
+            remember();
+            state.dims = state.dims.filter((x) => x.id !== selectedDim);
+            selectedDim = null;
+            message.textContent = "Cota eliminada.";
+            redraw();
+          }
         }
         return;
       }
@@ -943,17 +964,22 @@
         message.textContent = "Última acción rehecha.";
         redraw();
       }
-      if (
-        b.hasAttribute("data-sketch-clear") &&
-        confirm(
-          "¿Borrar todos los trazos de este croquis? Las notas se conservarán.",
-        )
-      ) {
-        remember();
-        state.strokes = [];
-        message.textContent =
-          "Dibujo borrado. Guarda la pieza para confirmar el cambio.";
-        redraw();
+      if (b.hasAttribute("data-sketch-clear")) {
+        const ok = await VSUI.confirm({
+          titulo: "Borrar croquis",
+          texto:
+            "¿Borrar todos los trazos de este croquis? Las notas se conservarán.",
+          aceptar: "Borrar",
+          cancelar: "Cancelar",
+          peligro: true,
+        });
+        if (ok) {
+          remember();
+          state.strokes = [];
+          message.textContent =
+            "Dibujo borrado. Guarda la pieza para confirmar el cambio.";
+          redraw();
+        }
       }
     });
     redraw();

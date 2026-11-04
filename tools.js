@@ -258,7 +258,7 @@
           ? consult()
           : settings();
   };
-  window.vidresToolsClick = (e, navigate) => {
+  window.vidresToolsClick = async (e, navigate) => {
     const t = e.target.closest("button");
     if (!t) return false;
     if (t.dataset.toolGo) {
@@ -266,14 +266,17 @@
       return true;
     }
     if (t.dataset.tariffDelete || t.id === "tariffs-clear") {
-      if (
-        !confirm(
-          t.id === "tariffs-clear"
-            ? "¿Eliminar todas las tarifas? Los presupuestos conservan sus precios guardados."
-            : "¿Eliminar esta tarifa?",
-        )
-      )
-        return true;
+      const todas = t.id === "tariffs-clear";
+      const ok = await VSUI.confirm({
+        titulo: todas ? "Eliminar todas las tarifas" : "Eliminar tarifa",
+        texto: todas
+          ? "¿Eliminar todas las tarifas? Los presupuestos conservan sus precios guardados."
+          : "¿Eliminar esta tarifa?",
+        aceptar: "Eliminar",
+        cancelar: "Cancelar",
+        peligro: true,
+      });
+      if (!ok) return true;
       VSStorage.local.setItem(
         T,
         JSON.stringify(
@@ -305,7 +308,7 @@
         followupDays < 1 ||
         followupDays > 365
       ) {
-        alert("Revisa el IVA, recargo y días de seguimiento");
+        VSUI.toast("Revisa el IVA, recargo y días de seguimiento", "warn");
         return true;
       }
       const company = Object.fromEntries(
@@ -318,7 +321,7 @@
         !Number.isInteger(Number(company.validity)) ||
         Number(company.validity) < 1
       ) {
-        alert("La validez debe ser un número de días positivo");
+        VSUI.toast("La validez debe ser un número de días positivo", "warn");
         return true;
       }
       VSStorage.write(C, {
@@ -353,7 +356,15 @@
       return true;
     }
     if (t.dataset.plantillaDelete) {
-      if (confirm("¿Eliminar esta plantilla?")) {
+      if (
+        await VSUI.confirm({
+          titulo: "Eliminar plantilla",
+          texto: "¿Eliminar esta plantilla?",
+          aceptar: "Eliminar",
+          cancelar: "Cancelar",
+          peligro: true,
+        })
+      ) {
         VSStorage.local.setItem(
           PL,
           JSON.stringify(

@@ -11,6 +11,7 @@ document.querySelectorAll("#nav button").forEach((b) => (b.disabled = true));
     "styles.css?v=" + encodeURIComponent(version);
   for (const name of [
     "utils",
+    "ui",
     "storage",
     "calculations",
     "files",

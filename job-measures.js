@@ -37,23 +37,32 @@
       row.querySelector(".new-measure-sketch"),
       undefined,
       {
-        onUseDims: ({ ancho, alto }) => {
-          const setMeasure = (key, value) => {
+        onUseDims: async ({ ancho, alto }) => {
+          const setMeasure = async (key, value) => {
             if (value == null) return;
             const input = row.querySelector(`[data-new-measure="${key}"]`);
             if (!input) return;
-            if (
-              input.value.trim() !== "" &&
-              !confirm(
-                `El campo ${key} ya tiene ${input.value}. ¿Sustituirlo por ${value}?`,
-              )
-            )
-              return;
+            if (input.value.trim() !== "") {
+              const ok = await VSUI.confirm({
+                titulo: "Sustituir medida",
+                texto:
+                  "El campo " +
+                  key +
+                  " ya tiene " +
+                  input.value +
+                  ". ¿Sustituirlo por " +
+                  value +
+                  "?",
+                aceptar: "Sustituir",
+                cancelar: "Cancelar",
+              });
+              if (!ok) return;
+            }
             input.value = value;
             updateArea(row);
           };
-          setMeasure("ancho", ancho);
-          setMeasure("alto", alto);
+          await setMeasure("ancho", ancho);
+          await setMeasure("alto", alto);
         },
       },
     );

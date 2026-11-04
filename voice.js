@@ -231,9 +231,13 @@
     }
     if (!accessCode) {
       accessCode =
-        window.prompt(
-          "Código privado de acceso IA (se recordará durante esta sesión):",
-        ) || "";
+        (await VSUI.prompt({
+          titulo: "Código de acceso IA",
+          texto:
+            "Código privado de acceso IA (se recordará durante esta sesión):",
+          aceptar: "Aceptar",
+          cancelar: "Cancelar",
+        })) || "";
       if (!accessCode) return;
       try {
         sessionStorage.setItem(SESSION_KEY, accessCode);

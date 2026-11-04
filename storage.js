@@ -3,10 +3,11 @@
   const legacy = "vidres-mediciones-v1";
   let cache = [];
   function warn(error) {
-    alert(
+    const msg =
       "No se pudieron guardar o leer los datos. Comprueba el espacio y los permisos del navegador. " +
-        error.message,
-    );
+      error.message;
+    if (window.VSUI?.toast) window.VSUI.toast(msg, "error");
+    else console.error(msg);
   }
   const local = {
     getItem(key) {

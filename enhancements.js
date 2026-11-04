@@ -51,14 +51,17 @@
           const locality =
             a.city || a.town || a.village || a.municipality || "";
           const address = [street, locality].filter(Boolean).join(", ");
-          if (
-            address &&
-            (!field.value.trim() ||
-              confirm(
-                "¿Sustituir la dirección actual por la aproximada obtenida del mapa?",
-              ))
-          ) {
-            field.value = address.slice(0, field.maxLength);
+          if (address) {
+            const sustituir =
+              !field.value.trim() ||
+              (await VSUI.confirm({
+                titulo: "Sustituir dirección",
+                texto:
+                  "¿Sustituir la dirección actual por la aproximada obtenida del mapa?",
+                aceptar: "Sustituir",
+                cancelar: "Cancelar",
+              }));
+            if (sustituir) field.value = address.slice(0, field.maxLength);
           }
           status.textContent =
             "Dirección aproximada obtenida de OpenStreetMap. Comprueba calle y número antes de guardar.";

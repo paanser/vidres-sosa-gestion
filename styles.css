@@ -3047,7 +3047,39 @@ nav button[data-page="criticos"].active {
   }
   #quote-print h1 {
     color: #15523e;
-    font-size: 22px;
+    font-size: 20px;
+    margin: 0;
+  }
+  .print-head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border-bottom: 2px solid #15523e;
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+  }
+  .print-head img {
+    height: 48px;
+    width: auto;
+  }
+  .print-head p {
+    margin: 2px 0 0;
+    color: #555;
+  }
+  .print-doc-title {
+    font-size: 16px;
+    margin: 14px 0 8px;
+    color: #17251e;
+  }
+  .print-meta {
+    display: flex;
+    gap: 32px;
+    margin-bottom: 14px;
+  }
+  .print-meta > div {
+    flex: 1;
+    font-size: 11px;
+    line-height: 1.5;
   }
   #quote-print table {
     width: 100%;
@@ -3056,7 +3088,7 @@ nav button[data-page="criticos"].active {
   }
   #quote-print td,
   #quote-print th {
-    padding: 8px;
+    padding: 6px 8px;
     border-bottom: 1px solid #ccc;
     text-align: right;
   }
@@ -3064,8 +3096,49 @@ nav button[data-page="criticos"].active {
   #quote-print th:first-child {
     text-align: left;
   }
+  #quote-print thead th {
+    background: #f0f4f1;
+    color: #15523e;
+    border-bottom: 2px solid #15523e;
+  }
   #quote-print tr {
     break-inside: avoid;
+  }
+  #quote-print .print-chapter td {
+    font-weight: bold;
+    color: #15523e;
+    background: #f4f8f5;
+  }
+  #quote-print .print-opt td {
+    color: #888;
+  }
+  .print-totals {
+    margin-top: 14px;
+    margin-left: auto;
+    width: 60%;
+    text-align: right;
+    font-size: 12px;
+    line-height: 1.7;
+  }
+  .print-totals .print-grand {
+    font-size: 16px;
+    font-weight: bold;
+    color: #15523e;
+  }
+  .print-notes,
+  .print-conditions {
+    margin-top: 14px;
+    font-size: 11px;
+    line-height: 1.5;
+  }
+  .print-accept {
+    display: flex;
+    gap: 40px;
+    margin-top: 48px;
+    font-size: 11px;
+  }
+  .print-accept > div {
+    flex: 1;
   }
   @page {
     size: A4;

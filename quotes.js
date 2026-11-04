@@ -614,9 +614,9 @@
    .map((c, i) => `<option value="${i}">${esc(c.nombre)}</option>`)
    .join("")}</select></label></div>
  <div id="quote-chapters">${draft.capitulos.map((c, i) => chapterHtml(c, i)).join("")}</div><button type="button" class="btn-secondary" id="chapter-add">+ Añadir capítulo</button>
- </div><aside class="quote-summary"><div class="quote-total"><div class="quote-total-breakdown">${totalsHtml()}</div></div><div class="quote-toolbar"><button type="button" class="primary" id="quote-save">Guardar presupuesto</button><button type="button" id="quote-whatsapp">Enviar por WhatsApp</button><button type="button" id="quote-pdf">Imprimir / Guardar PDF</button></div></aside></div></section>
+ </div><aside class="quote-summary"><div class="quote-total"><div class="quote-total-breakdown">${totalsHtml()}</div></div><div class="quote-toolbar"><button type="button" class="primary" id="quote-save">Guardar presupuesto</button><button type="button" id="quote-whatsapp">Enviar por WhatsApp</button><button type="button" id="quote-pdf">PDF detallado</button><button type="button" id="quote-pdf-resumen">PDF resumen</button><button type="button" id="quote-corte">Hoja de corte</button></div></aside></div></section>
  <div class="quote-mobile-bar"><span>Total: <strong>${money(sum(draft).total)}</strong></span><button type="button" class="primary" data-quote-action="save">Guardar</button><button type="button" data-quote-action="whatsapp">Enviar</button></div>
- <section class="panel"><h2>Presupuestos guardados</h2>${quoteKpis()}${quoteFiltersHtml()}<div id="quote-list">${quoteListHtml()}</div></section>`;
+ <section class="panel"><div class="simple-section-head"><h2>Presupuestos guardados</h2><button type="button" id="quote-csv">Exportar CSV</button></div>${quoteKpis()}${quoteFiltersHtml()}<div id="quote-list">${quoteListHtml()}</div></section>`;
   }
 
   function quickSync() {
@@ -918,7 +918,16 @@
       area.remove();
     }
   }
-  function printQuote() {
+  function printHost() {
+    let host = document.querySelector("#quote-print");
+    if (!host) {
+      host = document.createElement("section");
+      host.id = "quote-print";
+      document.body.appendChild(host);
+    }
+    return host;
+  }
+  function printQuote(mode = "detallado") {
     fromForm();
     const c = config(),
       company = c.company || {},
@@ -929,34 +938,119 @@
             String(x.nombre).trim().toLocaleLowerCase("es") ===
             draft.client.trim().toLocaleLowerCase("es"),
         ) || {};
-    let host = document.querySelector("#quote-print");
-    if (!host) {
-      host = document.createElement("section");
-      host.id = "quote-print";
-      document.body.appendChild(host);
-    }
-    const t = sum(draft);
+    const host = printHost();
+    const b = breakdownOf(draft);
+    const detallado = mode === "detallado";
     const rows = draft.capitulos
       .flatMap((cap) =>
-        (cap.nombre
-          ? [
-              `<tr class="print-chapter"><td colspan="5">${esc(cap.nombre)}</td></tr>`,
-            ]
-          : []
-        ).concat(
-          (cap.lineas || []).map((l) => {
+        [
+          cap.nombre
+            ? `<tr class="print-chapter"><td colspan="${detallado ? 5 : 2}">${esc(cap.nombre)}</td></tr>`
+            : "",
+          ...(cap.lineas || []).map((l) => {
             const r = VSCalculations.calcLine(l, pricing(draft));
+            const sufijo = l.alternativa
+              ? " (opción " + esc(l.alternativa) + ")"
+              : l.opcional
+                ? " (opcional)"
+                : "";
+            const opt = l.opcional || l.alternativa ? ' class="print-opt"' : "";
             if (l.tipo === "texto")
-              return `<tr><td colspan="4">${esc(l.nombre || l.texto || "")}</td><td></td></tr>`;
-            if (l.tipo === "vidrio")
-              return `<tr><td>${esc(l.nombre || l.vidrio || "Vidrio")}</td><td>${l.qty}</td><td>${r.aw} × ${r.ah} cm</td><td>${r.area.toFixed(4)} m²</td><td>${money(r.total)}</td></tr>`;
-            return `<tr><td>${esc(l.nombre || "")}</td><td></td><td></td><td></td><td>${money(r.total)}</td></tr>`;
+              return detallado
+                ? `<tr${opt}><td colspan="4">${esc(l.nombre || l.texto || "")}${sufijo}</td><td></td></tr>`
+                : `<tr${opt}><td colspan="2">${esc(l.nombre || l.texto || "")}${sufijo}</td></tr>`;
+            if (detallado && l.tipo === "vidrio")
+              return `<tr${opt}><td>${esc(l.nombre || l.vidrio || "Vidrio")}${sufijo}</td><td>${l.qty}</td><td>${r.w} × ${r.h}</td><td>${r.aw} × ${r.ah} · ${r.area.toFixed(4)} m²</td><td>${money(r.total)}</td></tr>`;
+            return detallado
+              ? `<tr${opt}><td>${esc(l.nombre || "")}${sufijo}</td><td></td><td></td><td></td><td>${money(r.total)}</td></tr>`
+              : `<tr${opt}><td>${esc(l.nombre || "")}${sufijo}</td><td>${money(r.total)}</td></tr>`;
           }),
-        ),
+        ].join(""),
       )
       .join("");
-    host.innerHTML = `<h1>${esc(company.name || "Vidres Sosa")} · Presupuesto</h1><p>${[company.taxId, company.address, company.phone, company.email].filter(Boolean).map(esc).join("<br>")}</p><p>Referencia: ${esc(draft.id || "Borrador")}${draft.version > 1 ? " v" + draft.version : ""}<br>Fecha: ${esc(draft.date)}<br>Cliente: ${esc(draft.client)}<br>${esc(draft.obra || client.direccion || job?.direccion || "")}</p><table><thead><tr><th>Concepto</th><th>Uds.</th><th>Medida aplicada</th><th>m²</th><th>Importe</th></tr></thead><tbody>${rows}</tbody></table><p>Base: ${money(t.base)}<br>IVA (${esc(pricing(draft).vat ?? 21)} %): ${money(t.iva)}<br><strong>Total: ${money(t.total)}</strong></p>${draft.notasCliente ? `<p>${esc(draft.notasCliente).replace(/\n/g, "<br>")}</p>` : ""}<p>${esc(company.conditions || "").replace(/\n/g, "<br>")}</p><p>Validez: ${esc(draft.validezDias ?? 30)} días desde la fecha del presupuesto.</p>`;
+    const thead = detallado
+      ? "<thead><tr><th>Concepto</th><th>Uds.</th><th>Real cm</th><th>Aplicada cm / m²</th><th>Importe</th></tr></thead>"
+      : "<thead><tr><th>Concepto</th><th>Importe</th></tr></thead>";
+    const recargosTxt = b.recargos
+      .map((r) => `<div>${esc(r.nombre)}: +${money(r.importe)}</div>`)
+      .join("");
+    const tiposIva = Object.keys(b.ivaPorTipo);
+    const ivaTxt =
+      tiposIva.length > 1
+        ? tiposIva
+            .map((k) => `<div>IVA ${k} %: ${money(b.ivaPorTipo[k].iva)}</div>`)
+            .join("")
+        : `<div>IVA (${esc(pricing(draft).vat ?? 21)} %): ${money(b.totalIva)}</div>`;
+    host.innerHTML = `<div class="print-head"><img src="icons/logo.png" alt=""><div><h1>${esc(company.name || "Vidres Sosa")}</h1><p>${[company.taxId, company.address, company.phone, company.email].filter(Boolean).map(esc).join(" · ")}</p></div></div>
+<h2 class="print-doc-title">Presupuesto ${detallado ? "detallado" : "resumen"}</h2>
+<div class="print-meta"><div><strong>Referencia:</strong> ${esc(draft.id || "Borrador")}${draft.version > 1 ? " v" + draft.version : ""}<br><strong>Fecha:</strong> ${esc(draft.date)}<br><strong>Validez:</strong> ${esc(draft.validezDias ?? 30)} días</div><div><strong>Cliente:</strong> ${esc(draft.client)}<br>${esc(draft.obra || client.direccion || job?.direccion || "")}${draft.plazo ? "<br><strong>Plazo:</strong> " + esc(draft.plazo) : ""}</div></div>
+<table>${thead}<tbody>${rows}</tbody></table>
+<div class="print-totals"><div>Base imponible: ${money(b.base)}</div>${b.descuentoGlobal > 0 ? `<div>Descuento global: −${money(b.descuentoGlobal)}</div>` : ""}${recargosTxt}${ivaTxt}<div class="print-grand">Total: ${money(b.total)}</div>${b.anticipo > 0 ? `<div>Anticipo: ${money(b.anticipo)} · Pendiente: ${money(b.pendiente)}</div>` : ""}</div>
+${draft.notasCliente ? `<div class="print-notes"><strong>Observaciones</strong><br>${esc(draft.notasCliente).replace(/\n/g, "<br>")}</div>` : ""}
+<div class="print-conditions"><strong>Condiciones</strong><br>${esc(company.conditions || "").replace(/\n/g, "<br>")}${draft.pago ? "<br><strong>Forma de pago:</strong> " + esc(draft.pago) : ""}</div>
+<div class="print-accept"><div><strong>Aceptación del cliente</strong><br>Firma: ______________________________</div><div><strong>Fecha</strong><br>_________________</div></div>`;
     window.print();
+  }
+  function printCorte() {
+    fromForm();
+    const host = printHost();
+    const vidrios = allLines(draft).filter(
+      (l) => (l.tipo || "vidrio") === "vidrio",
+    );
+    const rows = vidrios
+      .map((l) => {
+        const r = calcLine(l);
+        const trat = (l.tratamientos || [])
+          .map((t) => t.nombre)
+          .filter(Boolean)
+          .join(", ");
+        return `<tr><td>${esc(l.vidrio || l.nombre || "Vidrio")}</td><td>${r.aw} × ${r.ah}</td><td>${l.qty}</td><td>${r.peso ? r.peso.toFixed(1) + " kg" : "—"}</td><td>${esc(trat || "—")}</td></tr>`;
+      })
+      .join("");
+    host.innerHTML = `<h1>Vidres Sosa · Hoja de corte</h1><p>Referencia: ${esc(draft.id || "Borrador")} · Cliente: ${esc(draft.client)}</p><table><thead><tr><th>Vidrio</th><th>Medida aplicada</th><th>Uds.</th><th>Peso</th><th>Tratamientos</th></tr></thead><tbody>${rows || '<tr><td colspan="5">Sin piezas de vidrio.</td></tr>'}</tbody></table><p class="muted">Medidas ya redondeadas para facturación. Llevar al taller.</p>`;
+    window.print();
+  }
+  function exportQuotesCsv() {
+    const list = quotes();
+    const escCsv = (v) => {
+      const s = String(v ?? "");
+      return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+    const head = [
+      "referencia",
+      "cliente",
+      "obra",
+      "parte",
+      "estado",
+      "fecha",
+      "base",
+      "iva",
+      "total",
+    ];
+    const rows = list.map((q) => {
+      const t = sum(q);
+      return [
+        q.id,
+        q.client,
+        q.obra || "",
+        q.job || "",
+        q.status || "Borrador",
+        q.date || "",
+        t.base.toFixed(2),
+        t.iva.toFixed(2),
+        t.total.toFixed(2),
+      ]
+        .map(escCsv)
+        .join(";");
+    });
+    const csv = [head.join(";"), ...rows].join("\r\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "presupuestos.csv";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
   }
 
   window.addEventListener("vidres-data-restored", () => {
@@ -1115,7 +1209,10 @@
       } else if (b.dataset.whatsapp) {
         const quote = quotes().find((item) => item.id === b.dataset.whatsapp);
         if (quote) openQuoteMessage(quote);
-      } else if (b.id === "quote-pdf") printQuote();
+      } else if (b.id === "quote-pdf") printQuote("detallado");
+      else if (b.id === "quote-pdf-resumen") printQuote("resumen");
+      else if (b.id === "quote-corte") printCorte();
+      else if (b.id === "quote-csv") exportQuotesCsv();
       else if (b.dataset.load) {
         if (await discard()) {
           draft = structuredClone(

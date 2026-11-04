@@ -174,6 +174,9 @@
         (Array.isArray(j.historial) ? j.historial.length : 0) +
         " movimientos registrados</p></section></div>" +
         '<section id="exp-summary-photos" class="exp-section exp-summary-photos" hidden></section>';
+      if (j.estado === "Finalizado" || j.archivadoEn) {
+        body.insertAdjacentHTML("beforeend", '<section class="exp-section"><h3>Cierre administrativo</h3><p>Finalizado: ' + esc(j.finalizadoEn ? new Date(j.finalizadoEn).toLocaleString("es-ES") : "Sin fecha registrada") + '</p><p>Facturado: <strong>' + (j.facturado ? "Sí" : "Pendiente") + '</strong> · Cobrado: <strong>' + (j.cobrado ? "Sí" : "Pendiente") + '</strong></p><p>' + (j.archivadoEn ? "Expediente archivado" : "Pendiente de archivar") + '</p></section>');
+      }
       const client = VSStorage.read("vidres-clientes-v1", []).find(
         (c) =>
           String(c.nombre || "")

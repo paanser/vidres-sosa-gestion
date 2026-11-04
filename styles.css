@@ -3284,3 +3284,11 @@ nav button[data-page="criticos"].active {
   outline: 2px solid var(--vs-green);
   outline-offset: 3px;
 }
+
+/* Cierre administrativo y archivo reversible */
+.job-close-fields{border:1px solid #c7d9cd;border-radius:12px;padding:12px 16px;margin:12px 0;display:flex;flex-wrap:wrap;gap:12px 22px}
+.job-close-fields legend{font-weight:750;padding:0 6px}
+.job-close-fields label{display:flex;align-items:center;gap:8px;font-weight:650}
+.job-close-fields input{width:19px;height:19px}
+.job-close-fields .muted{flex-basis:100%;margin:0}
+.job-archive,.job-unarchive{min-height:42px;margin-top:8px;padding:8px 14px;border:1px solid #a6c4b1;border-radius:9px;background:#f1f8f3;color:#15523e;font-weight:700;cursor:pointer}

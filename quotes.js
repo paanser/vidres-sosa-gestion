@@ -7,6 +7,25 @@
   let draft = null,
     quickMode = false,
     quoteSort = { key: "date", dir: -1 };
+  const DRAFT_KEY = "vs-quote-draft-v1";
+  let dirty = false,
+    autosaveTimer = null;
+  function markDirty() {
+    dirty = true;
+    if (autosaveTimer) clearTimeout(autosaveTimer);
+    autosaveTimer = setTimeout(autoSaveDraft, 2500);
+  }
+  function autoSaveDraft() {
+    fromForm();
+    if (!draft || quickMode) return;
+    try {
+      VSStorage.write(DRAFT_KEY, structuredClone(draft));
+    } catch {}
+  }
+  function restoreDraft() {
+    const saved = VSStorage.read(DRAFT_KEY, null);
+    if (saved?.schema === 2 && saved.capitulos?.length) draft = saved;
+  }
 
   const quotes = () => VSMigrate.list(VSStorage.read(Q, []), config());
   const tariffs = () => VSStorage.read(T, []);
@@ -412,6 +431,8 @@
   function updateTotals() {
     const host = document.querySelector(".quote-total-breakdown");
     if (host) host.innerHTML = totalsHtml();
+    const bar = document.querySelector(".quote-mobile-bar strong");
+    if (bar) bar.textContent = money(sum(draft).total);
   }
   function updateAllResults() {
     document.querySelectorAll(".quote-line").forEach((el) => {
@@ -425,8 +446,71 @@
     updateTotals();
   }
 
-  function quoteListHtml() {
+  let quoteFilter = { q: "", status: "", from: "", to: "" };
+  function isExpired(q) {
+    const s = q.status || "Borrador";
+    if (s === "Aceptado" || s === "Rechazado") return false;
+    return addDays(q.date || localToday(), q.validezDias ?? 30) < localToday();
+  }
+  function quoteStatus(q) {
+    const s = q.status || "Borrador";
+    return isExpired(q) && s !== "Aceptado" && s !== "Rechazado"
+      ? "Caducado"
+      : s;
+  }
+  function quoteKpis() {
     const list = quotes();
+    const month = localToday().slice(0, 7);
+    const pendientes = list.filter(
+      (q) => (q.status || "Borrador") === "Enviado",
+    ).length;
+    const aceptadosMes = list.filter(
+      (q) => q.status === "Aceptado" && (q.date || "").startsWith(month),
+    ).length;
+    const decididos = list.filter(
+      (q) => q.status === "Aceptado" || q.status === "Rechazado",
+    ).length;
+    const aceptados = list.filter((q) => q.status === "Aceptado").length;
+    const pct = decididos ? Math.round((aceptados / decididos) * 100) : 0;
+    return `<div class="quote-kpis"><div><small>Pendientes de respuesta</small><b>${pendientes}</b></div><div><small>Aceptados este mes</small><b>${aceptadosMes}</b></div><div><small>Aceptación</small><b>${pct} %</b></div></div>`;
+  }
+  function quoteFiltersHtml() {
+    const statusesList = [
+      "Borrador",
+      "Enviado",
+      "Aceptado",
+      "Rechazado",
+      "Caducado",
+    ];
+    return `<div class="quote-list-filters"><label>Buscar<input id="quote-filter-q" type="search" placeholder="Cliente o referencia" value="${esc(quoteFilter.q)}"></label><label>Estado<select id="quote-filter-status"><option value="">Todos</option>${statusesList
+      .map(
+        (s) =>
+          `<option value="${s}" ${quoteFilter.status === s ? "selected" : ""}>${s}</option>`,
+      )
+      .join(
+        "",
+      )}</select></label><label>Desde<input id="quote-filter-from" type="date" value="${esc(quoteFilter.from)}"></label><label>Hasta<input id="quote-filter-to" type="date" value="${esc(quoteFilter.to)}"></label></div>`;
+  }
+  function quoteListHtml() {
+    const all = quotes();
+    const list = all.filter((q) => {
+      if (quoteFilter.status && quoteStatus(q) !== quoteFilter.status)
+        return false;
+      if (quoteFilter.from && (q.date || "") < quoteFilter.from) return false;
+      if (quoteFilter.to && (q.date || "") > quoteFilter.to) return false;
+      if (quoteFilter.q) {
+        const needle = quoteFilter.q.toLocaleLowerCase("es");
+        if (
+          ![q.id, q.client].some((v) =>
+            String(v || "")
+              .toLocaleLowerCase("es")
+              .includes(needle),
+          )
+        )
+          return false;
+      }
+      return true;
+    });
     const sorted = list.slice().sort((a, b) => {
       const { key, dir } = quoteSort;
       if (key === "total") return (sum(a).total - sum(b).total) * dir;
@@ -468,7 +552,7 @@
                 "</td><td>" +
                 esc(q.client) +
                 "</td><td>" +
-                esc(q.status || "Borrador") +
+                esc(quoteStatus(q)) +
                 "</td><td>" +
                 esc(q.date || "—") +
                 "</td><td>" +
@@ -494,7 +578,7 @@
         ? list
             .map(
               (q) =>
-                `<article class="quote-saved"><span>${esc(q.id)}${q.version > 1 ? " v" + q.version : ""} · ${esc(q.client)} · ${esc(q.status || "Borrador")} · Total: ${money(sum(q).total)}</span><div><button type="button" data-load="${esc(q.id)}">Abrir</button><button type="button" data-version="${esc(q.id)}">Versión</button><button type="button" data-whatsapp="${esc(q.id)}">WhatsApp</button><button type="button" data-duplicate="${esc(q.id)}">Duplicar</button><button type="button" data-delete-quote="${esc(q.id)}">Eliminar</button></div></article>`,
+                `<article class="quote-saved"><span>${esc(q.id)}${q.version > 1 ? " v" + q.version : ""} · ${esc(q.client)} · ${esc(quoteStatus(q))} · Total: ${money(sum(q).total)}</span><div><button type="button" data-load="${esc(q.id)}">Abrir</button><button type="button" data-version="${esc(q.id)}">Versión</button><button type="button" data-whatsapp="${esc(q.id)}">WhatsApp</button><button type="button" data-duplicate="${esc(q.id)}">Duplicar</button><button type="button" data-delete-quote="${esc(q.id)}">Eliminar</button></div></article>`,
             )
             .join("")
         : "<p>Todavía no hay presupuestos. Crea el primero.</p>") +
@@ -510,7 +594,10 @@
   // Render principal
   // ------------------------------------------------------------------
   function sync() {
-    if (!draft) draft = fresh();
+    if (!draft) {
+      restoreDraft();
+      if (!draft) draft = fresh();
+    }
     if (quickMode) {
       quickSync();
       return;
@@ -519,7 +606,7 @@
       jobs = window.vidresGetJobs?.() || [];
     document.querySelector("#content").innerHTML =
       `<div class="quote-toolbar"><button type="button" class="quick-quote-button" id="quote-quick">${VSIcons.icon("chispa", 18)} Presupuesto rápido</button><button type="button" class="primary" id="quote-new">${VSIcons.icon("anadir", 18)} Nuevo presupuesto</button><button type="button" id="quote-settings">Ajustes de tarifas</button></div>
- <section class="panel quote-editor"><div class="quote-section-heading"><div><p class="quote-eyebrow">PRESUPUESTO</p><h2>${esc(draft.id || "Sin guardar")}${draft.version > 1 ? " · v" + draft.version : ""}</h2></div></div>
+ <section class="panel quote-editor"><div class="quote-section-heading"><div><p class="quote-eyebrow">PRESUPUESTO</p><h2>${esc(draft.id || "Sin guardar")}${draft.version > 1 ? " · v" + draft.version : ""}</h2></div></div><div class="quote-layout"><div class="quote-main">
  <div class="quote-fields"><label>Cliente<input id="quote-client" maxlength="100" value="${esc(draft.client)}"></label><label>Dirección de obra<input id="quote-obra" maxlength="180" value="${esc(draft.obra)}"></label><label>Parte relacionado<select id="quote-job"><option value="">Sin vincular</option>${jobs.map((j) => `<option value="${esc(j.id)}" ${draft.job === j.id ? "selected" : ""}>${esc(j.id + " · " + j.cliente)}</option>`).join("")}</select></label><label>Estado<select id="quote-status">${statuses.map((s) => `<option ${s === (draft.status || "Borrador") ? "selected" : ""}>${s}</option>`).join("")}</select></label><label>Fecha<input id="quote-date" type="date" value="${esc(draft.date)}"></label><label>Validez (días)<input id="quote-validez" type="number" inputmode="numeric" min="1" max="365" step="1" value="${esc(draft.validezDias ?? 30)}"></label><label>Forma de pago<input id="quote-pago" maxlength="180" value="${esc(draft.pago)}" placeholder="50 % al aceptar…"></label><label>Plazo de entrega<input id="quote-plazo" maxlength="180" value="${esc(draft.plazo)}" placeholder="10 días laborables"></label></div>
  <details class="quote-notes"><summary>Notas y condiciones</summary><div class="quote-fields"><label>Notas para el cliente (salen en el PDF)<textarea id="quote-notas-cliente" rows="2" maxlength="1000">${esc(draft.notasCliente)}</textarea></label><label>Notas internas (no salen en el PDF)<textarea id="quote-notas-internas" rows="2" maxlength="1000">${esc(draft.notasInternas)}</textarea></label></div></details>
  <details class="quote-notes"><summary>Descuentos, recargos y anticipo</summary><div class="quote-fields"><label>Descuento global (%)<input id="quote-dto-global" type="number" inputmode="decimal" min="0" max="100" step="0.1" value="${esc(draft.descuentoGlobal?.valor || "")}"></label><label>Anticipo (%)<input id="quote-anticipo" type="number" inputmode="decimal" min="0" max="100" step="0.1" value="${esc(draft.anticipo?.valor || "")}"></label><label>Recargos (uno por línea: «Nombre=10» o «Nombre=€50»)<textarea id="quote-recargos" rows="3">${esc(recargosText(draft.recargos))}</textarea></label></div></details>
@@ -527,8 +614,9 @@
    .map((c, i) => `<option value="${i}">${esc(c.nombre)}</option>`)
    .join("")}</select></label></div>
  <div id="quote-chapters">${draft.capitulos.map((c, i) => chapterHtml(c, i)).join("")}</div><button type="button" class="btn-secondary" id="chapter-add">+ Añadir capítulo</button>
- <div class="quote-total"><div class="quote-total-breakdown">${totalsHtml()}</div></div><div class="quote-toolbar"><button type="button" class="primary" id="quote-save">Guardar presupuesto</button><button type="button" id="quote-whatsapp">Enviar por WhatsApp</button><button type="button" id="quote-pdf">Imprimir / Guardar PDF</button></div></section>
- <section class="panel"><h2>Presupuestos guardados</h2><div id="quote-list">${quoteListHtml()}</div></section>`;
+ </div><aside class="quote-summary"><div class="quote-total"><div class="quote-total-breakdown">${totalsHtml()}</div></div><div class="quote-toolbar"><button type="button" class="primary" id="quote-save">Guardar presupuesto</button><button type="button" id="quote-whatsapp">Enviar por WhatsApp</button><button type="button" id="quote-pdf">Imprimir / Guardar PDF</button></div></aside></div></section>
+ <div class="quote-mobile-bar"><span>Total: <strong>${money(sum(draft).total)}</strong></span><button type="button" class="primary" data-quote-action="save">Guardar</button><button type="button" data-quote-action="whatsapp">Enviar</button></div>
+ <section class="panel"><h2>Presupuestos guardados</h2>${quoteKpis()}${quoteFiltersHtml()}<div id="quote-list">${quoteListHtml()}</div></section>`;
   }
 
   function quickSync() {
@@ -720,6 +808,10 @@
       if (i < 0) list.push(copy);
       else list[i] = copy;
       VSStorage.write(Q, list);
+      try {
+        VSStorage.local.removeItem(DRAFT_KEY);
+      } catch {}
+      dirty = false;
       if (
         copy.status === "Aceptado" &&
         old?.status !== "Aceptado" &&
@@ -870,6 +962,12 @@
   window.addEventListener("vidres-data-restored", () => {
     draft = null;
   });
+  window.addEventListener("beforeunload", (e) => {
+    if (dirty) {
+      e.preventDefault();
+      e.returnValue = "";
+    }
+  });
   window.vidresQuoteRender = sync;
   window.vidresQuoteClick = async (e) => {
     const sortTh = e.target.closest("th[data-quote-sort]");
@@ -883,6 +981,15 @@
     const b = e.target.closest("button");
     if (!b) return;
     try {
+      if (b.dataset.quoteAction === "save") {
+        await saveDraft();
+        return;
+      }
+      if (b.dataset.quoteAction === "whatsapp") {
+        fromForm();
+        if (valid(true)) openQuoteMessage(draft);
+        return;
+      }
       if (b.id === "quote-new") {
         if (await discard()) {
           quickMode = false;
@@ -920,11 +1027,13 @@
       } else if (b.id === "chapter-add") {
         fromForm();
         draft.capitulos.push(emptyChapter());
+        markDirty();
         sync();
       } else if (b.dataset.chapterDel !== undefined) {
         fromForm();
         if (draft.capitulos.length > 1) {
           draft.capitulos.splice(Number(b.dataset.chapterDel), 1);
+          markDirty();
           sync();
         } else
           VSUI.toast("El presupuesto necesita al menos un capítulo.", "warn");
@@ -932,6 +1041,7 @@
         fromForm();
         const ci = Number(b.dataset.lineAdd);
         draft.capitulos[ci]?.lineas.push(emptyLine());
+        markDirty();
         sync();
       } else if (b.dataset.lineDel !== undefined) {
         fromForm();
@@ -939,6 +1049,7 @@
         const cap = draft.capitulos[ci];
         if (cap && cap.lineas.length > 1) {
           cap.lineas.splice(li, 1);
+          markDirty();
           sync();
         } else VSUI.toast("El capítulo necesita al menos una línea.", "warn");
       } else if (b.dataset.lineDup !== undefined) {
@@ -949,6 +1060,7 @@
           const copy = structuredClone(cap.lineas[li]);
           copy.id = "L-" + nid();
           cap.lineas.splice(li + 1, 0, copy);
+          markDirty();
           sync();
         }
       } else if (b.dataset.lineUp !== undefined) {
@@ -960,6 +1072,7 @@
             cap.lineas[li],
             cap.lineas[li - 1],
           ];
+          markDirty();
           sync();
         }
       } else if (b.dataset.lineDown !== undefined) {
@@ -971,6 +1084,7 @@
             cap.lineas[li],
             cap.lineas[li + 1],
           ];
+          markDirty();
           sync();
         }
       } else if (b.dataset.trtAdd !== undefined) {
@@ -985,6 +1099,7 @@
             precio: "",
             sides: [],
           });
+          markDirty();
           sync();
         }
       } else if (b.dataset.trtRemove !== undefined) {
@@ -995,6 +1110,7 @@
           li = Number(lineEl?.dataset.line);
         const l = draft.capitulos[ci]?.lineas?.[li];
         if (l) l.tratamientos.splice(Number(b.dataset.trtRemove), 1);
+        markDirty();
         sync();
       } else if (b.dataset.whatsapp) {
         const quote = quotes().find((item) => item.id === b.dataset.whatsapp);
@@ -1056,6 +1172,15 @@
       updateQuickResult();
       return;
     }
+    if (
+      e.target.id === "quote-filter-status" ||
+      e.target.id === "quote-filter-from" ||
+      e.target.id === "quote-filter-to"
+    ) {
+      quoteFilter[e.target.id.replace("quote-filter-", "")] = e.target.value;
+      renderQuoteList();
+      return;
+    }
     if (e.target.id === "quick-concept") {
       const v = e.target.value;
       if (v !== "") {
@@ -1067,6 +1192,7 @@
           line.opcional = false;
           line.alternativa = "";
           draft.capitulos[0].lineas.push(line);
+          markDirty();
           sync();
           return;
         }
@@ -1106,20 +1232,28 @@
         next.opcional = l.opcional;
         next.alternativa = l.alternativa;
         draft.capitulos[ci].lineas[li] = next;
+        markDirty();
         sync();
         return;
       }
     }
     updateAllResults();
+    markDirty();
   };
   window.vidresQuoteInput = () => {
     if (quickMode) {
       updateQuickResult();
       return;
     }
+    if (e.target.id === "quote-filter-q") {
+      quoteFilter.q = e.target.value;
+      renderQuoteList();
+      return;
+    }
     if (!draft) return;
     fromForm();
     updateAllResults();
+    markDirty();
   };
   window.vidresQuotesForJob = (id) =>
     quotes()

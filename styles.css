@@ -4051,3 +4051,99 @@ html[data-theme="dark"] aside {
   margin-top: 12px;
   flex-wrap: wrap;
 }
+
+/* Editor a dos columnas (escritorio) y barra fija (móvil) */
+.quote-layout {
+  display: grid;
+  gap: 24px;
+}
+@media (min-width: 901px) {
+  .quote-layout {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    align-items: start;
+  }
+  .quote-summary {
+    position: sticky;
+    top: 16px;
+  }
+}
+.quote-mobile-bar {
+  display: none;
+}
+@media (max-width: 600px) {
+  .quote-summary .quote-toolbar {
+    display: none;
+  }
+  .quote-editor {
+    margin-bottom: 76px;
+  }
+  .quote-mobile-bar {
+    display: flex;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    align-items: center;
+    gap: 10px;
+    padding: 10px max(10px, env(safe-area-inset-right))
+      calc(10px + env(safe-area-inset-bottom))
+      max(10px, env(safe-area-inset-left));
+    background: var(--vs-surface);
+    border-top: 1px solid var(--vs-border);
+    box-shadow: 0 -6px 20px #173c2210;
+  }
+  .quote-mobile-bar span {
+    flex: 1;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+  .quote-mobile-bar button {
+    min-height: 44px;
+    padding: 10px 14px;
+  }
+  .quote-mobile-bar button[data-quote-action="whatsapp"] {
+    border: 1px solid var(--vs-border-strong);
+    background: var(--vs-surface);
+    color: var(--vs-green);
+    border-radius: var(--radius);
+  }
+}
+
+/* KPIs y filtros del listado de presupuestos */
+.quote-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0;
+}
+.quote-kpis > div {
+  background: var(--vs-surface-2);
+  border: 1px solid var(--vs-border);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+.quote-kpis small {
+  display: block;
+  color: var(--vs-muted);
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+.quote-kpis b {
+  font-size: 22px;
+  color: var(--vs-green);
+  font-variant-numeric: tabular-nums;
+}
+.quote-list-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 14px 0;
+}
+.quote-list-filters label {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--vs-muted);
+}

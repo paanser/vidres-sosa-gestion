@@ -3850,3 +3850,144 @@ html[data-theme="dark"] header,
 html[data-theme="dark"] aside {
   border-color: var(--vs-border);
 }
+
+/* ============================================================
+   FASE C · Editor de presupuestos (capítulos, tipos de línea)
+   ============================================================ */
+.quote-chapter {
+  border: 1px solid var(--vs-border);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-4);
+  margin: var(--sp-4) 0;
+  background: var(--vs-surface);
+}
+.quote-chapter-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+.chapter-name {
+  flex: 1;
+  min-width: 200px;
+  font-size: 16px;
+  font-weight: 700;
+  border: 0;
+  border-bottom: 2px solid var(--vs-border-strong);
+  border-radius: 0;
+  padding: 6px 2px;
+  background: transparent;
+}
+.chapter-name:focus {
+  outline: none;
+  border-bottom-color: var(--vs-green);
+}
+.chapter-subtotal {
+  font-weight: 750;
+  color: var(--vs-green);
+  font-variant-numeric: tabular-nums;
+}
+.quote-chapter-head button {
+  border: 1px solid var(--vs-border-strong);
+  background: var(--vs-surface);
+  color: var(--vs-red);
+  border-radius: 8px;
+  padding: 8px 12px;
+  min-height: 40px;
+}
+.quote-line-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.quote-line-tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.quote-line-tools button {
+  border: 1px solid var(--vs-border-strong);
+  background: var(--vs-surface);
+  color: var(--vs-green);
+  border-radius: 8px;
+  padding: 6px 9px;
+  min-height: 36px;
+  font-size: 13px;
+}
+.quote-line-tools button[data-line-del] {
+  color: var(--vs-red);
+  border-color: #d9a6a2;
+}
+.quote-line-tools label.mini {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--vs-muted);
+}
+.quote-line-tools label.mini select {
+  width: auto;
+  min-height: 30px;
+  padding: 2px 4px;
+}
+.quote-line-tools label.mini input[type="checkbox"] {
+  width: auto;
+  min-height: 0;
+}
+.treatments {
+  margin: 12px 0;
+  border-top: 1px dashed var(--vs-border-strong);
+  padding-top: 12px;
+}
+.treatment-row {
+  border: 1px solid var(--vs-border);
+  border-radius: 10px;
+  padding: 10px;
+  margin: 8px 0;
+  background: var(--vs-surface-2);
+  display: grid;
+  gap: 8px;
+}
+.treatment-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+.treatment-fields label {
+  display: grid;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--vs-muted);
+}
+.treatment-row > button {
+  justify-self: start;
+  border: 1px solid #d9a6a2;
+  background: var(--vs-surface);
+  color: var(--vs-red);
+  border-radius: 8px;
+  padding: 7px 12px;
+  min-height: 38px;
+}
+.quote-notes {
+  margin: 14px 0;
+  border: 1px solid var(--vs-border);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+.quote-notes summary {
+  font-weight: 700;
+  color: var(--vs-green);
+  cursor: pointer;
+  min-height: 32px;
+}
+.print-chapter td {
+  font-weight: 750;
+  color: var(--vs-green);
+  background: var(--vs-surface-2);
+}

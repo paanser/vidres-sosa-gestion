@@ -14,6 +14,7 @@ const ASSETS = [
   "icons.js",
   "storage.js",
   "calculations.js",
+  "migrate.js",
   "files.js",
   "backup.js",
   "tariffs.js",

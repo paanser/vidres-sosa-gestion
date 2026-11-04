@@ -15,6 +15,7 @@ document.querySelectorAll("#nav button").forEach((b) => (b.disabled = true));
     "icons",
     "storage",
     "calculations",
+    "migrate",
     "files",
     "backup",
     "tariffs",

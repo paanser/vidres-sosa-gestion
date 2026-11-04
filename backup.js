@@ -269,19 +269,30 @@
             !text(q, "id") ||
             !text(q, "client") ||
             (q.job && !ids.has(q.job)) ||
-            !Array.isArray(q.lines) ||
-            q.lines.some(
-              (l) =>
-                !l ||
-                !Number.isFinite(Number(l.w)) ||
-                Number(l.w) <= 0 ||
-                !Number.isFinite(Number(l.h)) ||
-                Number(l.h) <= 0 ||
-                !Number.isInteger(Number(l.qty || 1)) ||
-                Number(l.qty || 1) < 1 ||
-                !Number.isFinite(Number(l.price || 0)) ||
-                Number(l.price || 0) < 0,
-            ),
+            (q.schema === 2
+              ? !Array.isArray(q.capitulos) ||
+                q.capitulos.some(
+                  (c) =>
+                    !c ||
+                    typeof c.id !== "string" ||
+                    !Array.isArray(c.lineas) ||
+                    c.lineas.some(
+                      (l) => !l || typeof l.id !== "string" || !text(l, "tipo"),
+                    ),
+                )
+              : !Array.isArray(q.lines) ||
+                q.lines.some(
+                  (l) =>
+                    !l ||
+                    !Number.isFinite(Number(l.w)) ||
+                    Number(l.w) <= 0 ||
+                    !Number.isFinite(Number(l.h)) ||
+                    Number(l.h) <= 0 ||
+                    !Number.isInteger(Number(l.qty || 1)) ||
+                    Number(l.qty || 1) < 1 ||
+                    !Number.isFinite(Number(l.price || 0)) ||
+                    Number(l.price || 0) < 0,
+                )),
         ))
     )
       throw Error("Presupuestos no válidos");

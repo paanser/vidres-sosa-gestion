@@ -66,7 +66,7 @@
     pendingPdf = null;
   const catalog = () => read(T, []);
   function toolHome() {
-    return '<section class="panel"><h2>Herramientas de consulta</h2><div class="tool-tiles"><button data-tool-go="consultor"><strong>Consultar tarifas</strong><small>Buscar precios de vidrio</small></button><button data-tool-go="clientes"><strong>Clientes</strong><small>Datos de contacto e historial</small></button><button data-tool-go="calendario"><strong>Calendario</strong><small>Consultar fechas de los trabajos</small></button></div></section>';
+    return '<section class="panel"><h2>Herramientas de consulta</h2><div class="tool-tiles"><button data-tool-go="consultor"><strong>Consultar tarifas</strong><small>Buscar precios de vidrio</small></button><button data-tool-go="tarifas"><strong>Tarifas</strong><small>Gestionar precios y catálogo</small></button><button data-tool-go="clientes"><strong>Clientes</strong><small>Datos de contacto e historial</small></button><button data-tool-go="calendario"><strong>Calendario</strong><small>Consultar fechas de los trabajos</small></button></div></section>';
   }
 
   function consult() {
@@ -248,6 +248,146 @@
       plantillasHtml()
     );
   }
+  // --- Catálogo de conceptos frecuentes (se añaden de un toque) ---
+  function defaultConceptos() {
+    return [
+      {
+        nombre: "Desplazamiento",
+        tipo: "desplazamiento",
+        forma: "fijo",
+        precio: 30,
+      },
+      { nombre: "Instalación", tipo: "mano_obra", horas: 1, tarifa: 45 },
+      { nombre: "Siliconado", tipo: "material", cantidad: 1, precio: 8 },
+      { nombre: "Retirada de residuos", tipo: "residuos", precio: 40 },
+    ];
+  }
+  function conceptoPrecio(c) {
+    if (c.tipo === "mano_obra")
+      return (Number(c.tarifa) || 0) * (Number(c.horas) || 1);
+    if (c.tipo === "material")
+      return (Number(c.precio) || 0) * (Number(c.cantidad) || 1);
+    return Number(c.precio) || 0;
+  }
+  function conceptos() {
+    const c = read(C, {});
+    return Array.isArray(c.conceptos) && c.conceptos.length
+      ? c.conceptos
+      : defaultConceptos();
+  }
+  window.vidresConceptos = conceptos;
+
+  // --- Gestión de tarifas ---
+  function tariffManager() {
+    const items = catalog().map((t) => window.vidresTariffs.normalize(t));
+    const proveedores = [
+      ...new Set(items.map((t) => t.proveedor).filter(Boolean)),
+    ].sort((a, b) => a.localeCompare(b, "es"));
+    const tabla = items.length
+      ? `<div class="tariff-table-wrap"><table><thead><tr><th>Nombre</th><th>Familia</th><th>Espesor</th><th>Coste</th><th>Margen</th><th>Venta €/m²</th><th>Proveedor</th><th>Mín.</th><th>Act.</th><th></th></tr></thead><tbody>${items
+          .map(
+            (t) =>
+              `<tr><td>${esc(t.name)}</td><td>${esc(t.familia || "—")}</td><td>${esc(t.espesor || "—")}</td><td>${t.coste ? euro(t.coste) : "—"}</td><td>${t.margen ? esc(t.margen) + " %" : "—"}</td><td>${euro(t.price)}</td><td>${esc(t.proveedor || "—")}</td><td>${t.minimoM2 ? esc(t.minimoM2) + " m²" : "—"}</td><td>${esc(t.updatedAt || "—")}</td><td><button data-tariff-edit="${esc(t.id)}">Editar</button><button data-tariff-delete="${esc(t.id)}">Eliminar</button></td></tr>`,
+          )
+          .join("")}</tbody></table></div>`
+      : '<p class="muted">No hay tarifas. Importa un CSV o crea una.</p>';
+    const conceptosHtml = conceptos()
+      .map(
+        (c) =>
+          `<div class="quote-saved"><span>${esc(c.nombre)} · ${euro(conceptoPrecio(c))}</span></div>`,
+      )
+      .join("");
+    return `<section class="panel"><div class="simple-section-head"><h2>Tarifas de vidrio</h2><button type="button" class="primary" id="tariff-new">+ Nueva tarifa</button></div>${tabla}<div class="tariff-actions"><button type="button" id="tariff-export">Exportar CSV</button><label class="exp-upload">Importar CSV<input id="tariff-csv" type="file" accept=".csv,text/csv" hidden></label></div><p id="tariff-notice" role="status"></p></section>
+<section class="panel"><h2>Actualización masiva</h2><p class="muted">Sube el precio de venta un porcentaje a un proveedor (o a todos).</p><div class="quote-fields"><label>Proveedor<select id="bulk-proveedor"><option value="">Todos</option>${proveedores.map((p) => `<option value="${esc(p)}">${esc(p)}</option>`).join("")}</select></label><label>Subir (%)<input id="bulk-pct" type="number" inputmode="decimal" min="0" step="0.1" value="5"></label></div><div id="bulk-preview" class="muted"></div><button type="button" class="primary" id="bulk-apply">Aplicar subida</button></section>
+<section class="panel"><h2>Conceptos frecuentes</h2><p class="muted">Disponibles al crear presupuestos (botón "+ Concepto").</p>${conceptosHtml || '<p class="muted">Sin conceptos.</p>'}</section>`;
+  }
+
+  function downloadCsv(text, name) {
+    const blob = new Blob(["\uFEFF" + text], {
+      type: "text/csv;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  }
+  function openTariffEditor(id = "") {
+    const dialog = document.querySelector("#tariff-editor");
+    if (!dialog) return;
+    const form = dialog.querySelector("form");
+    form.reset();
+    const t = id ? catalog().find((x) => x.id === id) : null;
+    form.elements.id.value = t?.id || "";
+    form.elements.name.value = t?.name || "";
+    form.elements.familia.value = t?.familia || "";
+    form.elements.espesor.value = t?.espesor || "";
+    form.elements.coste.value = t?.coste ?? "";
+    form.elements.margen.value = t?.margen ?? "";
+    form.elements.price.value = t?.price ?? "";
+    form.elements.edge.value = t?.edge ?? "";
+    form.elements.proveedor.value = t?.proveedor || "";
+    form.elements.minimoM2.value = t?.minimoM2 ?? "";
+    form.elements.minimoImporte.value = t?.minimoImporte ?? "";
+    form.elements.redondeo.value = String(t?.redondeo ?? 6);
+    dialog.querySelector("#tariff-title").textContent = t
+      ? "Editar tarifa"
+      : "Nueva tarifa";
+    dialog.showModal();
+  }
+  function renderBulkPreview() {
+    const host = document.querySelector("#bulk-preview");
+    if (!host) return;
+    const proveedor = document.querySelector("#bulk-proveedor")?.value || "";
+    const pct = Number(document.querySelector("#bulk-pct")?.value);
+    const preview = window.vidresTariffs.previewBulk(catalog(), proveedor, pct);
+    if (!preview.length) {
+      host.textContent = "";
+      return;
+    }
+    host.innerHTML =
+      "Vista previa: " +
+      preview
+        .slice(0, 8)
+        .map((p) => `${esc(p.name)}: ${euro(p.de)} → ${euro(p.a)}`)
+        .join(" · ") +
+      (preview.length > 8 ? " · …" : "");
+  }
+  async function applyBulkFromForm() {
+    const proveedor = document.querySelector("#bulk-proveedor")?.value || "";
+    const pct = Number(document.querySelector("#bulk-pct")?.value);
+    if (!Number.isFinite(pct) || pct <= 0) {
+      VSUI.toast("Indica un porcentaje positivo.", "warn");
+      return;
+    }
+    const actual = catalog();
+    const preview = window.vidresTariffs.previewBulk(actual, proveedor, pct);
+    if (!preview.length) {
+      VSUI.toast("No hay tarifas que actualizar para ese proveedor.", "warn");
+      return;
+    }
+    const ok = await VSUI.confirm({
+      titulo: "Actualizar tarifas",
+      texto:
+        "Se actualizarán " +
+        preview.length +
+        " tarifas (subida del " +
+        pct +
+        " %).",
+      aceptar: "Aplicar",
+      cancelar: "Cancelar",
+    });
+    if (!ok) return;
+    VSStorage.local.setItem(
+      T,
+      JSON.stringify(window.vidresTariffs.applyBulk(actual, proveedor, pct)),
+    );
+    window.dispatchEvent(new Event("vidres-tariffs-change"));
+    window.vidresToolsRender("tarifas");
+    VSUI.toast("Tarifas actualizadas.", "ok");
+  }
+
   window.vidresToolsRender = (page) => {
     const root = document.querySelector("#content");
     if (!root) return;
@@ -256,13 +396,33 @@
         ? toolHome()
         : page === "consultor"
           ? consult()
-          : settings();
+          : page === "tarifas"
+            ? tariffManager()
+            : settings();
   };
   window.vidresToolsClick = async (e, navigate) => {
     const t = e.target.closest("button");
     if (!t) return false;
     if (t.dataset.toolGo) {
       navigate(t.dataset.toolGo);
+      return true;
+    }
+    if (t.id === "tariff-new") {
+      openTariffEditor();
+      return true;
+    }
+    if (t.dataset.tariffEdit) {
+      openTariffEditor(t.dataset.tariffEdit);
+      return true;
+    }
+    if (t.id === "tariff-export") {
+      const items = catalog().map((x) => window.vidresTariffs.normalize(x));
+      downloadCsv(window.vidresTariffs.exportCsv(items), "tarifas.csv");
+      VSUI.toast("CSV descargado.", "ok");
+      return true;
+    }
+    if (t.id === "bulk-apply") {
+      await applyBulkFromForm();
       return true;
     }
     if (t.dataset.tariffDelete || t.id === "tariffs-clear") {
@@ -286,7 +446,7 @@
         ),
       );
       window.dispatchEvent(new Event("vidres-tariffs-change"));
-      window.vidresNavigate("ajustes");
+      window.vidresNavigate("tarifas");
       return true;
     }
     if (t.id === "cfg-save") {
@@ -390,11 +550,43 @@
       );
       document.querySelector("#consult-results").innerHTML = results(f);
     }
+    if (e.target.id === "bulk-pct") renderBulkPreview();
   };
   window.vidresToolsChange = async (e) => {
     if (e.target.id === "consult-filter") {
       selected = e.target.value;
       window.vidresToolsRender("consultor");
+      return;
+    }
+    if (e.target.id === "bulk-proveedor") {
+      renderBulkPreview();
+      return;
+    }
+    if (e.target.id === "tariff-csv") {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const notice = document.querySelector("#tariff-notice");
+      try {
+        if (file.size > 250000)
+          throw Error("CSV demasiado grande (máximo 250 KB).");
+        const { items, errors } = window.vidresTariffs.parseCsv(
+          await file.text(),
+        );
+        if (errors.length) throw Error("Errores en: " + errors.join(", "));
+        if (!items.length) throw Error("CSV sin artículos.");
+        VSStorage.local.setItem(
+          T,
+          JSON.stringify(window.vidresTariffs.merge(catalog(), items)),
+        );
+        window.dispatchEvent(new Event("vidres-tariffs-change"));
+        window.vidresToolsRender("tarifas");
+        if (notice)
+          notice.textContent =
+            items.length + " artículos importados o actualizados.";
+      } catch (err) {
+        if (notice) notice.textContent = err.message;
+        else VSUI.toast(err.message, "error");
+      }
       return;
     }
     if (e.target.id === "cfg-csv") {
@@ -577,5 +769,42 @@
   window.vidresPlantillasList = plantillas;
   window.vidresPlantillasSave = (arr) =>
     VSStorage.local.setItem(PL, JSON.stringify(arr));
+
+  const tariffDialog = document.querySelector("#tariff-editor");
+  if (tariffDialog) {
+    const tform = tariffDialog.querySelector("form");
+    tariffDialog
+      .querySelector("#tariff-cancel")
+      .addEventListener("click", () => tariffDialog.close());
+    tform.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const data = new FormData(tform),
+        name = String(data.get("name") || "").trim();
+      if (!name) return;
+      const item = window.vidresTariffs.normalize({
+        id: String(data.get("id") || "") || undefined,
+        name,
+        familia: String(data.get("familia") || ""),
+        espesor: String(data.get("espesor") || "").trim(),
+        coste: String(data.get("coste") || "").trim(),
+        margen: String(data.get("margen") || "").trim(),
+        price: String(data.get("price") || "").trim(),
+        edge: String(data.get("edge") || "").trim(),
+        proveedor: String(data.get("proveedor") || "").trim(),
+        minimoM2: String(data.get("minimoM2") || "").trim(),
+        minimoImporte: String(data.get("minimoImporte") || "").trim(),
+        redondeo: Number(data.get("redondeo")) || 6,
+        updatedAt: new Date().toISOString().slice(0, 10),
+      });
+      const list = catalog(),
+        i = list.findIndex((x) => x.id === item.id);
+      if (i < 0) list.push(item);
+      else list[i] = { ...list[i], ...item };
+      VSStorage.local.setItem(T, JSON.stringify(list));
+      window.dispatchEvent(new Event("vidres-tariffs-change"));
+      tariffDialog.close();
+      window.vidresToolsRender("tarifas");
+    });
+  }
   plantillas();
 })();

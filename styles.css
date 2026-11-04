@@ -4006,3 +4006,48 @@ html[data-theme="dark"] aside {
   color: var(--vs-muted);
   min-width: 120px;
 }
+.concept-quick {
+  margin: 12px 0;
+}
+.concept-quick label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 650;
+  color: var(--vs-green);
+}
+.concept-quick select {
+  flex: 1;
+  max-width: 320px;
+}
+.tariff-table-wrap {
+  overflow-x: auto;
+  margin: 12px 0;
+}
+.tariff-table-wrap table {
+  min-width: 640px;
+}
+.tariff-table-wrap td:not(:first-child),
+.tariff-table-wrap th:not(:first-child) {
+  white-space: nowrap;
+}
+.tariff-table-wrap button {
+  border: 1px solid var(--vs-border-strong);
+  background: var(--vs-surface);
+  color: var(--vs-green);
+  border-radius: 8px;
+  padding: 6px 9px;
+  margin-left: 4px;
+  min-height: 36px;
+}
+.tariff-table-wrap button[data-tariff-delete] {
+  color: var(--vs-red);
+  border-color: #d9a6a2;
+}
+.tariff-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}

@@ -11,6 +11,7 @@
   const quotes = () => VSMigrate.list(VSStorage.read(Q, []), config());
   const tariffs = () => VSStorage.read(T, []);
   const config = () => VSStorage.read(C, {});
+  const conceptosList = () => window.vidresConceptos?.() || [];
   const pricing = (q) =>
     q?.pricing || { vat: 21, energyMode: "pending", energy: "" };
   const allLines = (q) => (q?.capitulos || []).flatMap((c) => c.lineas || []);
@@ -522,6 +523,9 @@
  <div class="quote-fields"><label>Cliente<input id="quote-client" maxlength="100" value="${esc(draft.client)}"></label><label>Dirección de obra<input id="quote-obra" maxlength="180" value="${esc(draft.obra)}"></label><label>Parte relacionado<select id="quote-job"><option value="">Sin vincular</option>${jobs.map((j) => `<option value="${esc(j.id)}" ${draft.job === j.id ? "selected" : ""}>${esc(j.id + " · " + j.cliente)}</option>`).join("")}</select></label><label>Estado<select id="quote-status">${statuses.map((s) => `<option ${s === (draft.status || "Borrador") ? "selected" : ""}>${s}</option>`).join("")}</select></label><label>Fecha<input id="quote-date" type="date" value="${esc(draft.date)}"></label><label>Validez (días)<input id="quote-validez" type="number" inputmode="numeric" min="1" max="365" step="1" value="${esc(draft.validezDias ?? 30)}"></label><label>Forma de pago<input id="quote-pago" maxlength="180" value="${esc(draft.pago)}" placeholder="50 % al aceptar…"></label><label>Plazo de entrega<input id="quote-plazo" maxlength="180" value="${esc(draft.plazo)}" placeholder="10 días laborables"></label></div>
  <details class="quote-notes"><summary>Notas y condiciones</summary><div class="quote-fields"><label>Notas para el cliente (salen en el PDF)<textarea id="quote-notas-cliente" rows="2" maxlength="1000">${esc(draft.notasCliente)}</textarea></label><label>Notas internas (no salen en el PDF)<textarea id="quote-notas-internas" rows="2" maxlength="1000">${esc(draft.notasInternas)}</textarea></label></div></details>
  <details class="quote-notes"><summary>Descuentos, recargos y anticipo</summary><div class="quote-fields"><label>Descuento global (%)<input id="quote-dto-global" type="number" inputmode="decimal" min="0" max="100" step="0.1" value="${esc(draft.descuentoGlobal?.valor || "")}"></label><label>Anticipo (%)<input id="quote-anticipo" type="number" inputmode="decimal" min="0" max="100" step="0.1" value="${esc(draft.anticipo?.valor || "")}"></label><label>Recargos (uno por línea: «Nombre=10» o «Nombre=€50»)<textarea id="quote-recargos" rows="3">${esc(recargosText(draft.recargos))}</textarea></label></div></details>
+ <div class="concept-quick"><label>Concepto rápido<select id="quick-concept"><option value="">+ Añadir concepto…</option>${conceptosList()
+   .map((c, i) => `<option value="${i}">${esc(c.nombre)}</option>`)
+   .join("")}</select></label></div>
  <div id="quote-chapters">${draft.capitulos.map((c, i) => chapterHtml(c, i)).join("")}</div><button type="button" class="btn-secondary" id="chapter-add">+ Añadir capítulo</button>
  <div class="quote-total"><div class="quote-total-breakdown">${totalsHtml()}</div></div><div class="quote-toolbar"><button type="button" class="primary" id="quote-save">Guardar presupuesto</button><button type="button" id="quote-whatsapp">Enviar por WhatsApp</button><button type="button" id="quote-pdf">Imprimir / Guardar PDF</button></div></section>
  <section class="panel"><h2>Presupuestos guardados</h2><div id="quote-list">${quoteListHtml()}</div></section>`;
@@ -1051,6 +1055,22 @@
     if (quickMode) {
       updateQuickResult();
       return;
+    }
+    if (e.target.id === "quick-concept") {
+      const v = e.target.value;
+      if (v !== "") {
+        const c = conceptosList()[Number(v)];
+        if (c) {
+          fromForm();
+          const line = { ...emptyLine(c.tipo), ...c };
+          line.id = "L-" + nid();
+          line.opcional = false;
+          line.alternativa = "";
+          draft.capitulos[0].lineas.push(line);
+          sync();
+          return;
+        }
+      }
     }
     fromForm();
     const el = e.target.closest(".quote-line");

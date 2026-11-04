@@ -781,6 +781,7 @@ window.vidresAppReady = (async () => {
       "clientes",
       "calendario",
       "mediciones",
+      "tarifas",
     ].includes(page)
       ? "herramientas"
       : page;
@@ -803,6 +804,7 @@ window.vidresAppReady = (async () => {
       presupuestos: "Presupuestos",
       herramientas: "Herramientas",
       consultor: "Consultor de tarifas",
+      tarifas: "Tarifas",
       ajustes: "Ajustes",
       produccion: "Producción",
       avisos: "Avisos",
@@ -868,7 +870,11 @@ window.vidresAppReady = (async () => {
         usagePanel.hidden = false;
       }
       return;
-    } else if (page === "herramientas" || page === "consultor") {
+    } else if (
+      page === "herramientas" ||
+      page === "consultor" ||
+      page === "tarifas"
+    ) {
       window.vidresToolsRender?.(page);
       return;
     } else if (page === "presupuestos") {
@@ -1285,7 +1291,12 @@ window.vidresAppReady = (async () => {
       window.vidresNavigate(go.dataset.go);
       return;
     }
-    if (page === "herramientas" || page === "consultor" || page === "ajustes") {
+    if (
+      page === "herramientas" ||
+      page === "consultor" ||
+      page === "tarifas" ||
+      page === "ajustes"
+    ) {
       if (e.target.closest("#backup-export")) {
         downloadBackup();
         return;
@@ -1368,7 +1379,12 @@ window.vidresAppReady = (async () => {
       importBackup(e.target.files?.[0]);
       return;
     }
-    if (page === "herramientas" || page === "consultor" || page === "ajustes")
+    if (
+      page === "herramientas" ||
+      page === "consultor" ||
+      page === "tarifas" ||
+      page === "ajustes"
+    )
       window.vidresToolsChange?.(e);
     else if (page === "presupuestos") window.vidresQuoteChange?.(e);
   });

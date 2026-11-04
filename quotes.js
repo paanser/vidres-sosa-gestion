@@ -5,7 +5,8 @@
     T = "vs-tariffs-prototype-v1",
     C = "vs-config-v1";
   let draft = null,
-    quickMode = false;
+    quickMode = false,
+    quoteSort = { key: "date", dir: -1 };
   const quotes = () => VSStorage.read(Q, []),
     tariffs = () => VSStorage.read(T, []),
     config = () => VSStorage.read(C, {});
@@ -66,6 +67,83 @@
     VSStorage.write(key, c);
     return prefix + String(max + 1).padStart(4, "0");
   }
+  function quoteListHtml() {
+    const list = quotes();
+    const sorted = list.slice().sort((a, b) => {
+      const { key, dir } = quoteSort;
+      if (key === "total") return (sum(a).total - sum(b).total) * dir;
+      const av = a[key] || "",
+        bv = b[key] || "";
+      return String(av).localeCompare(String(bv), "es") * dir;
+    });
+    const arrow = (k) =>
+      quoteSort.key === k
+        ? quoteSort.dir === 1
+          ? ' class="asc"'
+          : ' class="desc"'
+        : "";
+    const table =
+      '<div class="quote-table-wrap desktop-only"><table class="sortable"><thead><tr>' +
+      '<th data-quote-sort="id"' +
+      arrow("id") +
+      ">Referencia</th>" +
+      '<th data-quote-sort="client"' +
+      arrow("client") +
+      ">Cliente</th>" +
+      '<th data-quote-sort="status"' +
+      arrow("status") +
+      ">Estado</th>" +
+      '<th data-quote-sort="date"' +
+      arrow("date") +
+      ">Fecha</th>" +
+      '<th data-quote-sort="total"' +
+      arrow("total") +
+      ">Total</th>" +
+      "<th></th></tr></thead><tbody>" +
+      (sorted.length
+        ? sorted
+            .map(
+              (q) =>
+                "<tr><td>" +
+                esc(q.id) +
+                "</td><td>" +
+                esc(q.client) +
+                "</td><td>" +
+                esc(q.status || "Borrador") +
+                "</td><td>" +
+                esc(q.date || "—") +
+                "</td><td>" +
+                money(sum(q).total) +
+                '</td><td class="quote-row-actions"><button type="button" data-load="' +
+                esc(q.id) +
+                '">Abrir</button><button type="button" data-whatsapp="' +
+                esc(q.id) +
+                '">WhatsApp</button><button type="button" data-duplicate="' +
+                esc(q.id) +
+                '">Duplicar</button><button type="button" data-delete-quote="' +
+                esc(q.id) +
+                '">Eliminar</button></td></tr>',
+            )
+            .join("")
+        : '<tr><td colspan="6" class="muted">Todavía no hay presupuestos. Crea el primero.</td></tr>') +
+      "</tbody></table></div>";
+    const cards =
+      '<div class="mobile-only">' +
+      (list.length
+        ? list
+            .map(
+              (q) =>
+                `<article class="quote-saved"><span>${esc(q.id)} · ${esc(q.client)} · ${esc(q.status || "Borrador")} · Total: ${money(sum(q).total)}</span><div><button type="button" data-load="${esc(q.id)}">Abrir</button><button type="button" data-whatsapp="${esc(q.id)}">WhatsApp</button><button type="button" data-duplicate="${esc(q.id)}">Duplicar</button><button type="button" data-delete-quote="${esc(q.id)}">Eliminar</button></div></article>`,
+            )
+            .join("")
+        : "<p>No hay presupuestos guardados.</p>") +
+      "</div>";
+    return table + cards;
+  }
+  function renderQuoteList() {
+    const host = document.querySelector("#quote-list");
+    if (host) host.innerHTML = quoteListHtml();
+  }
   function sync() {
     if (!draft) draft = fresh();
     if (quickMode) {
@@ -76,10 +154,10 @@
       jobs = window.vidresGetJobs?.() || [],
       total = sum(draft);
     document.querySelector("#content").innerHTML =
-      `<div class="quote-toolbar"><button type="button" class="quick-quote-button" id="quote-quick">⚡ Presupuesto rápido</button><button type="button" class="primary" id="quote-new">+ Nuevo presupuesto</button><button type="button" id="quote-settings">Ajustes de tarifas</button></div>
+      `<div class="quote-toolbar"><button type="button" class="quick-quote-button" id="quote-quick">${VSIcons.icon("chispa", 18)} Presupuesto rápido</button><button type="button" class="primary" id="quote-new">${VSIcons.icon("anadir", 18)} Nuevo presupuesto</button><button type="button" id="quote-settings">Ajustes de tarifas</button></div>
  <section class="panel quote-editor"><h2>Presupuesto de vidrio · ${esc(draft.id || "Sin guardar")}</h2><div class="quote-fields"><label>Cliente<input id="quote-client" maxlength="100" value="${esc(draft.client)}"></label><label>Parte relacionado<select id="quote-job"><option value="">Sin vincular</option>${jobs.map((j) => `<option value="${esc(j.id)}" ${draft.job === j.id ? "selected" : ""}>${esc(j.id + " · " + j.cliente)}</option>`).join("")}</select></label><label>Estado<select id="quote-status">${statuses.map((s) => `<option ${s === (draft.status || "Borrador") ? "selected" : ""}>${s}</option>`).join("")}</select></label></div>
- <div id="quote-lines">${draft.lines.map(row).join("")}</div><button type="button" id="quote-add">+ Añadir otro vidrio</button><div class="quote-total"><div class="quote-total-breakdown">Base imponible: <strong>${money(total.base)}</strong><br>IVA (${esc(pricing(draft).vat ?? 21)} %): <strong>${money(total.iva)}</strong><br>Total con IVA: <strong class="quote-grand-total">${money(total.total)}</strong></div></div><div class="quote-toolbar"><button type="button" class="primary" id="quote-save">Guardar presupuesto</button><button type="button" id="quote-whatsapp">Enviar por WhatsApp</button><button type="button" id="quote-pdf">Imprimir / Guardar PDF</button></div></section>
- <section class="panel"><h2>Presupuestos guardados</h2>${list.length ? list.map((q) => `<article class="quote-saved"><span>${esc(q.id)} · ${esc(q.client)} · ${esc(q.status || "Borrador")} · Total: ${money(sum(q).total)}</span><div><button type="button" data-load="${esc(q.id)}">Abrir</button><button type="button" data-whatsapp="${esc(q.id)}">WhatsApp</button><button type="button" data-duplicate="${esc(q.id)}">Duplicar</button><button type="button" data-delete-quote="${esc(q.id)}">Eliminar</button></div></article>`).join("") : "<p>No hay presupuestos guardados.</p>"}</section>`;
+ <div id="quote-lines">${draft.lines.map(row).join("")}</div><button type="button" id="quote-add">${VSIcons.icon("anadir", 18)} Añadir otro vidrio</button><div class="quote-total"><div class="quote-total-breakdown">Base imponible: <strong>${money(total.base)}</strong><br>IVA (${esc(pricing(draft).vat ?? 21)} %): <strong>${money(total.iva)}</strong><br>Total con IVA: <strong class="quote-grand-total">${money(total.total)}</strong></div></div><div class="quote-toolbar"><button type="button" class="primary" id="quote-save">Guardar presupuesto</button><button type="button" id="quote-whatsapp">Enviar por WhatsApp</button><button type="button" id="quote-pdf">Imprimir / Guardar PDF</button></div></section>
+ <section class="panel"><h2>Presupuestos guardados</h2><div id="quote-list">${quoteListHtml()}</div></section>`;
   }
   function quickSync() {
     const line = draft.lines[0] || emptyLine(),
@@ -96,7 +174,7 @@
     document.querySelector("#content").innerHTML = `
       <div class="quote-toolbar"><button type="button" id="quick-close">← Volver a presupuestos</button></div>
       <section class="panel quick-quote-editor">
-        <h2>⚡ Presupuesto rápido</h2>
+        <h2>Presupuesto rápido</h2>
         <p class="muted">Calcula un precio sin crear antes un parte.</p>
         <div class="quote-fields">
           <label>Cliente (opcional)<input id="quick-client" list="quick-quote-clients" maxlength="100" value="${esc(draft.client)}"></label>
@@ -427,6 +505,14 @@
   });
   window.vidresQuoteRender = sync;
   window.vidresQuoteClick = async (e) => {
+    const sortTh = e.target.closest("th[data-quote-sort]");
+    if (sortTh) {
+      const key = sortTh.dataset.quoteSort;
+      if (quoteSort.key === key) quoteSort.dir = -quoteSort.dir;
+      else quoteSort = { key, dir: 1 };
+      renderQuoteList();
+      return;
+    }
     const b = e.target.closest("button");
     if (!b) return;
     try {

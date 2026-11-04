@@ -178,7 +178,8 @@ window.vidresAppReady = (async () => {
     );
   };
   let jobScope = "activos",
-    jobFocus = "";
+    jobFocus = "",
+    jobSort = { key: "fecha", dir: 1 };
   const usagePanel = document.querySelector(".ai-usage");
   let filters = { estado: "", responsable: "", tipoCliente: "" };
   const options = (values, selected) =>
@@ -213,9 +214,13 @@ window.vidresAppReady = (async () => {
             esc(j.cliente) +
             "</h3><p>" +
             esc(j.descripcion) +
-            '</p><div class="job-meta"><span>📅 ' +
+            '</p><div class="job-meta"><span>' +
+            VSIcons.icon("calendario", 16) +
+            " " +
             esc(j.fecha || "Sin fecha") +
-            "</span><span>👤 " +
+            "</span><span>" +
+            VSIcons.icon("cliente", 16) +
+            " " +
             esc(j.responsable || "Sin asignar") +
             "</span><span>" +
             esc(j.tipoCliente || "Particular") +
@@ -307,6 +312,75 @@ window.vidresAppReady = (async () => {
             .includes(q),
         ),
     );
+  }
+  function sortedJobs() {
+    const items = filterJobs();
+    const { key, dir } = jobSort;
+    return items.slice().sort((a, b) => {
+      const av = a[key] || "",
+        bv = b[key] || "";
+      if (key === "fecha")
+        return (av || "9999").localeCompare(bv || "9999") * dir;
+      return String(av).localeCompare(String(bv), "es") * dir;
+    });
+  }
+  function jobTable(items) {
+    const arrow = (k) =>
+      jobSort.key === k
+        ? jobSort.dir === 1
+          ? ' class="asc"'
+          : ' class="desc"'
+        : "";
+    return (
+      '<div class="job-table-wrap desktop-only"><table class="sortable"><thead><tr>' +
+      '<th data-sort="id"' +
+      arrow("id") +
+      ">Referencia</th>" +
+      '<th data-sort="cliente"' +
+      arrow("cliente") +
+      ">Cliente</th>" +
+      '<th data-sort="descripcion"' +
+      arrow("descripcion") +
+      ">Trabajo</th>" +
+      '<th data-sort="estado"' +
+      arrow("estado") +
+      ">Estado</th>" +
+      '<th data-sort="fecha"' +
+      arrow("fecha") +
+      ">Fecha</th>" +
+      "<th></th></tr></thead><tbody>" +
+      (items.length
+        ? items
+            .map(
+              (j) =>
+                "<tr><td>" +
+                esc(j.id) +
+                "</td><td>" +
+                esc(j.cliente) +
+                "</td><td>" +
+                esc(j.descripcion) +
+                "</td><td>" +
+                status(j.estado) +
+                "</td><td>" +
+                esc(j.fecha || "—") +
+                '</td><td><button type="button" class="edit" data-id="' +
+                esc(j.id) +
+                '">Abrir</button></td></tr>',
+            )
+            .join("")
+        : '<tr><td colspan="6" class="muted">No hay trabajos.</td></tr>') +
+      "</tbody></table></div>"
+    );
+  }
+  function jobResultsHtml() {
+    const items = sortedJobs();
+    return (
+      jobTable(items) + '<div class="mobile-only">' + jobCards(items) + "</div>"
+    );
+  }
+  function renderJobResults() {
+    const host = $("#job-results");
+    if (host) host.innerHTML = jobResultsHtml();
   }
   function dashboardHtml() {
     const today = localToday(),
@@ -753,7 +827,7 @@ window.vidresAppReady = (async () => {
           : "") +
         workFilters() +
         '<div id="job-results">' +
-        jobCards(filterJobs()) +
+        jobResultsHtml() +
         "</div>";
     } else if (page === "criticos") {
       const criticalJobs = jobs.filter((j) => j.estado === "Crítico");
@@ -847,8 +921,7 @@ window.vidresAppReady = (async () => {
     if (input)
       input.addEventListener("input", (e) => {
         search = e.target.value;
-        const host = $("#job-results");
-        if (host) host.innerHTML = jobCards(filterJobs());
+        renderJobResults();
       });
   }
   window.vidresNavigate = (p) => {
@@ -1105,6 +1178,14 @@ window.vidresAppReady = (async () => {
     renderPendingMeasurePhotos();
   });
   $("#content").addEventListener("click", async (e) => {
+    const sortTh = e.target.closest("th[data-sort]");
+    if (sortTh) {
+      const key = sortTh.dataset.sort;
+      if (jobSort.key === key) jobSort.dir = -jobSort.dir;
+      else jobSort = { key, dir: 1 };
+      renderJobResults();
+      return;
+    }
     const followupWhatsApp = e.target.closest("[data-followup-whatsapp]");
     if (followupWhatsApp) {
       window.vidresQuoteFollowupWhatsApp?.(
@@ -1548,6 +1629,41 @@ window.vidresAppReady = (async () => {
     if (page !== "inicio") window.vidresNavigate("inicio");
     else render();
   });
+  // Modo claro / oscuro opcional.
+  const themeToggle = $("#theme-toggle");
+  const applyTheme = (theme) => {
+    if (theme === "dark")
+      document.documentElement.setAttribute("data-theme", "dark");
+    else document.documentElement.removeAttribute("data-theme");
+  };
+  const readTheme = () => {
+    try {
+      return VSStorage.local.getItem("vidres-theme-v1") || "";
+    } catch {
+      return "";
+    }
+  };
+  applyTheme(readTheme());
+  function refreshThemeIcon() {
+    if (!themeToggle) return;
+    const dark = document.documentElement.getAttribute("data-theme") === "dark";
+    themeToggle.innerHTML = VSIcons.icon(dark ? "sol" : "luna", 20);
+    themeToggle.setAttribute(
+      "aria-label",
+      dark ? "Cambiar a modo claro" : "Cambiar a modo oscuro",
+    );
+  }
+  refreshThemeIcon();
+  themeToggle?.addEventListener("click", () => {
+    const dark = document.documentElement.getAttribute("data-theme") === "dark";
+    const next = dark ? "" : "dark";
+    applyTheme(next);
+    try {
+      VSStorage.local.setItem("vidres-theme-v1", next);
+    } catch {}
+    refreshThemeIcon();
+  });
+
   render();
 })().catch((error) => {
   window.VSAppError = true;

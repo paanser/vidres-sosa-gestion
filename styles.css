@@ -1,15 +1,39 @@
 :root {
-  /* Marca y neutros (se amplían en la fase de diseño). */
+  /* Marca */
   --vs-green: #155b43;
   --vs-green-dark: #104b36;
   --vs-red: #c62e35;
+  /* Neutros */
   --vs-bg: #f4f6f5;
+  --vs-surface: #ffffff;
+  --vs-surface-2: #f7faf8;
   --vs-border: #e0e8e3;
+  --vs-border-strong: #cedcd3;
   --vs-text: #192b22;
   --vs-muted: #65776c;
+  /* Estados */
+  --vs-ok: #1d6f3c;
+  --vs-warn: #9a6b15;
+  --vs-error: #b42318;
+  --vs-info: #2457a7;
+  /* Escala de espaciado */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  /* Radios (dos valores) */
+  --radius: 10px;
+  --radius-lg: 16px;
+  /* Sombras (tres niveles) */
+  --shadow-1: 0 1px 3px #123e2510;
+  --shadow-2: 0 4px 24px #123e2514;
+  --shadow-3: 0 25px 90px #00000040;
   /* Escala de lectura configurable. */
   --vs-text-scale: 1;
   font-family:
+    "Inter",
     system-ui,
     -apple-system,
     BlinkMacSystemFont,
@@ -18,6 +42,14 @@
     sans-serif;
   background: var(--vs-bg);
   color: var(--vs-text);
+}
+/* Fuente local (sin conexión): Inter variable, cubre 400-700. */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("fonts/inter-var-latin.woff2") format("woff2");
 }
 * {
   box-sizing: border-box;
@@ -3557,4 +3589,264 @@ dialog[open] {
   .vsui-dialog[open] {
     animation: none;
   }
+}
+
+/* ============================================================
+   FASE B · Identidad visual
+   ============================================================ */
+
+/* Números tabulares para importes y medidas (alinean columnas). */
+body {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Iconos SVG */
+.icon {
+  display: inline-block;
+  vertical-align: -0.15em;
+  flex-shrink: 0;
+}
+
+/* Logo */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+  letter-spacing: -0.4px;
+}
+.logo img {
+  display: block;
+  object-fit: contain;
+}
+.logo-text {
+  display: grid;
+  line-height: 1.05;
+}
+.logo-text span {
+  display: block;
+  color: var(--vs-red);
+}
+.logo-text strong {
+  display: block;
+  color: var(--vs-green);
+  margin-left: 6px;
+}
+
+/* Cabecera: interruptor de modo */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--vs-border-strong);
+  background: var(--vs-surface);
+  color: var(--vs-green);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+/* Navegación con iconos */
+nav button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+nav button.nav-cta {
+  background: var(--vs-green);
+  color: #fff;
+  font-weight: 700;
+}
+@media (hover: hover) and (pointer: fine) {
+  nav button.nav-cta:hover {
+    background: var(--vs-green-dark);
+  }
+}
+nav button.nav-cta.active {
+  background: var(--vs-green-dark);
+  color: #fff;
+}
+
+/* Botones secundarios (contorno) y destructivos */
+.btn-secondary {
+  border: 1px solid var(--vs-border-strong);
+  background: var(--vs-surface);
+  color: var(--vs-green);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-weight: 700;
+  min-height: 44px;
+}
+.btn-danger {
+  background: var(--vs-red);
+  color: #fff;
+  border: 0;
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-weight: 700;
+  min-height: 44px;
+}
+
+/* Tabla ordenable */
+.sortable th[data-sort] {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+.sortable th[data-sort]::after {
+  content: " \2195";
+  opacity: 0.35;
+  font-size: 0.9em;
+}
+.sortable th[data-sort].asc::after {
+  content: " \2191";
+  opacity: 1;
+  color: var(--vs-green);
+}
+.sortable th[data-sort].desc::after {
+  content: " \2193";
+  opacity: 1;
+  color: var(--vs-green);
+}
+
+/* Tablas de listado (Trabajos y Presupuestos) */
+.job-table-wrap,
+.quote-table-wrap {
+  overflow-x: auto;
+}
+.job-table-wrap table,
+.quote-table-wrap table {
+  min-width: 640px;
+}
+.quote-row-actions {
+  white-space: nowrap;
+  text-align: right;
+}
+.quote-row-actions button {
+  border: 1px solid var(--vs-border-strong);
+  background: var(--vs-surface);
+  color: var(--vs-green);
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin-left: 6px;
+  font-weight: 650;
+}
+
+/* Mostrar tabla en escritorio y tarjetas en móvil */
+@media (max-width: 600px) {
+  .desktop-only {
+    display: none !important;
+  }
+}
+@media (min-width: 601px) {
+  .mobile-only {
+    display: none !important;
+  }
+}
+
+/* En móvil: navegación superior con icono encima de la etiqueta. */
+@media (max-width: 600px) {
+  header .muted {
+    display: none;
+  }
+  #nav {
+    display: flex;
+    overflow-x: auto;
+    gap: 6px;
+    scrollbar-width: none;
+    grid-template-columns: none;
+  }
+  #nav::-webkit-scrollbar {
+    display: none;
+  }
+  #nav button {
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: 3px;
+    justify-content: center;
+    padding: 8px 13px;
+    min-height: 52px;
+    font-size: 11px;
+    line-height: 1.2;
+  }
+  #nav button.nav-cta {
+    background: var(--vs-green);
+    color: #fff;
+  }
+}
+
+/* Modo oscuro (opcional, primera versión). */
+html[data-theme="dark"] {
+  --vs-bg: #0f1511;
+  --vs-surface: #161f19;
+  --vs-surface-2: #1c2820;
+  --vs-border: #27352c;
+  --vs-border-strong: #36473c;
+  --vs-text: #e7efe9;
+  --vs-muted: #a3b4a9;
+  --vs-green: #4fb389;
+  --vs-green-dark: #3a8f6a;
+}
+html[data-theme="dark"] body {
+  background: var(--vs-bg);
+  color: var(--vs-text);
+}
+html[data-theme="dark"] aside,
+html[data-theme="dark"] main {
+  background: var(--vs-bg);
+}
+html[data-theme="dark"] .panel,
+html[data-theme="dark"] .stat,
+html[data-theme="dark"] .job-card,
+html[data-theme="dark"] .client-card,
+html[data-theme="dark"] .measure-card,
+html[data-theme="dark"] .quote-line,
+html[data-theme="dark"] .quote-saved,
+html[data-theme="dark"] .exp-details > div,
+html[data-theme="dark"] .exp-section,
+html[data-theme="dark"] .exp-measure-grid article,
+html[data-theme="dark"] .plantilla-item,
+html[data-theme="dark"] .followup-item,
+html[data-theme="dark"] .exp-doc-item,
+html[data-theme="dark"] .exp-quote-item,
+html[data-theme="dark"] .quick-note,
+html[data-theme="dark"] .work-filters,
+html[data-theme="dark"] .tool-tiles button {
+  background: var(--vs-surface);
+}
+html[data-theme="dark"] .stat {
+  background: var(--vs-surface) !important;
+}
+html[data-theme="dark"] .stat:nth-child(1),
+html[data-theme="dark"] .stat:nth-child(2),
+html[data-theme="dark"] .stat:nth-child(3),
+html[data-theme="dark"] .stat:nth-child(4) {
+  background: var(--vs-surface-2) !important;
+}
+html[data-theme="dark"] input,
+html[data-theme="dark"] select,
+html[data-theme="dark"] textarea {
+  background: var(--vs-surface-2);
+  color: var(--vs-text);
+  border-color: var(--vs-border-strong);
+}
+html[data-theme="dark"] .job-card,
+html[data-theme="dark"] .client-card,
+html[data-theme="dark"] .measure-card,
+html[data-theme="dark"] .quote-line {
+  border-color: var(--vs-border);
+}
+html[data-theme="dark"] .job-card h3,
+html[data-theme="dark"] .client-heading h3 {
+  color: var(--vs-text);
+}
+html[data-theme="dark"] .job-meta span {
+  background: var(--vs-surface-2);
+  color: var(--vs-text);
+}
+html[data-theme="dark"] header,
+html[data-theme="dark"] aside {
+  border-color: var(--vs-border);
 }

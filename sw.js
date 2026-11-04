@@ -11,6 +11,7 @@ const ASSETS = [
   "styles.css",
   "utils.js",
   "ui.js",
+  "icons.js",
   "storage.js",
   "calculations.js",
   "files.js",
@@ -30,6 +31,7 @@ const ASSETS = [
   "icons/icon-192.png",
   "icons/icon-512.png",
   "icons/logo.png",
+  "fonts/inter-var-latin.woff2",
 ];
 self.addEventListener("install", (event) =>
   event.waitUntil(

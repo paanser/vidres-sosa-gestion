@@ -167,13 +167,13 @@
     host.replaceChildren();
     const details = document.createElement("details");
     details.className = "sketch-book";
-    details.innerHTML = `<summary>✎ Dibujar medidas · Bloc de croquis</summary><div class="sketch-editor">
+    details.innerHTML = `<summary>${VSIcons.icon("dibujar", 18)} Dibujar medidas · Bloc de croquis</summary><div class="sketch-editor">
       <p>Dibuja medidas y formas con el dedo, lápiz táctil o ratón. Se guarda al guardar la pieza.</p>
       <div class="sketch-tools sketch-case" role="group" aria-label="Estuche de dibujo">
-        <button type="button" data-case-toggle aria-expanded="false">✎ Estuche</button>
+        <button type="button" data-case-toggle aria-expanded="false">${VSIcons.icon("dibujar", 18)} Estuche</button>
         <span data-case-state>Lápiz negro · fino</span>
         <div class="sketch-case-panel" hidden>
-        <button type="button" data-sketch-cota>＋ Cota</button>
+        <button type="button" data-sketch-cota>${VSIcons.icon("anadir", 18)} Cota</button>
         <button type="button" data-sketch-use-dims>Usar cotas como medidas</button>
         <button type="button" data-ink="#17251e" aria-pressed="true">Negro</button>
         <button type="button" data-ink="#b42318" aria-pressed="false">Rojo</button>
@@ -192,9 +192,9 @@
         <span class="sketch-dim-tools-label">Cota seleccionada</span>
         <button type="button" data-dim-edit>Editar valor</button>
         <button type="button" data-dim-delete>Eliminar</button>
-        <button type="button" data-dim-close aria-label="Cerrar">✕</button>
+        <button type="button" data-dim-close aria-label="Cerrar">${VSIcons.icon("cerrar", 18)}</button>
       </div>
-      <p>Mejora automática al levantar el dedo o lápiz: endereza líneas, ajusta rectángulos y suaviza los demás trazos. Dibuja el contorno de una vez. Deshacer recupera el trazo original. No interpreta letras ni medidas. Para una cota, pulsa «＋ Cota» y toca dos puntos de la hoja.</p>
+      <p>Mejora automática al levantar el dedo o lápiz: endereza líneas, ajusta rectángulos y suaviza los demás trazos. Dibuja el contorno de una vez. Deshacer recupera el trazo original. No interpreta letras ni medidas. Para una cota, pulsa «+ Cota» y toca dos puntos de la hoja.</p>
       <div class="sketch-sheet"><canvas width="1000" height="700" aria-label="Hoja de croquis: dibuja con el dedo, lápiz o ratón"></canvas></div>
       <label class="sketch-note" hidden>Notas del croquis<textarea maxlength="1000" rows="3" placeholder="Medidas, detalles de montaje o indicaciones…"></textarea></label>
       <p class="sketch-message" role="status" aria-live="polite"></p></div>`;
@@ -402,8 +402,7 @@
       preview.querySelector("p").textContent = options.onAccept
         ? "Croquis guardado en la pieza."
         : "Croquis aceptado. Guarda el parte o la pieza para conservarlo.";
-      details.querySelector("summary").textContent =
-        "✎ Abrir pantalla del bloc";
+      details.querySelector("summary").textContent = "Abrir pantalla del bloc";
     }
     function fitSheet() {
       if (!expanded.open) return;
@@ -428,7 +427,7 @@
     notes.value = state.notes;
     if (state.strokes.length || state.notes || state.dims.length)
       details.querySelector("summary").textContent =
-        "✎ Dibujar medidas · Con anotaciones";
+        "Dibujar medidas · Con anotaciones";
     function draw(stroke) {
       ctx.save();
       ctx.globalCompositeOperation =

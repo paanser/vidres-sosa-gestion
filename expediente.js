@@ -233,8 +233,14 @@
     }
     if (tab === "medidas") {
       body.innerHTML =
-        '<section class="exp-section"><div class="exp-section-head"><h3>Medidas en papel</h3><label class="exp-upload">📷 Foto de medidas<input type="file" accept="image/*" capture="environment" data-exp-measure-photo hidden></label><label class="exp-upload">Elegir de la galería<input type="file" accept="image/*" multiple data-exp-measure-photo hidden></label></div><p class="muted">La foto se guarda solo en este dispositivo. Se incluye únicamente en la copia completa con fotos y documentos.</p><div id="exp-paper-photos" class="measure-paper-grid">Cargando fotos…</div></section>' +
-        '<div class="exp-section"><div class="exp-section-head"><h3>Mediciones del expediente</h3><button class="primary" data-exp-draw-measure>✎ Dibujar medidas</button><button type="button" data-exp-add-measure>+ Añadir medida</button><button type="button" data-exp-quote-measures>Crear presupuesto desde medidas</button></div>' +
+        '<section class="exp-section"><div class="exp-section-head"><h3>Medidas en papel</h3><label class="exp-upload">' +
+        VSIcons.icon("camara", 18) +
+        ' Foto de medidas<input type="file" accept="image/*" capture="environment" data-exp-measure-photo hidden></label><label class="exp-upload">Elegir de la galería<input type="file" accept="image/*" multiple data-exp-measure-photo hidden></label></div><p class="muted">La foto se guarda solo en este dispositivo. Se incluye únicamente en la copia completa con fotos y documentos.</p><div id="exp-paper-photos" class="measure-paper-grid">Cargando fotos…</div></section>' +
+        '<div class="exp-section"><div class="exp-section-head"><h3>Mediciones del expediente</h3><button class="primary" data-exp-draw-measure>' +
+        VSIcons.icon("dibujar", 18) +
+        ' Dibujar medidas</button><button type="button" data-exp-add-measure>' +
+        VSIcons.icon("anadir", 18) +
+        ' Añadir medida</button><button type="button" data-exp-quote-measures>Crear presupuesto desde medidas</button></div>' +
         (measures.length
           ? '<div class="exp-measure-grid">' +
             measures

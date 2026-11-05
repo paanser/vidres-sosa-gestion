@@ -415,7 +415,7 @@
         await saveDraft();
       } else if (b.id === "quote-settings") {
         fromForm();
-        window.vidresNavigate("ajustes");
+        window.vidresNavigate("ajustes-tarifas");
       } else if (b.id === "quote-save") await saveDraft();
       else if (b.id === "quote-whatsapp") {
         fromForm();

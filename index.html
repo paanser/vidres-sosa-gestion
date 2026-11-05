@@ -117,6 +117,15 @@
             <h1 id="title">Buenos días, equipo 👋</h1>
           </div>
         </header>
+        <p
+          id="save-status"
+          class="save-status"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          Sin cambios pendientes
+        </p>
         <div id="content" aria-live="off"></div>
         <details class="panel ai-usage" hidden>
           <summary>Dictado e inteligencia artificial</summary>
@@ -161,7 +170,18 @@
     </aside>
     <dialog id="editor" aria-labelledby="formtitle">
       <form id="form">
-        <div class="job-editor-header"><h2 id="formtitle">Nuevo parte</h2></div>
+        <div class="job-editor-header">
+          <h2 id="formtitle">Nuevo parte</h2>
+          <p
+            data-save-status
+            class="save-status"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            Sin cambios pendientes
+          </p>
+        </div>
         <div class="job-editor-body">
           <details id="voice-panel" class="voice-panel">
             <summary>🎙️ Dictar parte (opcional)</summary>

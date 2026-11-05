@@ -3547,3 +3547,14 @@ input[type=checkbox],input[type=radio] { accent-color:#15523e; }
 #editor summary { display:flex; align-items:center; padding:10px 0; font-weight:600; }
 dialog::backdrop { background:rgb(21 34 26 / 60%); backdrop-filter:none; }
 
+
+/* Mediciones · cifras tabulares y piezas separadas por líneas. */
+.measure-list { display:grid; grid-template-columns:1fr; gap:0; }
+.measure-card { padding:18px 0; border:0; border-bottom:1px solid #c9c8bd; border-radius:0; background:transparent; }
+.measure-card strong,.measure-fields input,.new-measure-piece output { font-variant-numeric:tabular-nums; font-weight:600; }
+.measure-heading { align-items:flex-start; gap:16px; }
+.measure-card p { margin:8px 0; }
+#measure-editor { background:#f3f0e7; border-radius:5px; }
+.sketch-editor,.sketch-toolbar { border-color:#a0a697; border-radius:4px; }
+@media(max-width:600px) { .measure-heading { flex-direction:column; } .measure-heading>button { width:100%; } }
+

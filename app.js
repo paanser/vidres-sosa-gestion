@@ -179,9 +179,9 @@ window.vidresAppReady = (async () => {
             esc(j.cliente) +
             "</h3><p>" +
             esc(j.descripcion) +
-            '</p><div class="job-meta"><span>📅 ' +
+            '</p><div class="job-meta"><span>Fecha · ' +
             esc(j.fecha || "Sin fecha") +
-            "</span><span>👤 " +
+            "</span><span>Responsable · " +
             esc(j.responsable || "Sin asignar") +
             "</span><span>" +
             esc(j.tipoCliente || "Particular") +

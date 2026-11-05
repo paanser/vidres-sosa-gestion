@@ -3519,3 +3519,17 @@ nav button.active,nav button:hover { background:#15523e; color:#fff; }
  .panel { padding:16px; }
  .global-text-controls { bottom:calc(84px + env(safe-area-inset-bottom)) !important; }
 }
+
+/* Trabajos · filas compactas y estados legibles. */
+.job-cards { display:grid; grid-template-columns:minmax(0,1fr) !important; gap:0 !important; border-top:1px solid #b6b9ad; }
+.job-card { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px 20px; padding:18px 0; border:0; border-bottom:1px solid #b6b9ad; border-radius:0; background:transparent; }
+.job-card-top,.job-card h3,.job-card>p,.job-meta { grid-column:1; margin:0; }
+.job-card-top { justify-content:flex-start; gap:12px; }
+.job-card h3 { font-size:21px; }
+.job-card>p { color:#454d43; }
+.job-card .job-open { grid-column:2; grid-row:1 / span 4; align-self:center; min-height:48px; padding:10px 16px; background:#15523e; color:#fff; }
+.job-meta { display:flex; flex-wrap:wrap; gap:6px 18px; color:#535b50; font-size:14px; }
+.work-filters,.simple-work-search,.advanced-work-filters { background:#fffdf6; border-color:#c9c8bd; border-radius:4px; }
+.empty-state { background:transparent; border:1px dashed #a0a697; border-radius:4px; color:#535b50; }
+@media(max-width:600px) { .job-card { grid-template-columns:1fr; } .job-card .job-open { grid-column:1; grid-row:auto; justify-self:stretch; } }
+

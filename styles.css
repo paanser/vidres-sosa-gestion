@@ -3558,3 +3558,14 @@ dialog::backdrop { background:rgb(21 34 26 / 60%); backdrop-filter:none; }
 .sketch-editor,.sketch-toolbar { border-color:#a0a697; border-radius:4px; }
 @media(max-width:600px) { .measure-heading { flex-direction:column; } .measure-heading>button { width:100%; } }
 
+
+/* Clientes · directorio de fichas e historial. */
+.client-card { background:transparent; border:0; border-bottom:1px solid #b6b9ad; border-radius:0; padding:20px 0; margin:0; }
+.client-heading { gap:16px; align-items:flex-start; }
+.client-heading h3 { margin:0 0 6px; font-size:22px; }
+.client-actions { display:flex; flex-wrap:wrap; gap:8px; }
+.client-actions a,.client-actions button { min-height:44px; display:inline-flex; align-items:center; justify-content:center; padding:10px 14px; border:1px solid #8d9589; border-radius:4px; background:#fffdf6; color:#15523e; }
+.client-card details { border-top:1px solid #d7d7cc; margin-top:16px; }
+.client-card summary { padding:12px 0; color:#15523e; font-weight:600; cursor:pointer; }
+#client-editor { background:#f3f0e7; border-radius:5px; }
+

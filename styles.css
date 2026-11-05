@@ -4090,3 +4090,22 @@ nav button:hover:not(.active) {
     min-height: 0;
   }
 }
+/* Remates verificados en la vista móvil real. */
+.stats.simple-stats {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.simple-stats .stat.critical-stat b {
+  color: #96382c;
+}
+.nav-more:has(button.active) > summary {
+  background: #15523e;
+  color: #fff !important;
+}
+@media (max-width: 760px) {
+  .stats.simple-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .global-text-controls {
+    top: auto;
+  }
+}

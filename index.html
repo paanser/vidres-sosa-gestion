@@ -6,61 +6,15 @@
     <meta charset="utf-8" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://vidres-sosa-ia.pausosagomez.workers.dev https://nominatim.openstreetmap.org; img-src 'self' blob: data:; object-src 'none'; base-uri 'none'; form-action 'none'"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://vidres-sosa-ia.pausosagomez.workers.dev https://nominatim.openstreetmap.org; img-src 'self' blob: data:; object-src 'none'; base-uri 'none'; form-action 'none'"
     />
     <meta name="referrer" content="no-referrer" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#15523e" />
     <title>Vidres Sosa · Gestión</title>
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap"
-    />
     <link id="app-style" rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <svg
-      class="icon-library"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <defs>
-        <symbol id="icon-home" viewBox="0 0 24 24">
-          <path d="M3 10 12 3l9 7v11h-6v-7H9v7H3Z" />
-        </symbol>
-        <symbol id="icon-work" viewBox="0 0 24 24">
-          <path d="M4 6h16v15H4Z M9 6V3h6v3 M4 11h16" />
-        </symbol>
-        <symbol id="icon-plus" viewBox="0 0 24 24">
-          <path d="M12 4v16 M4 12h16" />
-        </symbol>
-        <symbol id="icon-quote" viewBox="0 0 24 24">
-          <path d="M6 3h12v18H6Z M9 8h6 M9 12h6 M9 16h4" />
-        </symbol>
-        <symbol id="icon-more" viewBox="0 0 24 24">
-          <path d="M4 6h16 M4 12h16 M4 18h16" />
-        </symbol>
-        <symbol id="icon-tools" viewBox="0 0 24 24">
-          <path d="m14 6 4-4 4 4-4 4 M16 8 4 20l-2-2L14 6" />
-        </symbol>
-        <symbol id="icon-settings" viewBox="0 0 24 24">
-          <path
-            d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8 M12 2v3 M12 19v3 M2 12h3 M19 12h3 M5 5l2 2 M17 17l2 2 M5 19l2-2 M17 7l2-2"
-          />
-        </symbol>
-        <symbol id="icon-note" viewBox="0 0 24 24">
-          <path d="M5 3h14v18H5Z M8 8h8 M8 12h8 M8 16h5" />
-        </symbol>
-        <symbol id="icon-user" viewBox="0 0 24 24">
-          <path
-            d="M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8 M4 21v-3a8 8 0 0 1 16 0v3"
-          />
-        </symbol>
-        <symbol id="icon-measure" viewBox="0 0 24 24">
-          <path d="m3 16 13-13 5 5L8 21Z M7 12l3 3 M11 8l3 3 M15 4l3 3" />
-        </symbol>
-      </defs>
-    </svg>
     <section id="auth-screen" class="auth-screen" aria-labelledby="auth-title">
       <div class="auth-card">
         <p class="muted">VIDRES SOSA · GESTIÓN</p>
@@ -146,61 +100,21 @@
       <aside>
         <div class="logo"><span>Vidres</span><strong>Sosa</strong></div>
         <nav id="nav" aria-label="Navegación principal">
-          <button data-page="inicio" class="active">
-            <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <use href="#icon-home" /></svg
-            ><span>Inicio</span></button
-          ><button data-page="trabajos">
-            <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <use href="#icon-work" /></svg
-            ><span>Trabajos</span></button
-          ><button id="add">
-            <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <use href="#icon-plus" /></svg
-            ><span>Nuevo</span></button
-          ><button data-page="presupuestos">
-            <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <use href="#icon-quote" /></svg
-            ><span>Presupuestos</span>
-          </button>
-          <details class="nav-more">
-            <summary>
-              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <use href="#icon-more" /></svg
-              ><span>Más</span>
-            </summary>
-            <div class="nav-more-options">
-              <button data-page="clientes">
-                <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">
-                  <use href="#icon-user" /></svg
-                ><span>Clientes</span></button
-              ><button data-page="mediciones">
-                <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">
-                  <use href="#icon-measure" /></svg
-                ><span>Mediciones</span></button
-              ><button id="quick-note-add">
-                <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">
-                  <use href="#icon-note" /></svg
-                ><span>Nota rápida</span></button
-              ><button data-page="herramientas">
-                <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">
-                  <use href="#icon-tools" /></svg
-                ><span>Herramientas</span></button
-              ><button data-page="ajustes">
-                <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">
-                  <use href="#icon-settings" /></svg
-                ><span>Ajustes</span>
-              </button>
-            </div>
-          </details>
+          <button data-page="inicio" class="active">⌂ Inicio</button
+          ><button id="add">+ Nuevo parte</button
+          ><button id="quick-note-add">+ Nota rápida</button
+          ><button data-page="trabajos">▤ Trabajos activos</button
+          ><button data-page="presupuestos">€ Presupuestos</button
+          ><button data-page="herramientas">▦ Herramientas</button
+          ><button data-page="ajustes">⚙ Ajustes</button>
         </nav>
-        <small>TALLER · GESTIÓN</small>
+        <small>Vidres Sosa · Versión de prueba</small>
       </aside>
       <main>
         <header>
           <div>
             <p class="muted">VIDRES SOSA · GESTIÓN</p>
-            <h1 id="title">Inicio</h1>
+            <h1 id="title">Buenos días, equipo 👋</h1>
           </div>
         </header>
         <div id="content" aria-live="off"></div>
@@ -234,10 +148,7 @@
         aria-controls="text-settings-panel"
         title="Ajustar tamaño de letra"
       >
-        Aa
-        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">
-          <use href="#icon-settings" />
-        </svg>
+        Aa <span aria-hidden="true">⚙</span>
       </button>
       <div id="text-settings-panel" class="text-settings-panel" hidden>
         <strong>Tamaño de letra</strong>
@@ -253,14 +164,14 @@
         <div class="job-editor-header"><h2 id="formtitle">Nuevo parte</h2></div>
         <div class="job-editor-body">
           <details id="voice-panel" class="voice-panel">
-            <summary>Dictar parte</summary>
+            <summary>🎙️ Dictar parte (opcional)</summary>
             <p class="muted">
               Di: «cliente Ana, trabajo cambiar cristal, dirección calle Mayor
               15, responsable Pau, notas llamar antes».
             </p>
             <div class="voice-buttons">
               <button type="button" id="voice-start" class="primary">
-                Empezar a dictar</button
+                🎙️ Empezar a dictar</button
               ><button type="button" id="voice-stop" disabled>Detener</button>
             </div>
             <label
@@ -271,7 +182,7 @@
                 placeholder="Aquí aparecerá lo que dictes…"
               ></textarea></label
             ><button type="button" id="voice-ai" class="primary">
-              Interpretar con IA</button
+              ✨ Interpretar con IA</button
             ><button type="button" id="voice-apply">
               Rellenar campos para revisar
             </button>
@@ -345,8 +256,9 @@
             /></label>
             <label>Dirección<input name="direccion" maxlength="180" /></label>
             <div class="location-actions">
-              <button type="button" id="location-get">Usar mi ubicación</button
-              ><button type="button" id="location-map">Abrir mapa</button>
+              <button type="button" id="location-get">
+                📍 Usar mi ubicación</button
+              ><button type="button" id="location-map">🗺️ Abrir mapa</button>
             </div>
             <p id="location-message" class="muted" role="status">
               La ubicación solo se solicita cuando pulses el botón.
@@ -366,7 +278,7 @@
             <h3>Foto de medidas en papel</h3>
             <div class="measure-photo-actions">
               <label class="exp-upload"
-                >Foto de medidas<input
+                >📷 Foto de medidas<input
                   class="job-measure-photo"
                   type="file"
                   accept="image/*"
@@ -388,7 +300,9 @@
               completarlas después desde el expediente.
             </p>
             <div class="new-measure-list"></div>
-            <button type="button" id="new-measure-draw">Dibujar medidas</button>
+            <button type="button" id="new-measure-draw">
+              ✎ Dibujar medidas
+            </button>
             <button type="button" id="new-measure-add">+ Añadir pieza</button>
           </section>
         </div>
@@ -496,7 +410,7 @@
       <form id="measure-form">
         <h2 id="measure-title">Medición de vidrio</h2>
         <button type="button" id="measure-draw" class="primary">
-          Dibujar medidas</button
+          ✎ Dibujar medidas</button
         ><input type="hidden" name="id" /><label
           >Trabajo<select name="trabajo" required></select
         ></label>

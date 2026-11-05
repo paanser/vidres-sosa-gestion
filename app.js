@@ -179,9 +179,9 @@ window.vidresAppReady = (async () => {
             esc(j.cliente) +
             "</h3><p>" +
             esc(j.descripcion) +
-            '</p><div class="job-meta"><span>Fecha · ' +
+            '</p><div class="job-meta"><span>📅 ' +
             esc(j.fecha || "Sin fecha") +
-            "</span><span>Responsable · " +
+            "</span><span>👤 " +
             esc(j.responsable || "Sin asignar") +
             "</span><span>" +
             esc(j.tipoCliente || "Particular") +
@@ -1580,51 +1580,3 @@ window.vidresAppReady = (async () => {
     "No se pudo iniciar la aplicación: " + error.message;
   document.querySelector("#add").disabled = true;
 });
-
-// Navegación: cerrar el desplegable móvil al elegir una entrada.
-document.getElementById("nav")?.addEventListener("click", (event) => {
-  if (event.target.closest("button")) {
-    document.querySelector(".nav-more")?.removeAttribute("open");
-  }
-});
-
-// Etiquetas de los módulos existentes: solo presentación, nunca texto del cliente.
-{
-  const labels = new Map([
-    ["⚡ Presupuesto rápido", "Presupuesto rápido"],
-    ["📷 Foto de medidas", "Foto de medidas"],
-    ["✎ Dibujar medidas", "Dibujar medidas"],
-    [
-      "✎ Dibujar medidas · Bloc de croquis",
-      "Dibujar medidas · Bloc de croquis",
-    ],
-    [
-      "✎ Dibujar medidas · Con anotaciones",
-      "Dibujar medidas · Con anotaciones",
-    ],
-    ["✎ Estuche", "Estuche"],
-    ["✎ Abrir pantalla del bloc", "Abrir pantalla del bloc"],
-  ]);
-  const updateLabels = () => {
-    document
-      .querySelectorAll(
-        "button, summary, label.exp-upload, .quick-quote-editor h2",
-      )
-      .forEach((element) => {
-        for (const node of element.childNodes) {
-          if (
-            node.nodeType === Node.TEXT_NODE &&
-            labels.has(node.textContent.trim())
-          ) {
-            node.textContent = labels.get(node.textContent.trim());
-          }
-        }
-      });
-  };
-  new MutationObserver(updateLabels).observe(document.body, {
-    childList: true,
-    subtree: true,
-    characterData: true,
-  });
-  updateLabels();
-}

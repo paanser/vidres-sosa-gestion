@@ -4,13 +4,99 @@
     <link rel="manifest" href="manifest.json" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
     <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://vidres-sosa-ia.pausosagomez.workers.dev https://nominatim.openstreetmap.org; img-src 'self' blob: data:; object-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+    <meta name="referrer" content="no-referrer" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#15523e" />
     <title>Vidres Sosa · Gestión</title>
-    <link id="app-style" rel="stylesheet" />
+    <link id="app-style" rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div class="layout">
+    <section id="auth-screen" class="auth-screen" aria-labelledby="auth-title">
+      <div class="auth-card">
+        <p class="muted">VIDRES SOSA · GESTIÓN</p>
+        <h1 id="auth-title">Iniciar sesión</h1>
+        <form id="login-form">
+          <label
+            >Usuario<input
+              name="usuario"
+              autocomplete="username"
+              autocapitalize="none"
+              spellcheck="false"
+              maxlength="50"
+              required
+          /></label>
+          <label
+            >Contraseña<span class="password-input"
+              ><input
+                id="login-password"
+                name="password"
+                type="password"
+                autocomplete="current-password"
+                maxlength="256"
+                required
+              /><button
+                type="button"
+                data-show-password="login-password"
+                aria-pressed="false"
+              >
+                Mostrar
+              </button></span
+            ></label
+          >
+          <button type="submit" class="primary">Entrar</button>
+        </form>
+        <form id="password-form" hidden>
+          <h2>Cambiar contraseña</h2>
+          <label
+            >Contraseña actual<input
+              name="actual"
+              type="password"
+              autocomplete="current-password"
+              maxlength="256"
+              required
+          /></label>
+          <label
+            >Contraseña nueva<span class="password-input"
+              ><input
+                id="new-password"
+                name="password"
+                type="password"
+                autocomplete="new-password"
+                minlength="8"
+                maxlength="256"
+                required
+              /><button
+                type="button"
+                data-show-password="new-password"
+                aria-pressed="false"
+              >
+                Mostrar
+              </button></span
+            ></label
+          >
+          <label
+            >Repetir contraseña nueva<input
+              name="confirmacion"
+              type="password"
+              autocomplete="new-password"
+              minlength="8"
+              maxlength="256"
+              required
+          /></label>
+          <button type="submit" class="primary">
+            Guardar contraseña y entrar</button
+          ><button type="button" id="auth-logout">Cerrar sesión</button>
+        </form>
+        <p id="auth-message" role="status" aria-live="polite">
+          Preparando acceso…
+        </p>
+      </div>
+    </section>
+    <div class="layout" hidden inert>
       <aside>
         <div class="logo"><span>Vidres</span><strong>Sosa</strong></div>
         <nav id="nav" aria-label="Navegación principal">
@@ -46,12 +132,15 @@
             >Ver consumo y costes en OpenAI ↗</a
           >
         </details>
-        <footer>
-          Versión de demostración. No introduzcas datos reales de clientes.
-        </footer>
+        <footer>Acceso privado · Los datos se guardan en el servidor.</footer>
       </main>
     </div>
-    <aside class="global-text-controls" aria-label="Ajustes de visualización">
+    <aside
+      hidden
+      inert
+      class="global-text-controls"
+      aria-label="Ajustes de visualización"
+    >
       <button
         type="button"
         class="text-settings-toggle"
@@ -144,7 +233,16 @@
               <option>Crítico</option>
             </select></label
           >
-          <fieldset class="job-close-fields"><legend>Control administrativo</legend><label><input type="checkbox" name="facturado" /> Facturado</label><label><input type="checkbox" name="cobrado" /> Cobrado</label><p class="muted">Al marcar Finalizado se guarda la fecha de cierre. Después podrás archivar el expediente desde la lista de trabajos finalizados.</p></fieldset><details class="job-extra-fields">
+          <fieldset class="job-close-fields">
+            <legend>Control administrativo</legend>
+            <label><input type="checkbox" name="facturado" /> Facturado</label
+            ><label><input type="checkbox" name="cobrado" /> Cobrado</label>
+            <p class="muted">
+              Al marcar Finalizado se guarda la fecha de cierre. Después podrás
+              archivar el expediente desde la lista de trabajos finalizados.
+            </p>
+          </fieldset>
+          <details class="job-extra-fields">
             <summary>Más datos del trabajo</summary>
             <label
               >Hora prevista (opcional)<input name="hora" type="time" /></label
@@ -272,8 +370,7 @@
             placeholder="+34 600 000 000" /></label
         ><label>Dirección<input name="direccion" maxlength="180" /></label>
         <div class="actions">
-          <button type="button" onclick="this.closest('dialog').close()">
-            Cancelar</button
+          <button type="button" data-dialog-close>Cancelar</button
           ><button class="primary" type="submit">Guardar ficha</button>
         </div>
       </form>
@@ -369,8 +466,7 @@
         </label>
         <div id="measure-sketch"></div>
         <div class="actions">
-          <button type="button" onclick="this.closest('dialog').close()">
-            Cancelar</button
+          <button type="button" data-dialog-close>Cancelar</button
           ><button type="submit" class="primary">Guardar medición</button>
         </div>
       </form>
@@ -422,6 +518,9 @@
       </div>
     </dialog>
 
+    <script src="ai-config.js"></script>
+    <script src="auth.js"></script>
+    <script src="pwa.js"></script>
     <script src="loader.js"></script>
   </body>
 </html>

@@ -1,0 +1,46 @@
+name: Preparar backend privado de Cloudflare
+on:
+  push:
+    branches: [feat/autenticacion-servidor]
+    paths:
+      - .github/workflows/cloudflare.yml
+      - scripts/cloudflare-deploy.mjs
+      - worker/account.json
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: cloudflare-backend-production
+  cancel-in-progress: false
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      ADMIN_INITIAL_PASSWORD: ${{ secrets.ADMIN_INITIAL_PASSWORD }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      WRANGLER_SEND_METRICS: "false"
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npx prettier --check .
+      - name: Instalar herramienta de despliegue
+        run: npm install --no-save --package-lock=false wrangler@4
+      - name: Verificar acceso y desplegar backend
+        run: node scripts/cloudflare-deploy.mjs
+      - name: Guardar configuración de recursos sin secretos
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloudflare-configuracion
+          path: worker/wrangler.deploy.json
+          retention-days: 7
+          if-no-files-found: error

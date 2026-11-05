@@ -50,11 +50,7 @@
     ];
   }
   function plantillas() {
-    const v = read(PL, null);
-    if (Array.isArray(v)) return v;
-    const seed = defaultPlantillas();
-    VSStorage.local.setItem(PL, JSON.stringify(seed));
-    return seed;
+    return read(PL, []);
   }
   const euro = money;
   const config = () => ({
@@ -257,8 +253,9 @@
         : page === "consultor"
           ? consult()
           : settings();
+    if (page === "ajustes") window.VSUsers?.mount();
   };
-  window.vidresToolsClick = (e, navigate) => {
+  window.vidresToolsClick = async (e, navigate) => {
     const t = e.target.closest("button");
     if (!t) return false;
     if (t.dataset.toolGo) {
@@ -274,7 +271,7 @@
         )
       )
         return true;
-      VSStorage.local.setItem(
+      await VSStorage.local.setItem(
         T,
         JSON.stringify(
           t.id === "tariffs-clear"
@@ -321,7 +318,7 @@
         alert("La validez debe ser un número de días positivo");
         return true;
       }
-      VSStorage.write(C, {
+      await VSStorage.write(C, {
         ...config(),
         unit,
         energy,
@@ -334,13 +331,13 @@
           .value.trim(),
       });
       document.querySelector("#cfg-notice").textContent =
-        "Configuración guardada en este dispositivo.";
+        "Configuración guardada en el servidor.";
       return true;
     }
     if (t.dataset.pdfRemove !== undefined) {
       const pdfs = read(P, []);
       pdfs.splice(Number(t.dataset.pdfRemove), 1);
-      VSStorage.local.setItem(P, JSON.stringify(pdfs));
+      await VSStorage.local.setItem(P, JSON.stringify(pdfs));
       window.vidresToolsRender("ajustes");
       return true;
     }
@@ -354,7 +351,7 @@
     }
     if (t.dataset.plantillaDelete) {
       if (confirm("¿Eliminar esta plantilla?")) {
-        VSStorage.local.setItem(
+        await VSStorage.local.setItem(
           PL,
           JSON.stringify(
             plantillas().filter((x) => x.id !== t.dataset.plantillaDelete),
@@ -425,7 +422,7 @@
           return { id: "T-" + Date.now() + "-" + i, name, price, edge };
         });
         if (!items.length) throw Error("CSV sin artículos.");
-        VSStorage.local.setItem(
+        await VSStorage.local.setItem(
           T,
           JSON.stringify(window.vidresTariffs.merge(catalog(), items)),
         );
@@ -458,7 +455,7 @@
         name: file.name,
         date: new Date().toLocaleDateString("es-ES"),
       });
-      VSStorage.local.setItem(P, JSON.stringify(pdfs));
+      await VSStorage.local.setItem(P, JSON.stringify(pdfs));
       window.vidresToolsRender("ajustes");
       document.querySelector("#pdf-notice").textContent =
         "PDF registrado por nombre. El archivo NO se ha guardado ni enviado al servidor; queda pendiente de procesamiento.";
@@ -532,39 +529,42 @@
         const b = e.target.closest("[data-pp-remove]");
         if (b) b.closest(".plantilla-piece").remove();
       });
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const data = new FormData(form),
-        nombre = String(data.get("nombre") || "").trim();
-      if (!nombre) return;
-      const piezas = [
-        ...plantillaDialog.querySelectorAll(".plantilla-piece"),
-      ].map((row) => ({
-        tipo: row.querySelector('[data-pp="tipo"]').value,
-        espesor: row.querySelector('[data-pp="espesor"]').value.trim(),
-        observaciones: row
-          .querySelector('[data-pp="observaciones"]')
-          .value.trim(),
-      }));
-      const item = {
-        id: String(data.get("id") || "") || "T-" + crypto.randomUUID(),
-        nombre,
-        descripcion: String(data.get("descripcion") || "").trim(),
-        tipoCliente: String(data.get("tipoCliente") || "Particular"),
-        notas: String(data.get("notas") || "").trim(),
-        piezas,
-      };
-      const list = plantillas(),
-        i = list.findIndex((x) => x.id === item.id);
-      if (i < 0) list.push(item);
-      else list[i] = item;
-      VSStorage.local.setItem(PL, JSON.stringify(list));
-      plantillaDialog.close();
-      window.vidresToolsRender("ajustes");
-    });
+    form.addEventListener(
+      "submit",
+      VSForms.guard(async (e) => {
+        e.preventDefault();
+        const data = new FormData(form),
+          nombre = String(data.get("nombre") || "").trim();
+        if (!nombre) return;
+        const piezas = [
+          ...plantillaDialog.querySelectorAll(".plantilla-piece"),
+        ].map((row) => ({
+          tipo: row.querySelector('[data-pp="tipo"]').value,
+          espesor: row.querySelector('[data-pp="espesor"]').value.trim(),
+          observaciones: row
+            .querySelector('[data-pp="observaciones"]')
+            .value.trim(),
+        }));
+        const item = {
+          id: String(data.get("id") || "") || "T-" + crypto.randomUUID(),
+          nombre,
+          descripcion: String(data.get("descripcion") || "").trim(),
+          tipoCliente: String(data.get("tipoCliente") || "Particular"),
+          notas: String(data.get("notas") || "").trim(),
+          piezas,
+        };
+        const list = plantillas(),
+          i = list.findIndex((x) => x.id === item.id);
+        if (i < 0) list.push(item);
+        else list[i] = item;
+        await VSStorage.local.setItem(PL, JSON.stringify(list));
+        plantillaDialog.close();
+        window.vidresToolsRender("ajustes");
+      }),
+    );
   }
   window.vidresPlantillasList = plantillas;
-  window.vidresPlantillasSave = (arr) =>
-    VSStorage.local.setItem(PL, JSON.stringify(arr));
+  window.vidresPlantillasSave = async (arr) =>
+    await VSStorage.local.setItem(PL, JSON.stringify(arr));
   plantillas();
 })();

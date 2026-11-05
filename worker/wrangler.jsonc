@@ -1,0 +1,19 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "vidres-sosa-ia",
+  "main": "worker.js",
+  "compatibility_date": "2026-11-04",
+  "workers_dev": true,
+  "compatibility_flags": ["nodejs_compat"],
+  "triggers": { "crons": ["0 3 * * *"] },
+  "vars": { "ALLOWED_ORIGIN": "https://paanser.github.io" },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "vidres-sosa",
+      "database_id": "REEMPLAZAR_CON_ID_D1",
+      "migrations_dir": "migrations",
+    },
+  ],
+  "observability": { "enabled": false },
+}

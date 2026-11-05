@@ -3,3 +3,16 @@
 .env.*
 node_modules/
 dist/
+.dev.vars
+.dev.vars.*
+.wrangler/
+.private/
+backups/
+*.backup.json
+vidres-sosa-*.json
+vidres-antes-*.json
+playwright-report/
+test-results/
+__pycache__/
+*.pyc
+worker/wrangler.deploy.json

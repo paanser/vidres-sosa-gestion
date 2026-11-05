@@ -65,3 +65,30 @@
   if (typeof module !== "undefined") module.exports = api;
   else root.VSUtils = api;
 })(globalThis);
+
+// Await server confirmation and prevent duplicate submits. Keep the form open on errors.
+if (typeof window !== "undefined") {
+  window.VSForms = {
+    guard(handler) {
+      return async function (event) {
+        event.preventDefault();
+        const form = event.currentTarget;
+        if (form.dataset.saving) return;
+        form.dataset.saving = "true";
+        const buttons = [...form.querySelectorAll('[type="submit"]')];
+        buttons.forEach((b) => (b.disabled = true));
+        try {
+          await handler.call(this, event);
+        } catch (error) {
+          alert(
+            "No se pudo confirmar la operación. Conserva el formulario. " +
+              error.message,
+          );
+        } finally {
+          delete form.dataset.saving;
+          buttons.forEach((b) => (b.disabled = false));
+        }
+      };
+    },
+  };
+}

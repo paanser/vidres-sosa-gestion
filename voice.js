@@ -8,11 +8,6 @@
     transcript = document.querySelector("#voice-transcript"),
     message = document.querySelector("#voice-message");
   const aiButton = document.querySelector("#voice-ai");
-  let accessCode = "";
-  const SESSION_KEY = "vidres-ai-access-session";
-  try {
-    accessCode = sessionStorage.getItem(SESSION_KEY) || "";
-  } catch {}
   const Recognition =
     window.SpeechRecognition || window.webkitSpeechRecognition;
   let recognition = null,
@@ -229,25 +224,12 @@
       setMessage("Primero dicta un parte de al menos cinco caracteres.");
       return;
     }
-    if (!accessCode) {
-      accessCode =
-        window.prompt(
-          "Código privado de acceso IA (se recordará durante esta sesión):",
-        ) || "";
-      if (!accessCode) return;
-      try {
-        sessionStorage.setItem(SESSION_KEY, accessCode);
-      } catch {}
-    }
     aiButton.disabled = true;
     setMessage("Interpretando el parte con IA…");
     try {
-      const response = await fetch(endpoint, {
+      const response = await VSAuth.request("/ai/interpretar", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Access-Code": accessCode,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
       });
       const raw = await response.text();
@@ -262,12 +244,6 @@
         );
       }
       if (!response.ok) {
-        if (response.status === 401) {
-          accessCode = "";
-          try {
-            sessionStorage.removeItem(SESSION_KEY);
-          } catch {}
-        }
         throw new Error(
           "HTTP " +
             response.status +

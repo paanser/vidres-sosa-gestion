@@ -1,171 +1,126 @@
 "use strict";
 (() => {
-  const legacy = "vidres-mediciones-v1";
-  let cache = [];
-  function warn(error) {
-    alert(
-      "No se pudieron guardar o leer los datos. Comprueba el espacio y los permisos del navegador. " +
-        error.message,
-    );
+  const keys = {
+    trabajos: "vidres-sosa-demo-v01",
+    clientes: "vidres-clientes-v1",
+    presupuestos: "vs-quote-prototype-v1",
+    tarifas: "vs-tariffs-prototype-v1",
+    configuracion: "vs-config-v1",
+    numeracion: "vs-quote-sequence-v1",
+    notas: "vidres-notas-v1",
+    plantillas: "vidres-plantillas-v1",
+    catalogo: "vs-pdf-catalog-v1",
+    mediciones: "vidres-mediciones-servidor-v1",
+  };
+  const business = new Set(Object.values(keys));
+  const preferences = new Set([
+    "vidres-text-scale",
+    "vidres-home-view",
+    "vidres-last-backup-v1",
+    "vidres-backup-start-v1",
+  ]);
+  let values = {},
+    revision = 0,
+    queue = Promise.resolve(),
+    dirtyConflict = false;
+  function accept(state) {
+    values = state.values;
+    revision = state.revision;
+  }
+  const ready = VSAuth.json("/api/state").then(accept);
+  function enqueue(task) {
+    const result = queue.then(() => {
+      if (dirtyConflict)
+        throw Error(
+          "Hay cambios de otro dispositivo. Conserva tu formulario y recarga antes de guardar.",
+        );
+      return task();
+    });
+    queue = result.catch(() => {});
+    return result;
+  }
+  async function save(next) {
+    try {
+      const result = await VSAuth.json("/api/state", "PUT", {
+        revision,
+        values: next,
+      });
+      accept(result);
+    } catch (e) {
+      if (e.status === 409) dirtyConflict = true;
+      throw e;
+    }
   }
   const local = {
     getItem(key) {
-      try {
-        return localStorage.getItem(key);
-      } catch (e) {
-        warn(e);
-        throw e;
-      }
+      if (business.has(key))
+        return key in values ? JSON.stringify(values[key]) : null;
+      if (preferences.has(key)) return localStorage.getItem(key);
+      throw Error("Almacenamiento no permitido: " + key);
     },
     setItem(key, value) {
-      try {
-        localStorage.setItem(key, value);
-      } catch (e) {
-        warn(e);
-        throw e;
+      if (business.has(key)) {
+        const data = JSON.parse(value);
+        return enqueue(() => save({ ...structuredClone(values), [key]: data }));
       }
+      if (preferences.has(key)) {
+        localStorage.setItem(key, value);
+        return;
+      }
+      throw Error("Almacenamiento no permitido: " + key);
     },
     removeItem(key) {
-      try {
-        localStorage.removeItem(key);
-      } catch (e) {
-        warn(e);
-        throw e;
-      }
+      if (preferences.has(key)) localStorage.removeItem(key);
+      else throw Error("No se pueden borrar colecciones del servidor");
     },
   };
   const read = (key, fallback) => {
-    try {
-      return JSON.parse(local.getItem(key)) ?? fallback;
-    } catch (e) {
-      console.error("Lectura inválida:", key);
-      return fallback;
-    }
+    const raw = local.getItem(key);
+    return raw === null ? fallback : JSON.parse(raw);
   };
   const write = (key, value) => local.setItem(key, JSON.stringify(value));
-  let connection;
-  function db() {
-    if (!connection)
-      connection = new Promise((resolve, reject) => {
-        const r = indexedDB.open("vidres-gestion-v1", 1);
-        r.onupgradeneeded = () => {
-          r.result.createObjectStore("mediciones", { keyPath: "id" });
-          r.result.createObjectStore("meta");
-        };
-        r.onsuccess = () => resolve(r.result);
-        r.onerror = () => reject(r.error);
-        r.onblocked = () =>
-          reject(
-            Error("Cierra otras pestañas para actualizar el almacenamiento"),
-          );
-      });
-    return connection;
-  }
-  async function all() {
-    const d = await db();
-    return new Promise((resolve, reject) => {
-      const tx = d.transaction(["mediciones", "meta"]),
-        records = tx.objectStore("mediciones").getAll(),
-        order = tx.objectStore("meta").get("measurements-order");
-      tx.oncomplete = () => {
-        const map = new Map(records.result.map((x) => [x.id, x])),
-          result = [];
-        for (const id of order.result || []) {
-          if (map.has(id)) {
-            result.push(map.get(id));
-            map.delete(id);
-          }
-        }
-        resolve([...result, ...map.values()]);
-      };
-      tx.onerror = tx.onabort = () =>
-        reject(tx.error || Error("No se pudieron leer las mediciones"));
-    });
-  }
-  async function replace(items) {
-    if (
-      !Array.isArray(items) ||
-      items.some((x) => !x || typeof x.id !== "string") ||
-      new Set(items.map((x) => x.id)).size !== items.length
-    )
-      throw Error("Mediciones no válidas o referencias duplicadas");
-    const d = await db();
-    await new Promise((resolve, reject) => {
-      const tx = d.transaction(["mediciones", "meta"], "readwrite"),
-        store = tx.objectStore("mediciones");
-      tx.objectStore("meta").put(
-        items.map((x) => x.id),
-        "measurements-order",
-      );
-      store.clear();
-      items.forEach((x) => store.put(x));
-      tx.oncomplete = resolve;
-      tx.onerror = tx.onabort = () =>
-        reject(tx.error || Error("Guardado cancelado"));
-    });
-    cache = structuredClone(items);
-  }
-  const ready = (async () => {
-    cache = await all();
-    const raw = local.getItem(legacy);
-    if (raw === null) return;
-    const old = JSON.parse(raw);
-    if (!Array.isArray(old))
-      throw Error(
-        "La copia antigua de mediciones no es válida; se conserva sin modificar",
-      );
-    const merged = new Map(cache.map((x) => [x.id, x]));
-    for (const item of old) {
-      if (
-        merged.has(item.id) &&
-        JSON.stringify(merged.get(item.id)) !== JSON.stringify(item)
-      )
-        throw Error(
-          "Hay dos versiones de la medición " +
-            item.id +
-            ". Se conserva el original y no se inicia la migración",
-        );
-      merged.set(item.id, item);
-    }
-    await replace([...merged.values()]);
-    const verified = new Map((await all()).map((x) => [x.id, x]));
-    if (
-      !old.every(
-        (x) => JSON.stringify(verified.get(x.id)) === JSON.stringify(x),
-      )
-    )
-      throw Error("La migración no se pudo verificar");
-    if (local.getItem(legacy) !== raw)
-      throw Error(
-        "Otra pestaña modificó las mediciones. Recarga para repetir la migración",
-      );
-    local.removeItem(legacy);
-  })();
-  ready.catch(() => {});
-  async function getMeta(key) {
-    const d = await db();
-    return new Promise((resolve, reject) => {
-      const r = d.transaction("meta").objectStore("meta").get(key);
-      r.onsuccess = () => resolve(r.result);
-      r.onerror = () => reject(r.error);
-    });
-  }
-  async function setMeta(key, value) {
-    const d = await db();
-    return new Promise((resolve, reject) => {
-      const tx = d.transaction("meta", "readwrite");
-      if (value === undefined) tx.objectStore("meta").delete(key);
-      else tx.objectStore("meta").put(value, key);
-      tx.oncomplete = resolve;
-      tx.onerror = tx.onabort = () => reject(tx.error);
-    });
-  }
   window.VSStorage = {
-    meta: { get: getMeta, set: setMeta },
+    keys,
     local,
     read,
     write,
     ready,
-    measurements: { all, replace, get: () => structuredClone(cache) },
+    measurements: {
+      get: () => structuredClone(values[keys.mediciones] || []),
+      all: async () => structuredClone(values[keys.mediciones] || []),
+      replace: (items) => write(keys.mediciones, items),
+    },
+    runMutation: enqueue,
+    advanceRevision(next) {
+      if (next !== revision + 1) {
+        dirtyConflict = true;
+        throw Error(
+          "La revisión del servidor ha cambiado. Recarga antes de continuar.",
+        );
+      }
+      revision = next;
+    },
+    reserveQuoteNumber: () =>
+      enqueue(async () => {
+        const r = await VSAuth.json("/api/quote-number", "POST", { revision });
+        values[keys.numeracion] = r.numeracion;
+        revision = r.revision;
+        return r.id;
+      }),
+    patchValues: (partial) =>
+      enqueue(() =>
+        save({ ...structuredClone(values), ...structuredClone(partial) }),
+      ),
+    replaceValues: (next) => enqueue(() => save(structuredClone(next))),
+    values: () => structuredClone(values),
+    revision: () => revision,
+    clear() {
+      values = {};
+      dirtyConflict = true;
+    },
+    // An error is surfaced globally for any overlooked asynchronous caller; never claim a local save.
   };
+  window.addEventListener("unhandledrejection", (e) => {
+    if (e.reason?.message) alert("No se pudo guardar: " + e.reason.message);
+  });
 })();

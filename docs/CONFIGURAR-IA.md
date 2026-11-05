@@ -1,25 +1,13 @@
-# Configurar el dictado con IA
+# Dictado e IA
 
-El dictado básico funciona sin este servicio. La IA necesita conexión y es opcional.
+El dictado básico del navegador sigue funcionando sin OpenAI. La interpretación IA se realiza exclusivamente desde el Worker autenticado; consulta [el despliegue completo](SEGURIDAD-DESPLIEGUE.md).
 
-1. Publica `worker/worker.js` como Worker de Cloudflare (módulos ES).
-2. Configura **en Cloudflare**, nunca en la web, `OPENAI_API_KEY` y `ACCESS_CODE` (un código largo y privado). Configura `ALLOWED_ORIGIN` como `https://paanser.github.io`.
-3. Crea un namespace Workers KV y vincúlalo con el nombre `USAGE`.
-4. Copia la URL HTTPS publicada a `window.VIDRES_AI_ENDPOINT` en `ai-config.js`.
-5. En un parte, abre Dictar parte, introduce texto ficticio, pulsa Interpretar con IA y revisa todos los campos antes de guardar.
+Configura `OPENAI_API_KEY` mediante el prompt de `wrangler secret put`, nunca en `ai-config.js`, HTML, localStorage, GitHub o archivos de copia. `ai-config.js` contiene solo la URL pública del Worker.
 
-## Límites y seguridad
+`POST /ai/interpretar` necesita `Authorization: Bearer ...` y una sesión completa. La ruta raíz antigua también exige esa sesión. El código compartido `ACCESS_CODE` ya no sirve. Un usuario pendiente de cambiar su contraseña inicial tampoco puede consumir IA.
 
-- El código se compara usando hashes SHA-256 de longitud fija y `crypto.subtle.timingSafeEqual` cuando está disponible. El fallback recorre los 32 bytes completos sin salir en el primer error; JavaScript no ofrece una garantía formal de tiempo constante frente a optimizaciones del motor.
-- Se admiten como máximo 10 consultas/minuto por conexión IP y 500/mes en total. Las IP se usan como un hash, no se guardan en claro; las claves de minuto caducan a los 120 segundos.
-- **Ambos contadores son aproximados**: Workers KV es de consistencia eventual y la secuencia leer/incrementar/escribir no es atómica. Peticiones simultáneas pueden superar los límites o perder incrementos. Para un límite estricto hace falta coordinar las cuotas mediante un Durable Object u otro almacenamiento transaccional. Esta aplicación no lo despliega automáticamente ni contrata servicios.
-- Una conexión compartida (oficina) comparte límite por minuto. Si falta CF-Connecting-IP se aplica una cuota común `sin-ip`. Cloudflare establece ese encabezado al recibir peticiones públicas.
-- Los intentos autorizados consumen cuota aunque el proveedor falle; evita reintentos automáticos ilimitados.
-- La llamada al modelo `gpt-4.1-nano` utiliza `max_completion_tokens`. Las respuestas no válidas devuelven un error claro y mantienen disponible el análisis básico.
-- CORS no es autenticación multiusuario. El código compartido es apropiado para pruebas controladas, no sustituye cuentas y permisos.
-- El texto viaja a Cloudflare y al proveedor IA. No envíes datos reales de clientes sin resolver acceso, tratamiento de datos y obligaciones legales.
-- No existe un tope monetario garantizado por estos contadores. Revisa límites de gasto, alertas, precios y contratos en el proveedor.
+La cuota se reserva en D1 de forma atómica antes de contactar con OpenAI: diez solicitudes por minuto e IP y quinientas al mes en total. Las llamadas fallidas al proveedor también consumen la reserva. La conexión de una oficina comparte el límite de IP. El contador de Ajustes es informativo y local; el servidor aplica las cuotas reales. Estas cuotas limitan solicitudes, no garantizan un coste monetario concreto; conserva las alertas de gasto de tu proveedor.
 
-## Comprobaciones
+Se utiliza `gpt-4.1-nano`, salida JSON, límite de respuesta y timeout de quince segundos. Los campos se limitan y validan. La IA nunca decide marcar un trabajo como Crítico y el formulario siempre requiere revisión antes de guardar.
 
-`npm test` prueba el Worker con un proveedor simulado: origen, código, cuota por minuto, cuota mensual, JSON inválido y campos para revisión. No hace llamadas a OpenAI ni incurre en gasto. Una prueba real de despliegue y facturación requiere configurar los servicios anteriores; las pruebas locales no acreditan su configuración.
+Las pruebas sustituyen el proveedor por una respuesta ficticia y comprueban que una petición sin sesión o sin cuota no consume OpenAI. No se ha realizado una llamada de pago para esta entrega.

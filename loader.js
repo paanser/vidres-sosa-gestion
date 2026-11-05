@@ -1,6 +1,7 @@
 "use strict";
 document.querySelectorAll("#nav button").forEach((b) => (b.disabled = true));
 (async () => {
+  await VSAuth.ready;
   let version = "local";
   try {
     const r = await fetch("version.json", { cache: "no-store" });
@@ -15,17 +16,17 @@ document.querySelectorAll("#nav button").forEach((b) => (b.disabled = true));
     "calculations",
     "files",
     "backup",
+    "migration",
+    "users",
     "tariffs",
     "tools",
     "quotes",
     "sketch",
     "job-measures",
     "app",
-    "ai-config",
     "voice",
     "enhancements",
     "expediente",
-    "pwa",
   ]) {
     await new Promise((resolve, reject) => {
       const script = document.createElement("script");
@@ -34,6 +35,8 @@ document.querySelectorAll("#nav button").forEach((b) => (b.disabled = true));
       script.onerror = () => reject(Error("No se pudo cargar " + name));
       document.body.appendChild(script);
     });
+    if (name === "storage") await VSStorage.ready;
+    if (name === "files") await VSFiles.ready;
     if (name === "app") {
       await window.vidresAppReady;
       if (window.VSAppError)

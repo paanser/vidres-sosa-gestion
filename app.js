@@ -1197,6 +1197,7 @@ window.vidresAppReady = (async () => {
     if (focus) {
       jobScope = "activos";
       jobFocus = focus.dataset.jobFocus;
+      search = "";
       filters = { estado: "", responsable: "", tipoCliente: "" };
       window.vidresNavigate("trabajos");
       return;
@@ -1209,6 +1210,7 @@ window.vidresAppReady = (async () => {
     const go = e.target.closest("[data-go]");
     if (go) {
       if (go.dataset.go === "trabajos") {
+        search = "";
         jobScope = "activos";
         jobFocus = "";
         filters = { estado: "", responsable: "", tipoCliente: "" };

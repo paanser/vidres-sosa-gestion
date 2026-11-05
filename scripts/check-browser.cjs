@@ -102,6 +102,76 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
     .first()
     .waitFor({ state: "detached" });
   console.log("PASS login, cambio obligatorio y carga privada");
+  await context.setOffline(true);
+  await page
+    .locator("#save-status")
+    .filter({ hasText: "Sin conexión" })
+    .waitFor();
+  await context.setOffline(false);
+  await page
+    .locator("#save-status")
+    .filter({ hasText: "Sin cambios pendientes" })
+    .waitFor();
+  const stateUrl = "https://vidres-sosa-ia.pausosagomez.workers.dev/api/state";
+  const failWrite = (route) =>
+    route.request().method() === "PUT"
+      ? route.abort("failed")
+      : route.fallback();
+  await context.route(stateUrl, failWrite);
+  const error = await page.evaluate(() =>
+    VSStorage.patchValues({}).then(
+      () => "",
+      (e) => e.message,
+    ),
+  );
+  assert.ok(error);
+  assert.match(
+    await page.locator("#save-status").textContent(),
+    /No se pudo guardar/,
+  );
+  await context.unroute(stateUrl, failWrite);
+  let release;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  const slowWrite = async (route) => {
+    if (route.request().method() === "PUT") await gate;
+    return route.fallback();
+  };
+  await context.route(stateUrl, slowWrite);
+  const saving = page.evaluate(() => VSStorage.patchValues({}));
+  await page.locator("#save-status").filter({ hasText: "Guardando" }).waitFor();
+  release();
+  await saving;
+  await page
+    .locator("#save-status")
+    .filter({ hasText: /^Guardado$/ })
+    .waitFor();
+  await context.unroute(stateUrl, slowWrite);
+  const conflictWrite = (route) =>
+    route.request().method() === "PUT"
+      ? route.fulfill({
+          status: 409,
+          contentType: "application/json",
+          body: JSON.stringify({ error: "Conflicto de prueba" }),
+          headers: {
+            "Access-Control-Allow-Origin": "https://paanser.github.io",
+          },
+        })
+      : route.fallback();
+  await context.route(stateUrl, conflictWrite);
+  await page.evaluate(() =>
+    VSAuth.json("/api/state", "PUT", {}).catch(() => {}),
+  );
+  assert.match(
+    await page.locator("#save-status").textContent(),
+    /No se pudo guardar/,
+  );
+  await context.unroute(stateUrl, conflictWrite);
+  console.log(
+    "PASS guardado: desconexión, fallo, espera, confirmación y conflicto del servidor",
+  );
+
   await page.locator("#add").click();
   await page.locator("#form [name=cliente]").fill("Cliente de navegador");
   await page.locator("#form [name=descripcion]").fill("Prueba completa");
@@ -119,8 +189,24 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
         "base64",
       ),
     });
+  let releasePart;
+  const partGate = new Promise((resolve) => {
+    releasePart = resolve;
+  });
+  const holdPart = async (route) => {
+    if (route.request().method() === "PUT") await partGate;
+    return route.fallback();
+  };
+  await context.route(stateUrl, holdPart);
   await page.locator("#form [type=submit]").click();
+  await page
+    .locator("#editor [data-save-status]")
+    .filter({ hasText: "Guardando" })
+    .waitFor({ state: "visible" });
+  releasePart();
+
   await page.locator("#editor").waitFor({ state: "hidden" });
+  await context.unroute(stateUrl, holdPart);
   assert.equal(
     env.DB.db
       .prepare(
@@ -145,6 +231,26 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
   console.log(
     "PASS parte, medición y foto en servidor, sin copia local de negocio",
   );
+  for (const focus of ["undated", "today", "late", ""]) {
+    await page.locator('[data-page="trabajos"]').click();
+    await page.locator("#search").fill("búsqueda-que-no-coincide");
+    await page.locator('[data-page="inicio"]').click();
+    await page.locator('[data-job-focus="' + focus + '"]').click();
+    assert.equal(await page.locator("#search").inputValue(), "");
+    assert.equal(
+      await page.locator(".job-card").count(),
+      focus === "undated" || !focus ? 1 : 0,
+    );
+    if (focus)
+      assert.equal(await page.locator("[data-clear-focus]").count(), 1);
+  }
+  await page.locator('[data-page="inicio"]').click();
+  await page.locator('[data-go="criticos"]').click();
+  await page.locator("#title").filter({ hasText: "Críticos" }).waitFor();
+  console.log(
+    "PASS accesos de Inicio sin búsquedas anteriores y filtros correctos",
+  );
+
   await page.locator("[data-page=ajustes]").click();
   await page.locator(".settings-home").waitFor();
   assert.equal(await page.locator(".user-list").count(), 0);

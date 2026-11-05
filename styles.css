@@ -3456,3 +3456,28 @@ body:not(.authenticated) > #quote-print {
     min-height: 100px;
   }
 }
+
+/* Confirmación del servidor, sin alterar el diseño de las pantallas. */
+.save-status {
+  margin: -8px 0 18px;
+  font-size: 14px;
+  color: #526b59;
+}
+.save-status[data-state="saving"],
+.save-status[data-state="saved"] {
+  color: #15523e;
+}
+.save-status[data-state="offline"],
+.save-status[data-state="error"] {
+  color: #9f2929;
+  font-weight: 600;
+}
+@media print {
+  .save-status {
+    display: none;
+  }
+}
+
+.job-editor-header .save-status {
+  margin: 0;
+}

@@ -39,7 +39,7 @@
     } catch {}
     location.reload();
   }
-  async function request(path, options = {}) {
+  async function rawRequest(path, options = {}) {
     if (!endpoint || new URL(endpoint).protocol !== "https:")
       throw Error("Servidor de acceso sin configurar");
     const headers = new Headers(options.headers || {});
@@ -66,6 +66,63 @@
       throw e;
     }
     return response;
+  }
+  // Observa escrituras reales; no guarda copias locales ni reintenta en silencio.
+  let pendingWrites = 0,
+    failedWrite = false,
+    lastWriteSaved = false;
+  function showSaveStatus() {
+    const elements = document.querySelectorAll(
+      "#save-status, [data-save-status]",
+    );
+    if (!elements.length) return;
+    const offline = window.navigator?.onLine === false;
+    let state = "idle",
+      text = "Sin cambios pendientes";
+    if (offline) {
+      state = "offline";
+      text =
+        "Sin conexión · los cambios no se guardarán hasta recuperar la conexión";
+    } else if (pendingWrites) {
+      state = "saving";
+      text = "Guardando…";
+    } else if (failedWrite) {
+      state = "error";
+      text = "No se pudo guardar · vuelve a intentarlo";
+    } else if (lastWriteSaved) {
+      state = "saved";
+      text = "Guardado";
+    }
+    elements.forEach((element) => {
+      element.dataset.state = state;
+      element.textContent = text;
+    });
+  }
+  window.addEventListener("online", showSaveStatus);
+  window.addEventListener("offline", showSaveStatus);
+  showSaveStatus();
+  async function request(path, options = {}) {
+    const writing =
+      path.startsWith("/api/") &&
+      !["GET", "HEAD", "OPTIONS"].includes(
+        (options.method || "GET").toUpperCase(),
+      );
+    if (!writing) return rawRequest(path, options);
+    if (!pendingWrites) failedWrite = false;
+    pendingWrites++;
+    showSaveStatus();
+    try {
+      const response = await rawRequest(path, options);
+      lastWriteSaved = true;
+      return response;
+    } catch (error) {
+      failedWrite = true;
+      lastWriteSaved = false;
+      throw error;
+    } finally {
+      pendingWrites--;
+      showSaveStatus();
+    }
   }
   async function json(path, method = "GET", body) {
     return (

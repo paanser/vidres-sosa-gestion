@@ -201,7 +201,7 @@ npm run test:browser
 
 Sirve la interfaz por interceptación en su origen HTTPS real y conecta sus peticiones al Worker de pruebas. Usa cuentas ficticias; no toca D1 reales ni OpenAI. Comprueba login, cambio obligatorio, creación de parte con medición y foto, usuarios, XSS, sesión persistente y empleado sin administración. Guarda captura en `test-results/`, carpeta ignorada. Puedes indicar `CHROMIUM_PATH` si usas un Chromium del sistema.
 
-**Limitación de esta entrega:** Chromium no pudo arrancar dentro de las restricciones de sockets del entorno de ejecución. Las pruebas automatizadas de Node sí se han ejecutado. No se ha certificado el runtime real de Cloudflare, la publicación de esta versión, ni iPhone/Android; completa las pruebas de aceptación siguientes tras configurar los servicios.
+**Verificación completada:** 31 casos automatizados, login y protección de endpoints en Cloudflare real, publicación en GitHub Pages y prueba completa con Chromium móvil en GitHub Actions. No se ha activado R2 ni cambiado de plan. Consulta [las evidencias de ejecución](FASES.md). Faltan las pruebas en iPhone/Android físicos y la importación de las copias reales del propietario.
 
 ## Lista de aceptación
 

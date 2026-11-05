@@ -17,6 +17,12 @@ La implementación sigue las fases acordadas: backend de usuarios/sesiones; logi
 
 ## Límites de lo comprobado
 
-Los bindings D1 se simulan, aunque se ejecuta SQL real. No se ha desplegado esta versión en Cloudflare ni verificado su CPU real o facturación. Chromium no pudo iniciarse por las restricciones de sockets del entorno. El script opcional `scripts/check-browser.cjs` permite ejecutar la prueba de navegador fuera de ese entorno.
+El 5 de noviembre de 2026 se completaron 31 casos automatizados y el despliegue real de Cloudflare, sin R2 ni cambio de plan. Se comprobó el login inicial en el Worker, el cambio obligatorio y el rechazo 401 de datos, archivos, usuarios e IA sin sesión. La sesión de prueba se revocó.
+
+También pasó Chromium móvil en GitHub Actions: login y cambio obligatorio, parte con medición y foto, usuarios con texto escapado, sesión persistente y empleado sin Usuarios ni importación administrativa. El navegador usa datos ficticios y bindings de prueba; no crea expedientes reales en producción. La interfaz se publicó correctamente en GitHub Pages.
+
+Evidencias: [backend](https://github.com/paanser/vidres-sosa-gestion/actions/runs/42001920408), [navegador](https://github.com/paanser/vidres-sosa-gestion/actions/runs/42003351946) y [publicación](https://github.com/paanser/vidres-sosa-gestion/actions/runs/42003352073).
+
+Quedan las pruebas en dispositivos físicos iPhone/Android y la comprobación de la importación con las copias del propietario. No se han importado datos personales ni realizado llamadas de pago a OpenAI.
 
 La matriz completa de aceptación y los comandos de despliegue están en [Seguridad y despliegue](SEGURIDAD-DESPLIEGUE.md). Completa la prueba visual y funcional en iPhone/Android y en el Worker real antes de utilizar datos reales.

@@ -152,7 +152,11 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
   assert.equal(requests.includes("/admin/users"), false);
   await page.locator('[data-tool-go="usuarios"]').click();
   await page
-    .getByRole("heading", { name: "Gestión de usuarios", exact: true })
+    .getByRole("heading", {
+      name: "Gestión de usuarios",
+      level: 2,
+      exact: true,
+    })
     .waitFor();
   await page.getByText("Tipos de usuario", { exact: true }).click();
   assert.equal(

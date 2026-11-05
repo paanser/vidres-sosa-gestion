@@ -9,6 +9,7 @@
     numeracion: "vs-quote-sequence-v1",
     notas: "vidres-notas-v1",
     plantillas: "vidres-plantillas-v1",
+    catalogo: "vs-pdf-catalog-v1",
   };
   const stamp = "vidres-last-backup-v1",
     start = "vidres-backup-start-v1";
@@ -24,44 +25,32 @@
     for (const [name, key] of Object.entries(keys))
       result[name] = VSStorage.read(
         key,
-        name === "configuracion" || name === "numeracion" ? {} : [],
+        ["configuracion", "numeracion"].includes(name) ? {} : [],
       );
-    result.trabajos = window.vidresGetJobs?.() || result.trabajos;
     result.photos = await VSFiles.all("photos");
     result.documents = await VSFiles.all("documents");
     return result;
   }
-  async function apply(data) {
-    await VSStorage.measurements.replace(data.mediciones);
-    await VSFiles.replace("photos", data.photos);
-    await VSFiles.replace("documents", data.documents);
+  function toValues(data) {
+    const values = {};
     for (const [name, key] of Object.entries(keys))
-      VSStorage.write(key, data[name]);
-  }
-  async function recover() {
-    const pending = await VSStorage.meta.get("pending-operation");
-    if (!pending) return;
-    await apply(pending);
-    await VSStorage.meta.set("pending-operation", undefined);
+      values[key] =
+        data[name] ??
+        (["configuracion", "numeracion"].includes(name) ? {} : []);
+    values[VSStorage.keys.mediciones] = data.mediciones || [];
+    return values;
   }
   async function transaction(after) {
-    const before = await snapshot();
-    await VSStorage.meta.set("pending-operation", before);
-    try {
-      await apply(after);
-      await VSStorage.meta.set("pending-operation", undefined);
-    } catch (e) {
-      try {
-        await apply(before);
-        await VSStorage.meta.set("pending-operation", undefined);
-      } catch {
-        throw Error(
-          "No se pudo restaurar todo. Los datos de recuperación siguen guardados; recarga antes de continuar.",
-        );
-      }
-      throw e;
-    }
+    const current = VSStorage.values(),
+      next = toValues(after),
+      partial = {};
+    for (const [key, value] of Object.entries(next))
+      if (JSON.stringify(current[key]) !== JSON.stringify(value))
+        partial[key] = value;
+    await VSStorage.patchValues(partial);
+    await VSFiles.refresh();
   }
+  async function recover() {} // Server commits are transactional; no browser recovery journal.
   const dataURL = (blob) =>
     new Promise((resolve, reject) => {
       const r = new FileReader();
@@ -342,9 +331,12 @@
     }
     return data;
   }
+
   async function importFile(file) {
     if (!file || file.size > 250000000)
       throw Error("Selecciona una copia JSON de hasta 250 MB");
+    if (VSAuth.user.rol !== "administrador")
+      throw Error("Solo un administrador puede importar");
     const data = validate(
       JSON.parse(await file.text(), (key, value) => {
         if (["__proto__", "prototype", "constructor"].includes(key))
@@ -352,50 +344,16 @@
         return value;
       }),
     );
-    if (
-      !confirm(
-        "Se sustituirán los datos incluidos en la copia. Antes se descargará una copia completa del estado actual. ¿Continuar?",
-      )
-    )
-      return;
-    const before = await snapshot();
-    const bytes = [...before.photos, ...before.documents].reduce(
-      (n, x) => n + x.blob.size,
-      0,
-    );
-    if (
-      bytes > 50000000 &&
-      !confirm(
-        "La copia previa contiene más de 50 MB de archivos. ¿Continuar con su descarga?",
-      )
-    )
-      return;
-    download(
-      await encode(before, true),
-      "vidres-sosa-antes-de-importar-" + Date.now() + ".json",
-    );
-    const after = { ...before };
-    for (const key of [
-      ...Object.keys(keys),
-      "mediciones",
-      "photos",
-      "documents",
-    ])
-      if (data[key] !== undefined) after[key] = data[key];
-    for (const [year, n] of Object.entries(before.numeracion || {}))
-      after.numeracion[year] = Math.max(n, after.numeracion[year] || 0);
-    await transaction(after);
-    window.vidresReloadData?.();
-    alert(
-      "Copia restaurada. La copia anterior se ha enviado a Descargas; comprueba que se haya guardado.",
-    );
+    await VSMigration.importData(data);
   }
-  const last = () => VSStorage.local.getItem(stamp);
-  const overdue = () =>
-    Date.now() - new Date(last() || VSStorage.local.getItem(start)).getTime() >
-    14 * 86400000;
+  const last = () => VSStorage.local.getItem(stamp),
+    overdue = () =>
+      Date.now() -
+        new Date(last() || VSStorage.local.getItem(start)).getTime() >
+      14 * 86400000;
   window.VSBackup = {
     snapshot,
+    toValues,
     transaction,
     recover,
     exportData,
@@ -403,5 +361,8 @@
     validate,
     last,
     overdue,
+    encode,
+    download,
+    keys,
   };
 })();

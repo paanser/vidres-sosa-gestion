@@ -3286,9 +3286,121 @@ nav button[data-page="criticos"].active {
 }
 
 /* Cierre administrativo y archivo reversible */
-.job-close-fields{border:1px solid #c7d9cd;border-radius:12px;padding:12px 16px;margin:12px 0;display:flex;flex-wrap:wrap;gap:12px 22px}
-.job-close-fields legend{font-weight:750;padding:0 6px}
-.job-close-fields label{display:flex;align-items:center;gap:8px;font-weight:650}
-.job-close-fields input{width:19px;height:19px}
-.job-close-fields .muted{flex-basis:100%;margin:0}
-.job-archive,.job-unarchive{min-height:42px;margin-top:8px;padding:8px 14px;border:1px solid #a6c4b1;border-radius:9px;background:#f1f8f3;color:#15523e;font-weight:700;cursor:pointer}
+.job-close-fields {
+  border: 1px solid #c7d9cd;
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin: 12px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 22px;
+}
+.job-close-fields legend {
+  font-weight: 750;
+  padding: 0 6px;
+}
+.job-close-fields label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 650;
+}
+.job-close-fields input {
+  width: 19px;
+  height: 19px;
+}
+.job-close-fields .muted {
+  flex-basis: 100%;
+  margin: 0;
+}
+.job-archive,
+.job-unarchive {
+  min-height: 42px;
+  margin-top: 8px;
+  padding: 8px 14px;
+  border: 1px solid #a6c4b1;
+  border-radius: 9px;
+  background: #f1f8f3;
+  color: #15523e;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* La aplicación permanece oculta incluso antes de cargar JavaScript. */
+body:not(.authenticated) > .layout,
+body:not(.authenticated) > .global-text-controls,
+body:not(.authenticated) > #quote-print {
+  display: none !important;
+}
+[hidden] {
+  display: none !important;
+}
+.auth-screen {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+.auth-card {
+  width: min(100%, 440px);
+  background: white;
+  border: 1px solid #dce5df;
+  border-radius: 20px;
+  padding: 28px;
+  box-shadow: 0 8px 40px #15523e12;
+}
+.auth-card form,
+.users-panel form {
+  display: grid;
+  gap: 16px;
+}
+.auth-card label,
+.users-panel label {
+  display: grid;
+  gap: 8px;
+}
+.auth-card input,
+.auth-card button,
+.users-panel input,
+.users-panel select,
+.users-panel button {
+  min-height: 48px;
+  font-size: 16px;
+}
+.auth-card .primary,
+.users-panel .primary {
+  background: #15523e;
+}
+.password-input {
+  display: flex;
+  gap: 8px;
+}
+.password-input input {
+  min-width: 0;
+  flex: 1;
+}
+.auth-card h1 {
+  margin-bottom: 24px;
+}
+#auth-message {
+  margin-top: 20px;
+  line-height: 1.5;
+}
+.user-list {
+  display: grid;
+  gap: 16px;
+  margin: 20px 0;
+}
+.user-row {
+  padding: 16px;
+  border: 1px solid #dce5df;
+  border-radius: 12px;
+}
+.user-row .actions {
+  flex-wrap: wrap;
+}
+@media print {
+  body:not(.authenticated) > * {
+    display: none !important;
+  }
+}

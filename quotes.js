@@ -50,21 +50,8 @@
       lines: [emptyLine()],
     };
   }
-  function nextId() {
-    const year = new Date().getFullYear(),
-      key = "vs-quote-sequence-v1",
-      c = VSStorage.read(key, {});
-    const prefix = "P-" + year + "-";
-    const max = quotes().reduce(
-      (n, q) =>
-        q.id?.startsWith(prefix)
-          ? Math.max(n, Number(q.id.slice(prefix.length)) || 0)
-          : n,
-      Number(c[year]) || 0,
-    );
-    c[year] = max + 1;
-    VSStorage.write(key, c);
-    return prefix + String(max + 1).padStart(4, "0");
+  async function nextId() {
+    return VSStorage.reserveQuoteNumber();
   }
   function sync() {
     if (!draft) draft = fresh();
@@ -332,7 +319,7 @@
     const task = async () => {
       const list = quotes(),
         old = list.find((q) => q.id === draft.id);
-      if (!draft.id) draft.id = nextId();
+      if (!draft.id) draft.id = await nextId();
       if (draft.status === "Enviado") {
         draft.enviado = draft.enviado || localToday();
         draft.seguimiento =
@@ -343,14 +330,14 @@
         copy = structuredClone(draft);
       if (i < 0) list.push(copy);
       else list[i] = copy;
-      VSStorage.write(Q, list);
+      await VSStorage.write(Q, list);
       if (
         copy.status === "Aceptado" &&
         old?.status !== "Aceptado" &&
         copy.job &&
         confirm("¿Cambiar el trabajo vinculado a En producción?")
       )
-        window.vidresChangeJobStatus?.(copy.job, "En producción");
+        await window.vidresChangeJobStatus?.(copy.job, "En producción");
       quickMode = false;
       sync();
     };
@@ -455,7 +442,7 @@
         }
       } else if (b.dataset.deleteQuote) {
         if (confirm("¿Eliminar definitivamente este presupuesto?")) {
-          VSStorage.write(
+          await VSStorage.write(
             Q,
             quotes().filter((q) => q.id !== b.dataset.deleteQuote),
           );
@@ -550,46 +537,49 @@
   document
     .querySelector("#quote-message-cancel")
     .addEventListener("click", () => messageDialog.close());
-  messageForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    if (!messageTarget || !messageForm.reportValidity()) return;
-    const text = messageForm.elements.mensaje.value.trim(),
-      phone = phoneForQuote(messageTarget),
-      targetId = messageTarget.id;
-    window.open(
-      "https://wa.me/" + phone + "?text=" + encodeURIComponent(text),
-      "_blank",
-      "noopener,noreferrer",
-    );
-    messageDialog.close();
-    if (
-      messageKind === "quote" &&
-      targetId &&
-      confirm("¿Marcar este presupuesto como Enviado?")
-    ) {
-      const today = localToday(),
-        followup = addDays(today, Number(config().followupDays) || 4);
-      VSStorage.write(
-        Q,
-        quotes().map((quote) =>
-          quote.id === targetId
-            ? {
-                ...quote,
-                status: "Enviado",
-                enviado: today,
-                seguimiento: followup,
-              }
-            : quote,
-        ),
+  messageForm.addEventListener(
+    "submit",
+    VSForms.guard(async (event) => {
+      event.preventDefault();
+      if (!messageTarget || !messageForm.reportValidity()) return;
+      const text = messageForm.elements.mensaje.value.trim(),
+        phone = phoneForQuote(messageTarget),
+        targetId = messageTarget.id;
+      window.open(
+        "https://wa.me/" + phone + "?text=" + encodeURIComponent(text),
+        "_blank",
+        "noopener,noreferrer",
       );
-      if (draft?.id === targetId) {
-        draft.status = "Enviado";
-        draft.enviado = today;
-        draft.seguimiento = followup;
+      messageDialog.close();
+      if (
+        messageKind === "quote" &&
+        targetId &&
+        confirm("¿Marcar este presupuesto como Enviado?")
+      ) {
+        const today = localToday(),
+          followup = addDays(today, Number(config().followupDays) || 4);
+        await VSStorage.write(
+          Q,
+          quotes().map((quote) =>
+            quote.id === targetId
+              ? {
+                  ...quote,
+                  status: "Enviado",
+                  enviado: today,
+                  seguimiento: followup,
+                }
+              : quote,
+          ),
+        );
+        if (draft?.id === targetId) {
+          draft.status = "Enviado";
+          draft.enviado = today;
+          draft.seguimiento = followup;
+        }
+        sync();
       }
-      sync();
-    }
-  });
+    }),
+  );
   window.vidresQuoteFollowUps = () => {
     const today = localToday();
     return quotes()
@@ -621,9 +611,9 @@
     const quote = quotes().find((item) => item.id === id);
     if (quote) openQuoteMessage(quote, "followup");
   };
-  window.vidresQuotePostpone = (id, days = 3) => {
+  window.vidresQuotePostpone = async (id, days = 3) => {
     const date = addDays(localToday(), days);
-    VSStorage.write(
+    await VSStorage.write(
       Q,
       quotes().map((quote) =>
         quote.id === id ? { ...quote, seguimiento: date } : quote,
@@ -631,11 +621,11 @@
     );
     if (draft?.id === id) draft.seguimiento = date;
   };
-  window.vidresQuoteUpdateStatus = (id, status) => {
+  window.vidresQuoteUpdateStatus = async (id, status) => {
     const list = quotes(),
       quote = list.find((item) => item.id === id);
     if (!quote || !statuses.includes(status)) return;
-    VSStorage.write(
+    await VSStorage.write(
       Q,
       list.map((item) => (item.id === id ? { ...item, status } : item)),
     );
@@ -645,6 +635,6 @@
       quote.job &&
       confirm("¿Cambiar el trabajo vinculado a En producción?")
     )
-      window.vidresChangeJobStatus?.(quote.job, "En producción");
+      await window.vidresChangeJobStatus?.(quote.job, "En producción");
   };
 })();

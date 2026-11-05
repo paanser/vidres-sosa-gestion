@@ -3,7 +3,9 @@
   "private": true,
   "scripts": {
     "format": "prettier --write .",
-    "test": "node --test"
+    "test": "node --test tests/*.test.cjs",
+    "test:browser": "node scripts/check-browser.cjs",
+    "check:secrets": "python3 scripts/check-secrets.py"
   },
   "devDependencies": {
     "prettier": "3.8.3"

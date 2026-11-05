@@ -1,77 +1,86 @@
 "use strict";
 (() => {
-  const definitions = {
-    photos: ["vidres-fotos-v1", "fotos"],
-    documents: ["vidres-documentos-v1", "documentos"],
-  };
-  async function open(kind) {
-    const [name, store] = definitions[kind];
-    return new Promise((resolve, reject) => {
-      const r = indexedDB.open(name, 1);
-      r.onupgradeneeded = () =>
-        r.result.createObjectStore(store, { keyPath: "id" });
-      r.onsuccess = () => resolve(r.result);
-      r.onerror = () => reject(r.error);
-    });
+  let cache = [];
+  const ready = VSAuth.json("/api/files").then((r) => (cache = r.files));
+  const clean = ({
+    blob,
+    kind,
+    size,
+    sha256,
+    version,
+    importId,
+    ...metadata
+  }) => metadata;
+  async function getBlob(item) {
+    const response = await VSAuth.request("/api/files/" + item.id);
+    return response.blob();
   }
   async function all(kind) {
-    const d = await open(kind);
-    try {
-      return await new Promise((resolve, reject) => {
-        const r = d
-          .transaction(definitions[kind][1])
-          .objectStore(definitions[kind][1])
-          .getAll();
-        r.onsuccess = () => resolve(r.result);
-        r.onerror = () => reject(r.error);
-      });
-    } finally {
-      d.close();
-    }
+    await ready;
+    return Promise.all(
+      cache
+        .filter((x) => x.kind === kind)
+        .map(async (item) => ({ ...clean(item), blob: await getBlob(item) })),
+    );
   }
-  async function replace(kind, items) {
-    const d = await open(kind);
-    try {
-      await new Promise((resolve, reject) => {
-        const tx = d.transaction(definitions[kind][1], "readwrite"),
-          store = tx.objectStore(definitions[kind][1]);
-        store.clear();
-        items.forEach((x) => store.put(x));
-        tx.oncomplete = resolve;
-        tx.onerror = tx.onabort = () =>
-          reject(tx.error || Error("No se pudo guardar los adjuntos"));
+  async function uploadInner(kind, item, importId) {
+    const old = cache.find((x) => x.id === item.id),
+      id = importId
+        ? crypto.randomUUID().replaceAll("-", "")
+        : item.id.replaceAll("-", "");
+    // New identifiers supplied by the old app are UUIDs; preserve a stable id after first upload.
+    const actualId = /^[a-f0-9]{32}$/.test(id)
+      ? id
+      : crypto.randomUUID().replaceAll("-", "");
+    const meta = {
+      ...clean(item),
+      kind,
+      version: old?.version || 0,
+      importId,
+      revision: VSStorage.revision(),
+    };
+    const response = await VSAuth.request("/api/files/" + actualId, {
+      method: "PUT",
+      headers: {
+        "Content-Type": item.blob.type || "application/octet-stream",
+        "X-File-Metadata": encodeURIComponent(JSON.stringify(meta)),
+      },
+      body: item.blob,
+    });
+    const result = await response.json();
+    if (!importId) {
+      VSStorage.advanceRevision(result.revision);
+      cache = cache.filter((x) => x.id !== item.id && x.id !== actualId);
+      cache.push({
+        ...meta,
+        id: actualId,
+        size: item.blob.size,
+        sha256: result.sha256,
+        version: (old?.version || 0) + 1,
       });
-    } finally {
-      d.close();
     }
+    return { id: actualId, sha256: result.sha256, size: item.blob.size };
   }
-  async function put(kind, item) {
-    const d = await open(kind);
-    try {
-      await new Promise((resolve, reject) => {
-        const tx = d.transaction(definitions[kind][1], "readwrite");
-        tx.objectStore(definitions[kind][1]).put(item);
-        tx.oncomplete = resolve;
-        tx.onerror = tx.onabort = () =>
-          reject(tx.error || Error("No se pudo guardar el archivo"));
-      });
-    } finally {
-      d.close();
-    }
+  async function upload(kind, item, importId) {
+    return importId
+      ? uploadInner(kind, item, importId)
+      : VSStorage.runMutation(() => uploadInner(kind, item));
   }
   async function remove(kind, id) {
-    const d = await open(kind);
-    try {
-      await new Promise((resolve, reject) => {
-        const tx = d.transaction(definitions[kind][1], "readwrite");
-        tx.objectStore(definitions[kind][1]).delete(id);
-        tx.oncomplete = resolve;
-        tx.onerror = tx.onabort = () =>
-          reject(tx.error || Error("No se pudo eliminar el archivo"));
+    await ready;
+    return VSStorage.runMutation(async () => {
+      const r = await VSAuth.json("/api/files/" + id, "DELETE", {
+        revision: VSStorage.revision(),
       });
-    } finally {
-      d.close();
-    }
+      VSStorage.advanceRevision(r.revision);
+      cache = cache.filter((x) => !(x.id === id && x.kind === kind));
+    });
+  }
+  async function replace(kind, items) {
+    await ready;
+    for (const old of cache.filter((x) => x.kind === kind))
+      if (!items.some((x) => x.id === old.id)) await remove(kind, old.id);
+    for (const item of items) await upload(kind, item);
   }
   function compressImage(file) {
     return new Promise((resolve, reject) => {
@@ -87,10 +96,8 @@
           .getContext("2d")
           .drawImage(img, 0, 0, canvas.width, canvas.height);
         canvas.toBlob(
-          (blob) =>
-            blob
-              ? resolve(blob)
-              : reject(Error("No se pudo comprimir la imagen")),
+          (b) =>
+            b ? resolve(b) : reject(Error("No se pudo comprimir la imagen")),
           "image/jpeg",
           0.72,
         );
@@ -102,5 +109,22 @@
       img.src = url;
     });
   }
-  window.VSFiles = { all, replace, put, remove, compressImage };
+  window.VSFiles = {
+    ready,
+    all,
+    put: async (kind, item) => {
+      await ready;
+      return upload(kind, item);
+    },
+    remove,
+    replace,
+    compressImage,
+    upload,
+    clear() {
+      cache = [];
+    },
+    async refresh() {
+      cache = (await VSAuth.json("/api/files")).files;
+    },
+  };
 })();

@@ -5,45 +5,7 @@ window.vidresAppReady = (async () => {
   const { esc, num, money, round6 } = VSUtils;
 
   const KEY = "vidres-sosa-demo-v01";
-  const demo = [
-    {
-      id: "VS-0001",
-      cliente: "Cliente de ejemplo A",
-      descripcion: "Medir escaparate",
-      direccion: "",
-      responsable: "Equipo 1",
-      fecha: "2026-11-05",
-      estado: "Pendiente",
-      notas: "",
-    },
-    {
-      id: "VS-0002",
-      cliente: "Cliente de ejemplo B",
-      descripcion: "Instalar mampara",
-      direccion: "",
-      responsable: "Equipo 2",
-      fecha: "2026-11-06",
-      estado: "Para instalar",
-      notas: "",
-    },
-    {
-      id: "VS-0003",
-      cliente: "Cliente de ejemplo C",
-      descripcion: "Sustituir cristal",
-      direccion: "",
-      responsable: "Equipo 1",
-      fecha: "2026-11-07",
-      estado: "En medición",
-      notas: "",
-    },
-  ];
-  let jobs;
-  try {
-    const v = JSON.parse(VSStorage.local.getItem(KEY));
-    jobs = Array.isArray(v) ? v : demo.map((x) => ({ ...x }));
-  } catch {
-    jobs = demo.map((x) => ({ ...x }));
-  }
+  let jobs = VSStorage.read(KEY, []);
   let page = "inicio",
     editing = null,
     search = "";
@@ -120,8 +82,8 @@ window.vidresAppReady = (async () => {
     );
   }
   const $ = (s) => document.querySelector(s);
-  function save() {
-    VSStorage.local.setItem(KEY, JSON.stringify(jobs));
+  async function save() {
+    await VSStorage.local.setItem(KEY, JSON.stringify(jobs));
   }
   function status(s) {
     return (
@@ -223,9 +185,17 @@ window.vidresAppReady = (async () => {
             '</span></div><button type="button" class="job-open" data-id="' +
             esc(j.id) +
             '">Ver y editar trabajo</button>' +
-            (j.estado === "Finalizado" && !isArchived(j) ? '<button type="button" class="job-archive" data-job-archive="' + esc(j.id) + '">Archivar</button>' : "") +
-            (isArchived(j) ? '<button type="button" class="job-unarchive" data-job-unarchive="' + esc(j.id) + '">Reabrir expediente</button>' : "") +
-            '</article>',
+            (j.estado === "Finalizado" && !isArchived(j)
+              ? '<button type="button" class="job-archive" data-job-archive="' +
+                esc(j.id) +
+                '">Archivar</button>'
+              : "") +
+            (isArchived(j)
+              ? '<button type="button" class="job-unarchive" data-job-unarchive="' +
+                esc(j.id) +
+                '">Reabrir expediente</button>'
+              : "") +
+            "</article>",
         )
         .join("") +
       "</div>"
@@ -369,8 +339,8 @@ window.vidresAppReady = (async () => {
   let clients = safeRead(CLIENT_KEY, []),
     notes = safeRead(NOTE_KEY, []),
     measurements = VSStorage.measurements.get();
-  function saveNotes(next = notes) {
-    VSStorage.write(NOTE_KEY, next);
+  async function saveNotes(next = notes) {
+    await VSStorage.write(NOTE_KEY, next);
     notes = next;
   }
   function pendingNotesHtml(items, today) {
@@ -462,7 +432,7 @@ window.vidresAppReady = (async () => {
     const list = clientNames();
     return panel(
       "Clientes",
-      '<p class="muted">Fichas locales: teléfono y dirección compartidos con el historial de trabajos de este dispositivo.</p>' +
+      '<p class="muted">Fichas compartidas: teléfono y dirección vinculados al historial de trabajos.</p>' +
         (!list.length
           ? '<div class="empty-state">Todavía no hay clientes. Crea un trabajo para empezar.</div>'
           : list
@@ -670,8 +640,8 @@ window.vidresAppReady = (async () => {
           : jobScope === "archivo"
             ? "Archivo de trabajos"
             : jobScope === "finalizados"
-            ? "Trabajos finalizados"
-            : "Trabajos activos",
+              ? "Trabajos finalizados"
+              : "Trabajos activos",
       criticos: "Trabajos críticos",
       clientes: "Clientes",
       mediciones: "Mediciones",
@@ -701,7 +671,11 @@ window.vidresAppReady = (async () => {
           (jobFocus !== "today" || j.fecha === localToday()) &&
           (jobFocus !== "undated" || !j.fecha) &&
           (jobScope === "todos" ||
-            (jobScope === "archivo" ? isArchived(j) : jobScope === "finalizados" ? isClosed(j) && !isArchived(j) : !isClosed(j) && !isArchived(j))) &&
+            (jobScope === "archivo"
+              ? isArchived(j)
+              : jobScope === "finalizados"
+                ? isClosed(j) && !isArchived(j)
+                : !isClosed(j) && !isArchived(j))) &&
           (!filters.estado || j.estado === filters.estado) &&
           (!filters.responsable || j.responsable === filters.responsable) &&
           (!filters.tipoCliente ||
@@ -756,7 +730,7 @@ window.vidresAppReady = (async () => {
           "beforeend",
           panel(
             "Copia de seguridad de trabajos",
-            '<p class="muted">Exporta un JSON antes de cambiar de dispositivo o limpiar el navegador. Incluye trabajos, clientes, mediciones con croquis, presupuestos, tarifas y configuración. La copia con archivos incluye además fotos y documentos.</p><div class="backup-actions"><button type="button" id="backup-export">Descargar datos JSON</button><button type="button" id="backup-export-full">Copia completa con fotos y documentos</button><label>Importar copia JSON<input id="backup-import" type="file" accept=".json,application/json"></label></div>',
+            '<p class="muted">Exporta una copia privada de los datos del servidor. Incluye trabajos, clientes, mediciones con croquis, presupuestos, tarifas y configuración. La copia con archivos incluye además fotos y documentos.</p><div class="backup-actions"><button type="button" id="backup-export">Descargar datos JSON</button><button type="button" id="backup-export-full">Copia completa con fotos y documentos</button><label>Importar copia JSON<input id="backup-import" type="file" accept=".json,application/json"></label></div>',
           ),
         );
       host.insertAdjacentHTML(
@@ -773,6 +747,9 @@ window.vidresAppReady = (async () => {
         host.appendChild(usagePanel);
         usagePanel.hidden = false;
       }
+      if (VSAuth.user.rol !== "administrador")
+        host.querySelector("#backup-import")?.closest("label")?.remove();
+      window.VSUsers?.mount();
       return;
     } else if (page === "herramientas" || page === "consultor") {
       window.vidresToolsRender?.(page);
@@ -937,8 +914,10 @@ window.vidresAppReady = (async () => {
       ])
         form.elements[key].value = job[key] || "";
       form.elements["tipoCliente"].value = job.tipoCliente || "Particular";
-      if(form.elements.facturado)form.elements.facturado.checked=Boolean(job.facturado);
-      if(form.elements.cobrado)form.elements.cobrado.checked=Boolean(job.cobrado);
+      if (form.elements.facturado)
+        form.elements.facturado.checked = Boolean(job.facturado);
+      if (form.elements.cobrado)
+        form.elements.cobrado.checked = Boolean(job.cobrado);
     } else {
       form.elements.cliente.value = prefill.cliente || "";
       form.elements.descripcion.value = prefill.descripcion || "";
@@ -976,7 +955,7 @@ window.vidresAppReady = (async () => {
     applyTemplate(e.target.value),
   );
   window.vidresOpenJobEditor = open;
-  window.vidresChangeJobStatus = (id, status) => {
+  window.vidresChangeJobStatus = async (id, status) => {
     const next = jobs.map((j) =>
       j.id === id
         ? {
@@ -994,7 +973,7 @@ window.vidresAppReady = (async () => {
           }
         : j,
     );
-    VSStorage.write(KEY, next);
+    await VSStorage.write(KEY, next);
     jobs = next;
   };
   window.vidresDeleteJob = async (id) => {
@@ -1077,13 +1056,40 @@ window.vidresAppReady = (async () => {
     renderPendingMeasurePhotos();
   });
   $("#content").addEventListener("click", async (e) => {
-    const archiveButton=e.target.closest("[data-job-archive], [data-job-unarchive]");
-    if(archiveButton){const id=archiveButton.dataset.jobArchive || archiveButton.dataset.jobUnarchive;const job=jobs.find(j=>j.id===id);if(!job)return;
-      const archive=archiveButton.hasAttribute("data-job-archive");
-      if(archive && job.estado!=="Finalizado"){alert("Solo se pueden archivar trabajos finalizados.");return;}
-      if(!confirm(archive?"¿Archivar este trabajo? Seguirá disponible en Archivo.":"¿Sacar este expediente del archivo?"))return;
-      const next=jobs.map(j=>j.id===id?{...j,archivadoEn:archive?new Date().toISOString():null}:j);
-      try{VSStorage.local.setItem(KEY,JSON.stringify(next));jobs=next;render();}catch{alert("No se pudo guardar el cambio. No se ha archivado el trabajo.");}return;
+    const archiveButton = e.target.closest(
+      "[data-job-archive], [data-job-unarchive]",
+    );
+    if (archiveButton) {
+      const id =
+        archiveButton.dataset.jobArchive || archiveButton.dataset.jobUnarchive;
+      const job = jobs.find((j) => j.id === id);
+      if (!job) return;
+      const archive = archiveButton.hasAttribute("data-job-archive");
+      if (archive && job.estado !== "Finalizado") {
+        alert("Solo se pueden archivar trabajos finalizados.");
+        return;
+      }
+      if (
+        !confirm(
+          archive
+            ? "¿Archivar este trabajo? Seguirá disponible en Archivo."
+            : "¿Sacar este expediente del archivo?",
+        )
+      )
+        return;
+      const next = jobs.map((j) =>
+        j.id === id
+          ? { ...j, archivadoEn: archive ? new Date().toISOString() : null }
+          : j,
+      );
+      try {
+        await VSStorage.local.setItem(KEY, JSON.stringify(next));
+        jobs = next;
+        render();
+      } catch {
+        alert("No se pudo guardar el cambio. No se ha archivado el trabajo.");
+      }
+      return;
     }
     const followupWhatsApp = e.target.closest("[data-followup-whatsapp]");
     if (followupWhatsApp) {
@@ -1094,7 +1100,7 @@ window.vidresAppReady = (async () => {
     }
     const followupStatus = e.target.closest("[data-followup-status]");
     if (followupStatus) {
-      window.vidresQuoteUpdateStatus?.(
+      await window.vidresQuoteUpdateStatus?.(
         followupStatus.dataset.quoteId,
         followupStatus.dataset.followupStatus,
       );
@@ -1103,7 +1109,7 @@ window.vidresAppReady = (async () => {
     }
     const postpone = e.target.closest("[data-followup-postpone]");
     if (postpone) {
-      window.vidresQuotePostpone?.(postpone.dataset.followupPostpone, 3);
+      await window.vidresQuotePostpone?.(postpone.dataset.followupPostpone, 3);
       render();
       return;
     }
@@ -1113,7 +1119,7 @@ window.vidresAppReady = (async () => {
     }
     const noteDone = e.target.closest("[data-note-done]");
     if (noteDone) {
-      saveNotes(
+      await saveNotes(
         notes.map((n) =>
           n.id === noteDone.dataset.noteDone ? { ...n, hecha: true } : n,
         ),
@@ -1129,7 +1135,9 @@ window.vidresAppReady = (async () => {
     const noteDelete = e.target.closest("[data-note-delete]");
     if (noteDelete) {
       if (confirm("¿Eliminar esta nota rápida?")) {
-        saveNotes(notes.filter((n) => n.id !== noteDelete.dataset.noteDelete));
+        await saveNotes(
+          notes.filter((n) => n.id !== noteDelete.dataset.noteDelete),
+        );
         render();
       }
       return;
@@ -1181,14 +1189,14 @@ window.vidresAppReady = (async () => {
         downloadBackup();
         return;
       }
-      window.vidresToolsClick?.(e, (p) => {
+      await window.vidresToolsClick?.(e, (p) => {
         page = p;
         render();
       });
       return;
     }
     if (page === "presupuestos") {
-      window.vidresQuoteClick?.(e);
+      await window.vidresQuoteClick?.(e);
       return;
     }
     const ce = e.target.closest("[data-client-edit]");
@@ -1212,10 +1220,11 @@ window.vidresAppReady = (async () => {
     const md = e.target.closest("[data-measure-delete]");
     if (md) {
       if (confirm("¿Eliminar esta medición?")) {
-        measurements = measurements.filter(
+        const nextMeasurements = measurements.filter(
           (x) => x.id !== md.dataset.measureDelete,
         );
-        await VSStorage.measurements.replace(measurements);
+        await VSStorage.measurements.replace(nextMeasurements);
+        measurements = nextMeasurements;
         render();
       }
       return;
@@ -1224,7 +1233,7 @@ window.vidresAppReady = (async () => {
     if (v) {
       homeView = v.dataset.homeView;
       try {
-        VSStorage.local.setItem("vidres-home-view", homeView);
+        await VSStorage.local.setItem("vidres-home-view", homeView);
       } catch {}
       render();
       return;
@@ -1259,36 +1268,43 @@ window.vidresAppReady = (async () => {
     if (page === "consultor") window.vidresToolsInput?.(e);
     else if (page === "presupuestos") window.vidresQuoteInput?.(e);
   });
-  document.querySelector("#client-form").addEventListener("submit", (e) => {
-    e.preventDefault();
-    const data = new FormData(e.target),
-      nombre = String(data.get("nombre") || "").trim();
-    if (!nombre) return;
-    const item = {
-      nombre,
-      telefono: String(data.get("telefono") || "").trim(),
-      direccion: String(data.get("direccion") || "").trim(),
-    };
-    const i = clients.findIndex((c) => normName(c.nombre) === normName(nombre));
-    if (i < 0) clients.push(item);
-    else clients[i] = item;
-    try {
-      VSStorage.local.setItem(CLIENT_KEY, JSON.stringify(clients));
-    } catch {
-      alert("No se pudo guardar la ficha. Revisa el espacio disponible.");
-      return;
-    }
-    document.querySelector("#client-editor").close();
-    render();
-  });
+  document.querySelector("#client-form").addEventListener(
+    "submit",
+    VSForms.guard(async (e) => {
+      e.preventDefault();
+      const data = new FormData(e.target),
+        nombre = String(data.get("nombre") || "").trim();
+      if (!nombre) return;
+      const item = {
+        nombre,
+        telefono: String(data.get("telefono") || "").trim(),
+        direccion: String(data.get("direccion") || "").trim(),
+      };
+      const i = clients.findIndex(
+        (c) => normName(c.nombre) === normName(nombre),
+      );
+      const nextClients = [...clients];
+      if (i < 0) nextClients.push(item);
+      else nextClients[i] = item;
+      try {
+        await VSStorage.local.setItem(CLIENT_KEY, JSON.stringify(nextClients));
+      } catch {
+        alert("No se pudo guardar la ficha. Revisa el espacio disponible.");
+        return;
+      }
+      clients = nextClients;
+      document.querySelector("#client-editor").close();
+      render();
+    }),
+  );
   document
     .querySelector("#measure-draw")
     .addEventListener("click", () =>
       window.vidresSketch.open(document.querySelector("#measure-sketch")),
     );
-  document
-    .querySelector("#measure-form")
-    .addEventListener("submit", async (e) => {
+  document.querySelector("#measure-form").addEventListener(
+    "submit",
+    VSForms.guard(async (e) => {
       e.preventDefault();
       if (!e.target.reportValidity()) return;
       const data = new FormData(e.target),
@@ -1335,140 +1351,142 @@ window.vidresAppReady = (async () => {
       measurements = next;
       document.querySelector("#measure-editor").close();
       render();
-    });
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    if (!form.reportValidity()) return;
-    const data = new FormData(form),
-      values = Object.fromEntries(
-        [
-          "cliente",
-          "descripcion",
-          "direccion",
-          "responsable",
-          "fecha",
-          "hora",
-          "duracion",
-          "estado",
-          "notas",
-          "tipoCliente",
-        ].map((k) => [k, String(data.get(k) || "").trim()]),
-      );
-    if (!values.cliente) return;
-    if (
-      values.duracion &&
-      (!Number.isInteger(Number(values.duracion)) ||
-        Number(values.duracion) < 1 ||
-        Number(values.duracion) > 1440)
-    ) {
-      alert("Revisa la duración: de 1 a 1440 minutos");
-      return;
-    }
-    let nextJobs = [...jobs],
-      nextMeasurements = measurements;
-    let createdJobId = "";
-    if (editing) {
-      const i = jobs.findIndex((j) => j.id === editing);
-      if (i < 0) return;
-      const old = jobs[i],
-        history = Array.isArray(old.historial) ? [...old.historial] : [];
-      if (old.estado !== values.estado)
-        history.push({
-          de: old.estado,
-          a: values.estado,
-          fecha: new Date().toISOString(),
-          responsable: values.responsable || "Sin indicar",
-        });
-      nextJobs[i] = { ...old, ...values, historial: history,
-        finalizadoEn: values.estado === "Finalizado" ? (old.estado === "Finalizado" ? old.finalizadoEn || new Date().toISOString() : new Date().toISOString()) : null,
-        facturado: Boolean(form.elements.facturado?.checked),
-        cobrado: Boolean(form.elements.cobrado?.checked),
-        archivadoEn: values.estado === "Finalizado" ? old.archivadoEn || null : null };
-    } else {
-      const max = jobs.reduce(
-        (n, j) => Math.max(n, Number(j.id.replace("VS-", "")) || 0),
-        0,
-      );
-      const id = "VS-" + String(max + 1).padStart(4, "0");
-      createdJobId = id;
-      const added = window.vidresNewMeasures.read(id);
-      nextJobs.push({
-        id,
-        ...values,
-        finalizadoEn: values.estado === "Finalizado" ? new Date().toISOString() : null,
-        facturado: Boolean(form.elements.facturado?.checked),
-        cobrado: Boolean(form.elements.cobrado?.checked),
-        archivadoEn: null,
-        historial: [
-          {
-            de: "",
+    }),
+  );
+  form.addEventListener(
+    "submit",
+    VSForms.guard(async (e) => {
+      e.preventDefault();
+      if (!form.reportValidity()) return;
+      const data = new FormData(form),
+        values = Object.fromEntries(
+          [
+            "cliente",
+            "descripcion",
+            "direccion",
+            "responsable",
+            "fecha",
+            "hora",
+            "duracion",
+            "estado",
+            "notas",
+            "tipoCliente",
+          ].map((k) => [k, String(data.get(k) || "").trim()]),
+        );
+      if (!values.cliente) return;
+      if (
+        values.duracion &&
+        (!Number.isInteger(Number(values.duracion)) ||
+          Number(values.duracion) < 1 ||
+          Number(values.duracion) > 1440)
+      ) {
+        alert("Revisa la duración: de 1 a 1440 minutos");
+        return;
+      }
+      let nextJobs = [...jobs],
+        nextMeasurements = measurements;
+      let createdJobId = "";
+      if (editing) {
+        const i = jobs.findIndex((j) => j.id === editing);
+        if (i < 0) return;
+        const old = jobs[i],
+          history = Array.isArray(old.historial) ? [...old.historial] : [];
+        if (old.estado !== values.estado)
+          history.push({
+            de: old.estado,
             a: values.estado,
             fecha: new Date().toISOString(),
             responsable: values.responsable || "Sin indicar",
-          },
-        ],
-      });
-      if (added.length) nextMeasurements = [...measurements, ...added];
-    }
-    // Conservar el formulario y el estado anterior si falla el guardado conjunto.
-    let previousJobs,
-      previousMeasurements,
-      wroteJobs = false,
-      wroteMeasurements = false,
-      writtenPhotoIds = [];
-    try {
-      previousJobs = VSStorage.local.getItem(KEY);
-      previousMeasurements = measurements;
-      VSStorage.local.setItem(KEY, JSON.stringify(nextJobs));
-      wroteJobs = true;
-      if (nextMeasurements !== measurements) {
-        await VSStorage.measurements.replace(nextMeasurements);
-        wroteMeasurements = true;
-      }
-      if (createdJobId && pendingMeasurePhotos.length) {
-        for (const photo of pendingMeasurePhotos) {
-          const record = { ...photo, trabajo: createdJobId };
-          await VSFiles.put("photos", record);
-          writtenPhotoIds.push(record.id);
-        }
-      }
-      if (createdJobId && convertingNote) {
-        saveNotes(
-          notes.map((n) =>
-            n.id === convertingNote
-              ? { ...n, hecha: true, parte: createdJobId }
-              : n,
-          ),
+          });
+        nextJobs[i] = {
+          ...old,
+          ...values,
+          historial: history,
+          finalizadoEn:
+            values.estado === "Finalizado"
+              ? old.estado === "Finalizado"
+                ? old.finalizadoEn || new Date().toISOString()
+                : new Date().toISOString()
+              : null,
+          facturado: Boolean(form.elements.facturado?.checked),
+          cobrado: Boolean(form.elements.cobrado?.checked),
+          archivadoEn:
+            values.estado === "Finalizado" ? old.archivadoEn || null : null,
+        };
+      } else {
+        const max = jobs.reduce(
+          (n, j) => Math.max(n, Number(j.id.replace("VS-", "")) || 0),
+          0,
         );
+        const id = "VS-" + String(max + 1).padStart(4, "0");
+        createdJobId = id;
+        const added = window.vidresNewMeasures.read(id);
+        nextJobs.push({
+          id,
+          ...values,
+          finalizadoEn:
+            values.estado === "Finalizado" ? new Date().toISOString() : null,
+          facturado: Boolean(form.elements.facturado?.checked),
+          cobrado: Boolean(form.elements.cobrado?.checked),
+          archivadoEn: null,
+          historial: [
+            {
+              de: "",
+              a: values.estado,
+              fecha: new Date().toISOString(),
+              responsable: values.responsable || "Sin indicar",
+            },
+          ],
+        });
+        if (added.length) nextMeasurements = [...measurements, ...added];
       }
-    } catch {
+      // One D1 transaction saves the job, pieces and converted note. Attachments are
+      // acknowledged individually; on failure the same job can be retried without duplication.
+      const nextNotes =
+        createdJobId && convertingNote
+          ? notes.map((n) =>
+              n.id === convertingNote
+                ? { ...n, hecha: true, parte: createdJobId }
+                : n,
+            )
+          : notes;
       try {
-        for (const id of writtenPhotoIds) await VSFiles.remove("photos", id);
-        if (wroteMeasurements) {
-          await VSStorage.measurements.replace(previousMeasurements);
-        }
-        if (wroteJobs) {
-          if (previousJobs === null) VSStorage.local.removeItem(KEY);
-          else VSStorage.local.setItem(KEY, previousJobs);
-        }
-      } catch {
+        const state = {};
+        state[KEY] = nextJobs;
+        state[VSStorage.keys.mediciones] = nextMeasurements;
+        state[NOTE_KEY] = nextNotes;
+        await VSStorage.patchValues(state);
+      } catch (error) {
         alert(
-          "No se pudo completar ni revertir el guardado. Conserva esta ventana y revisa el almacenamiento antes de continuar.",
+          "No se pudo confirmar el guardado. Conserva el formulario. " +
+            error.message,
         );
         return;
       }
-      alert(
-        "No se pudo guardar el parte y sus medidas. Los datos siguen en el formulario; revisa el espacio disponible e inténtalo de nuevo.",
-      );
-      return;
-    }
-    jobs = nextJobs;
-    measurements = nextMeasurements;
-    dlg.close();
-    pendingMeasurePhotos = [];
-    clearPendingPhotoUrls();
-    render();
-  });
+      jobs = nextJobs;
+      measurements = nextMeasurements;
+      notes = nextNotes;
+      if (createdJobId) editing = createdJobId;
+      try {
+        while (pendingMeasurePhotos.length) {
+          const photo = pendingMeasurePhotos[0];
+          await VSFiles.put("photos", { ...photo, trabajo: editing });
+          pendingMeasurePhotos.shift();
+        }
+      } catch (error) {
+        renderPendingMeasurePhotos();
+        alert(
+          "El parte y las medidas están guardados. Quedan fotos pendientes; vuelve a pulsar Guardar para reintentar. " +
+            error.message,
+        );
+        return;
+      }
+      dlg.close();
+      pendingMeasurePhotos = [];
+      clearPendingPhotoUrls();
+      render();
+    }),
+  );
   const quickNoteDialog = $("#quick-note-dialog"),
     quickNoteForm = $("#quick-note-form");
   function openQuickNote(id = "") {
@@ -1491,29 +1509,37 @@ window.vidresAppReady = (async () => {
   $("#quick-note-cancel").addEventListener("click", () =>
     quickNoteDialog.close(),
   );
-  quickNoteForm.addEventListener("submit", (e) => {
-    e.preventDefault();
-    if (!quickNoteForm.reportValidity()) return;
-    const data = new FormData(quickNoteForm),
-      id = String(data.get("id") || ""),
-      old = notes.find((n) => n.id === id),
-      item = {
-        id: old?.id || "N-" + crypto.randomUUID(),
-        texto: String(data.get("texto") || "").trim(),
-        cliente: String(data.get("cliente") || "").trim(),
-        aviso: String(data.get("aviso") || ""),
-        hecha: old?.hecha || false,
-        creada: old?.creada || new Date().toISOString(),
-        parte: old?.parte || "",
-      };
-    if (!item.texto) return;
-    saveNotes(
-      old ? notes.map((n) => (n.id === id ? item : n)) : [...notes, item],
+  quickNoteForm.addEventListener(
+    "submit",
+    VSForms.guard(async (e) => {
+      e.preventDefault();
+      if (!quickNoteForm.reportValidity()) return;
+      const data = new FormData(quickNoteForm),
+        id = String(data.get("id") || ""),
+        old = notes.find((n) => n.id === id),
+        item = {
+          id: old?.id || "N-" + crypto.randomUUID(),
+          texto: String(data.get("texto") || "").trim(),
+          cliente: String(data.get("cliente") || "").trim(),
+          aviso: String(data.get("aviso") || ""),
+          hecha: old?.hecha || false,
+          creada: old?.creada || new Date().toISOString(),
+          parte: old?.parte || "",
+        };
+      if (!item.texto) return;
+      await saveNotes(
+        old ? notes.map((n) => (n.id === id ? item : n)) : [...notes, item],
+      );
+      quickNoteDialog.close();
+      if (page !== "inicio") window.vidresNavigate("inicio");
+      else render();
+    }),
+  );
+  document
+    .querySelectorAll("[data-dialog-close]")
+    .forEach((b) =>
+      b.addEventListener("click", () => b.closest("dialog").close()),
     );
-    quickNoteDialog.close();
-    if (page !== "inicio") window.vidresNavigate("inicio");
-    else render();
-  });
   render();
 })().catch((error) => {
   window.VSAppError = true;

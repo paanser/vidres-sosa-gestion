@@ -1,26 +1,22 @@
-# Entrega y comprobación por fases
+# Validación de la autenticación y el almacenamiento remoto
 
-Cada fase está en un commit independiente. Usa únicamente datos ficticios y un perfil de navegador de prueba.
+La implementación sigue las fases acordadas: backend de usuarios/sesiones; login y cierre; Usuarios en Ajustes; protección de IA, registros y adjuntos; importación y documentación.
 
-| Fase             | Archivos principales                                                  | Cómo comprobar en el navegador                                                                                                                                                                                                            | Riesgo o límite                                                                                                                                 |
-| ---------------- | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1. Formato       | HTML, CSS, JS, `.prettierrc`, `package.json`                          | Abrir Inicio, Nuevo parte y un expediente: mismo funcionamiento                                                                                                                                                                           | No cambia almacenamiento; Prettier es solo desarrollo                                                                                           |
-| 2. Errores       | `tools.js`, `voice.js`, `tariffs.js`, `quotes.js`, `app.js`           | En Ajustes importar dos veces un CSV con `nombre;precio_m2;precio_ml` y `Float;100;10`: debe quedar una tarifa. Eliminar una/todas. Dictar «Cambiar cristal para don Antonio Pérez»: cliente completo                                     | Los nombres se comparan sin distinguir mayúsculas ni espacios exteriores; las claves antiguas inactivas se conservan                            |
-| 3. Organización  | `utils.js`, `storage.js`, `loader.js`, flujo de Pages y consumidores  | Abrir una medición antigua, recargar y comprobar croquis. En herramientas de desarrollo, revisar IndexedDB antes de dar por hecha la migración                                                                                            | El original solo se elimina tras verificarlo. Si falla IndexedDB, se bloquea el inicio y se conserva el origen                                  |
-| 4. Cálculos      | `calculations.js`, `tests/calculations.test.cjs`                      | Presupuesto de 180 × 83: aplicada 180 × 84. Revisar cantos y cantidad. Ejecutar también `npm test`                                                                                                                                        | Las medidas de medición siguen siendo reales; solo la facturación redondea                                                                      |
-| 5. Negocio       | Presupuestos, ajustes, expediente, app, `files.js`                    | Crear presupuesto desde medidas; guardar, duplicar, aceptar y confirmar producción; configurar datos de empresa y usar Imprimir/PDF. Crear parte con hora/duración. Buscar por notas/teléfono. Probar borrado con una referencia ficticia | No hay sincronización. Las referencias pueden tener saltos tras un fallo. No se hicieron llamadas reales a IA ni pruebas con impresora física   |
-| 6. Copias        | `backup.js`, `storage.js`, app                                        | Exportar datos y copia completa; restaurar en un perfil de prueba y comprobar documentos, fotos, presupuesto y croquis. Se descarga antes una copia del estado actual                                                                     | JSON con archivos puede ocupar mucho y no está cifrado. Confirmar el archivo en Descargas                                                       |
-| 7. PWA           | `manifest.json`, iconos, `sw.js`, `pwa.js`, versión de publicación    | Abrir con red, esperar la caché y luego desconectar/recargar. Crear un parte sin red. Instalar desde el navegador. Tras publicar, guardar y recargar cuando se avise                                                                      | Requiere una primera carga con red; IA y servicios externos no funcionan sin conexión. No se ha certificado instalación en dispositivos físicos |
-| 8. Worker        | `worker/worker.js`, pruebas y guía de IA                              | `npm test` valida el proveedor simulado. Para una prueba real, publicar en Cloudflare y usar un texto ficticio                                                                                                                            | KV tiene cuotas aproximadas, no atómicas. El despliegue y los secretos de Cloudflare no se han verificado desde este trabajo                    |
-| 9. Documentación | `README.md`, esta guía, `PENDIENTE.md`, `.github/workflows/pages.yml` | Seguir las instrucciones de Windows y revisar los límites antes de introducir datos                                                                                                                                                       | Sigue siendo un prototipo sin autenticación ni base de datos central segura                                                                     |
+## Pruebas ejecutadas
 
-## Validación realizada durante el desarrollo
+- Cálculos de medidas, redondeos, IVA/recargo y validación de cotas existentes.
+- Backend con SQLite real, transacciones y triggers: bootstrap desde secreto, cambio obligatorio, contraseñas mínimas, roles, último administrador, revocación y sesiones sin vencimiento.
+- Cinco fallos por usuario/IP, errores genéricos y desbloqueo temporal.
+- CORS, rechazo sin sesión y ausencia de llamadas OpenAI no autorizadas.
+- Datos compartidos, validación y conflictos que revierten la transacción sin sobrescribir.
+- Archivos privados, versión de adjuntos e importación con manifiesto y verificación.
+- Cuotas atómicas de IA y proveedor simulado; ningún gasto real de OpenAI.
+- Frontend en contexto JavaScript aislado: login, cambio obligatorio, persistencia, revocación, cola de guardados, fallo de red, originales locales conservados y reserva de numeración del servidor.
+- Protección frente a doble envío, escape HTML y comprobaciones de CSP/artefacto público.
+- Comprobación de sintaxis de todos los archivos JavaScript y formato Prettier.
 
-- Pruebas Node de medidas, áreas, lados de canto, cantidades, redondeos fiscales, entradas inválidas, IVA/recargos y Worker simulado.
-- Chromium con contextos aislados para CSV, dictado, migración verificada y fallo de IndexedDB sin borrar origen, presupuestos desde piezas, estado aceptado/producción, duplicado/borrado, impresión sin popup, contacto, eliminación en cascada y hora/duración.
-- Exportación y restauración de archivos con sus bytes, descarga previa a la importación, validación que rechaza copias incorrectas sin modificar datos y recuperación de una operación interrumpida.
-- Compatibilidad con presupuestos anteriores: se conserva el nombre del vidrio vinculado por tarifa, la referencia y la fiscalidad del 21 %. Durante un guardado asíncrono del croquis, se bloquea la cancelación hasta terminar para evitar estados contradictorios.
-- Se comprueba que las piezas conservan su orden después de migrar y recargar. GitHub comprueba también pruebas y formato en las PR antes de publicar.
-- PWA: arranque y creación de parte sin red, cambio de versión, renovación de caché y conservación de datos.
+## Límites de lo comprobado
 
-Estas comprobaciones se hacen en la versión servida localmente: no acreditan la publicación final en GitHub Pages, la configuración de Cloudflare ni las pruebas en dispositivos físicos. La integración en `main` y la publicación no se realizan automáticamente.
+Los bindings D1/R2 se simulan, aunque se ejecuta SQL real. No se ha desplegado esta versión en Cloudflare ni verificado su CPU real o facturación. Chromium no pudo iniciarse por las restricciones de sockets del entorno. El script opcional `scripts/check-browser.cjs` permite ejecutar la prueba de navegador fuera de ese entorno.
+
+La matriz completa de aceptación y los comandos de despliegue están en [Seguridad y despliegue](SEGURIDAD-DESPLIEGUE.md). Completa la prueba visual y funcional en iPhone/Android y en el Worker real antes de utilizar datos reales.

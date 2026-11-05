@@ -31,22 +31,6 @@
     );
   } catch {}
   document.documentElement.style.setProperty("--vs-text-scale", String(scale));
-  const docDB = () =>
-    new Promise((resolve, reject) => {
-      const request = indexedDB.open("vidres-documentos-v1", 1);
-      request.onupgradeneeded = () =>
-        request.result.createObjectStore("documentos", { keyPath: "id" });
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-  const photoDB = () =>
-    new Promise((resolve, reject) => {
-      const request = indexedDB.open("vidres-fotos-v1", 1);
-      request.onupgradeneeded = () =>
-        request.result.createObjectStore("fotos", { keyPath: "id" });
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
   async function photos(jobId = current) {
     return (await VSFiles.all("photos")).filter((p) => p.trabajo === jobId);
   }
@@ -57,49 +41,15 @@
     return VSFiles.remove("photos", id);
   }
   async function documentItems() {
-    const db = await docDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction("documentos", "readonly"),
-        r = tx.objectStore("documentos").getAll();
-      r.onsuccess = () => {
-        resolve(r.result.filter((d) => d.trabajo === current));
-        db.close();
-      };
-      r.onerror = () => {
-        db.close();
-        reject(r.error);
-      };
-    });
+    return (await VSFiles.all("documents")).filter(
+      (d) => d.trabajo === current,
+    );
   }
   async function storeDocument(record) {
-    const db = await docDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction("documentos", "readwrite");
-      tx.objectStore("documentos").put(record);
-      tx.oncomplete = () => {
-        db.close();
-        resolve();
-      };
-      tx.onerror = () => {
-        db.close();
-        reject(tx.error);
-      };
-    });
+    return VSFiles.put("documents", record);
   }
   async function deleteDocument(id) {
-    const db = await docDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction("documentos", "readwrite");
-      tx.objectStore("documentos").delete(id);
-      tx.oncomplete = () => {
-        db.close();
-        resolve();
-      };
-      tx.onerror = () => {
-        db.close();
-        reject(tx.error);
-      };
-    });
+    return VSFiles.remove("documents", id);
   }
   async function openDocument(id) {
     const item = (await documentItems()).find((x) => x.id === id);
@@ -175,7 +125,22 @@
         " movimientos registrados</p></section></div>" +
         '<section id="exp-summary-photos" class="exp-section exp-summary-photos" hidden></section>';
       if (j.estado === "Finalizado" || j.archivadoEn) {
-        body.insertAdjacentHTML("beforeend", '<section class="exp-section"><h3>Cierre administrativo</h3><p>Finalizado: ' + esc(j.finalizadoEn ? new Date(j.finalizadoEn).toLocaleString("es-ES") : "Sin fecha registrada") + '</p><p>Facturado: <strong>' + (j.facturado ? "Sí" : "Pendiente") + '</strong> · Cobrado: <strong>' + (j.cobrado ? "Sí" : "Pendiente") + '</strong></p><p>' + (j.archivadoEn ? "Expediente archivado" : "Pendiente de archivar") + '</p></section>');
+        body.insertAdjacentHTML(
+          "beforeend",
+          '<section class="exp-section"><h3>Cierre administrativo</h3><p>Finalizado: ' +
+            esc(
+              j.finalizadoEn
+                ? new Date(j.finalizadoEn).toLocaleString("es-ES")
+                : "Sin fecha registrada",
+            ) +
+            "</p><p>Facturado: <strong>" +
+            (j.facturado ? "Sí" : "Pendiente") +
+            "</strong> · Cobrado: <strong>" +
+            (j.cobrado ? "Sí" : "Pendiente") +
+            "</strong></p><p>" +
+            (j.archivadoEn ? "Expediente archivado" : "Pendiente de archivar") +
+            "</p></section>",
+        );
       }
       const client = VSStorage.read("vidres-clientes-v1", []).find(
         (c) =>
@@ -236,7 +201,7 @@
     }
     if (tab === "medidas") {
       body.innerHTML =
-        '<section class="exp-section"><div class="exp-section-head"><h3>Medidas en papel</h3><label class="exp-upload">📷 Foto de medidas<input type="file" accept="image/*" capture="environment" data-exp-measure-photo hidden></label><label class="exp-upload">Elegir de la galería<input type="file" accept="image/*" multiple data-exp-measure-photo hidden></label></div><p class="muted">La foto se guarda solo en este dispositivo. Se incluye únicamente en la copia completa con fotos y documentos.</p><div id="exp-paper-photos" class="measure-paper-grid">Cargando fotos…</div></section>' +
+        '<section class="exp-section"><div class="exp-section-head"><h3>Medidas en papel</h3><label class="exp-upload">📷 Foto de medidas<input type="file" accept="image/*" capture="environment" data-exp-measure-photo hidden></label><label class="exp-upload">Elegir de la galería<input type="file" accept="image/*" multiple data-exp-measure-photo hidden></label></div><p class="muted">Las fotos se guardan en el servidor privado y se incluyen en la copia completa.</p><div id="exp-paper-photos" class="measure-paper-grid">Cargando fotos…</div></section>' +
         '<div class="exp-section"><div class="exp-section-head"><h3>Mediciones del expediente</h3><button class="primary" data-exp-draw-measure>✎ Dibujar medidas</button><button type="button" data-exp-add-measure>+ Añadir medida</button><button type="button" data-exp-quote-measures>Crear presupuesto desde medidas</button></div>' +
         (measures.length
           ? '<div class="exp-measure-grid">' +
@@ -298,7 +263,7 @@
     }
     if (tab === "fotos") {
       body.innerHTML =
-        '<div class="exp-section"><div class="exp-section-head"><h3>Fotografías del trabajo</h3><label class="exp-upload">+ Añadir fotos<input id="exp-files" type="file" accept="image/*" multiple hidden></label></div><p class="muted">Las imágenes se comprimen antes de guardarse. Por ahora solo se conservan en este dispositivo y no se incluyen en la copia JSON.</p><div id="exp-photos" class="exp-gallery">Cargando fotos…</div></div>';
+        '<div class="exp-section"><div class="exp-section-head"><h3>Fotografías del trabajo</h3><label class="exp-upload">+ Añadir fotos<input id="exp-files" type="file" accept="image/*" multiple hidden></label></div><p class="muted">Las imágenes se comprimen antes de guardarse. Se guardan en el servidor privado y se incluyen en la copia completa.</p><div id="exp-photos" class="exp-gallery">Cargando fotos…</div></div>';
       try {
         const items = (await photos(jobId)).filter((p) => p.tipo !== "medidas");
         if (!active()) return;
@@ -331,7 +296,7 @@
     if (tab === "presupuestos") {
       const quotes = window.vidresQuotesForJob?.(current) || [];
       body.innerHTML =
-        '<section class="exp-section"><div class="exp-section-head"><h3>Presupuestos vinculados</h3><button class="primary" data-exp-new-quote>+ Nuevo presupuesto</button></div><p class="muted">Los presupuestos siguen guardándose en este navegador. Se abre el presupuestador existente, con sus tarifas y cálculos.</p>' +
+        '<section class="exp-section"><div class="exp-section-head"><h3>Presupuestos vinculados</h3><button class="primary" data-exp-new-quote>+ Nuevo presupuesto</button></div><p class="muted">Los presupuestos se guardan en el servidor privado. Se abre el presupuestador existente, con sus tarifas y cálculos.</p>' +
         (quotes.length
           ? '<div class="exp-quote-list">' +
             quotes
@@ -362,7 +327,7 @@
     }
     if (tab === "documentos") {
       body.innerHTML =
-        '<section class="exp-section"><div class="exp-section-head"><h3>Documentos del expediente</h3><label class="exp-upload">+ Añadir documento<input id="exp-doc-files" type="file" accept=".pdf,.txt,.csv,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,application/pdf" multiple hidden></label></div><p class="muted">Documentos locales: no se sincronizan entre dispositivos ni se incluyen en la copia JSON. Máximo 8 MB por archivo.</p><div id="exp-doc-list">Cargando documentos…</div></section>';
+        '<section class="exp-section"><div class="exp-section-head"><h3>Documentos del expediente</h3><label class="exp-upload">+ Añadir documento<input id="exp-doc-files" type="file" accept=".pdf,.txt,.csv,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,application/pdf" multiple hidden></label></div><p class="muted">Documentos privados compartidos entre dispositivos e incluidos en la copia completa. Máximo 8 MB por archivo.</p><div id="exp-doc-list">Cargando documentos…</div></section>';
       try {
         const items = await documentItems();
         if (tab !== "documentos") return;

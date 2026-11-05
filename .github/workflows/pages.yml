@@ -41,10 +41,15 @@ jobs:
         run: |
           python3 -c 'import json, os; open("version.json", "w").write(json.dumps({"version": os.environ["GITHUB_SHA"]}))'
           python3 -c 'import os; p="sw.js"; s=open(p).read(); open(p,"w").write(s.replace("__BUILD_VERSION__", os.environ["GITHUB_SHA"]))'
+      - name: Preparar archivos públicos
+        run: |
+          mkdir public
+          cp index.html styles.css manifest.json version.json loader.js auth.js users.js migration.js utils.js storage.js calculations.js files.js backup.js tariffs.js tools.js quotes.js sketch.js job-measures.js app.js ai-config.js voice.js enhancements.js expediente.js pwa.js sw.js public/
+          cp -R icons public/icons
       - name: Empaquetar web
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: public
       - name: Publicar
         id: deployment
         uses: actions/deploy-pages@v4

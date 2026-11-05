@@ -9,6 +9,9 @@ window.vidresAppReady = (async () => {
   let page = "inicio",
     editing = null,
     search = "";
+  let usersBackPage = "ajustes";
+  const isSettingsPage = (value) =>
+    value === "ajustes" || value.startsWith("ajustes-") || value === "usuarios";
   let homeView;
   try {
     homeView =
@@ -619,14 +622,14 @@ window.vidresAppReady = (async () => {
       document.querySelector("main").appendChild(usagePanel);
       usagePanel.hidden = true;
     }
-    const mainPage = [
-      "consultor",
-      "clientes",
-      "calendario",
-      "mediciones",
-    ].includes(page)
-      ? "herramientas"
-      : page;
+    const mainPage =
+      page === "usuarios"
+        ? usersBackPage
+        : isSettingsPage(page)
+          ? "ajustes"
+          : ["consultor", "clientes", "calendario", "mediciones"].includes(page)
+            ? "herramientas"
+            : page;
     document.querySelectorAll("#nav [data-page]").forEach((b) => {
       b.classList.toggle("active", b.dataset.page === mainPage);
       if (b.dataset.page === mainPage) b.setAttribute("aria-current", "page");
@@ -649,6 +652,13 @@ window.vidresAppReady = (async () => {
       herramientas: "Herramientas",
       consultor: "Consultor de tarifas",
       ajustes: "Ajustes",
+      "ajustes-general": "Configuración general",
+      "ajustes-tarifas": "Tarifas y documentos PDF",
+      "ajustes-plantillas": "Plantillas de trabajo",
+      "ajustes-copias": "Copias de seguridad",
+      "ajustes-cuenta": "Mi cuenta y sesión",
+      "ajustes-ia": "Dictado e inteligencia artificial",
+      usuarios: "Gestión de usuarios",
       produccion: "Producción",
       avisos: "Avisos",
       calendario: "Calendario",
@@ -659,7 +669,7 @@ window.vidresAppReady = (async () => {
     if (page === "inicio") {
       html =
         (VSBackup.overdue()
-          ? '<p role="status" class="backup-reminder">Hace más de 14 días que no exportas una copia. <button type="button" data-go="ajustes">Hacer copia</button></p>'
+          ? '<p role="status" class="backup-reminder">Hace más de 14 días que no exportas una copia. <button type="button" data-go="ajustes-copias">Hacer copia</button></p>'
           : "") + dashboardHtml();
     } else if (page === "trabajos") {
       const q = /^[+\d\s()-]+$/.test(search)
@@ -722,7 +732,27 @@ window.vidresAppReady = (async () => {
       html = calendarHtml();
     } else if (page === "mediciones") {
       html = measurementsHtml();
-    } else if (page === "ajustes") {
+    } else if (page === "usuarios") {
+      const backLabel =
+        usersBackPage === "herramientas" ? "Herramientas" : "Ajustes";
+      $("#content").innerHTML = window.vidresSettingsBack(
+        backLabel,
+        usersBackPage,
+      );
+      window.VSUsers.renderUsers();
+      return;
+    } else if (page === "ajustes-cuenta") {
+      $("#content").innerHTML = window.vidresSettingsBack();
+      window.VSUsers.renderAccount();
+      return;
+    } else if (page === "ajustes-ia") {
+      $("#content").innerHTML = window.vidresSettingsBack();
+      if (usagePanel) {
+        $("#content").appendChild(usagePanel);
+        usagePanel.hidden = false;
+      }
+      return;
+    } else if (page === "ajustes-copias") {
       window.vidresToolsRender?.(page);
       const host = $("#content");
       if (host)
@@ -743,15 +773,15 @@ window.vidresAppReady = (async () => {
           ) +
           "</p>",
       );
-      if (usagePanel) {
-        host.appendChild(usagePanel);
-        usagePanel.hidden = false;
-      }
       if (VSAuth.user.rol !== "administrador")
         host.querySelector("#backup-import")?.closest("label")?.remove();
-      window.VSUsers?.mount();
+      window.VSUsers.renderMigration();
       return;
-    } else if (page === "herramientas" || page === "consultor") {
+    } else if (
+      page === "herramientas" ||
+      page === "consultor" ||
+      isSettingsPage(page)
+    ) {
       window.vidresToolsRender?.(page);
       return;
     } else if (page === "presupuestos") {
@@ -809,6 +839,8 @@ window.vidresAppReady = (async () => {
       });
   }
   window.vidresNavigate = (p) => {
+    if (p === "usuarios")
+      usersBackPage = page === "herramientas" ? "herramientas" : "ajustes";
     page = p;
     search = "";
     render();
@@ -1184,15 +1216,16 @@ window.vidresAppReady = (async () => {
       window.vidresNavigate(go.dataset.go);
       return;
     }
-    if (page === "herramientas" || page === "consultor" || page === "ajustes") {
+    if (
+      page === "herramientas" ||
+      page === "consultor" ||
+      isSettingsPage(page)
+    ) {
       if (e.target.closest("#backup-export")) {
         downloadBackup();
         return;
       }
-      await window.vidresToolsClick?.(e, (p) => {
-        page = p;
-        render();
-      });
+      await window.vidresToolsClick?.(e, window.vidresNavigate);
       return;
     }
     if (page === "presupuestos") {
@@ -1256,11 +1289,11 @@ window.vidresAppReady = (async () => {
     if (b) open(b.dataset.id);
   });
   $("#content").addEventListener("change", (e) => {
-    if (page === "ajustes" && e.target.id === "backup-import") {
+    if (page === "ajustes-copias" && e.target.id === "backup-import") {
       importBackup(e.target.files?.[0]);
       return;
     }
-    if (page === "herramientas" || page === "consultor" || page === "ajustes")
+    if (page === "herramientas" || page === "consultor" || isSettingsPage(page))
       window.vidresToolsChange?.(e);
     else if (page === "presupuestos") window.vidresQuoteChange?.(e);
   });

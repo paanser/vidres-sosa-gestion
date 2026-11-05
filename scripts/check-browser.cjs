@@ -146,8 +146,28 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
     "PASS parte, medición y foto en servidor, sin copia local de negocio",
   );
   await page.locator("[data-page=ajustes]").click();
-  await page.locator("#session-panel").waitFor();
-  await page.getByRole("heading", { name: "Usuarios", exact: true }).waitFor();
+  await page.locator(".settings-home").waitFor();
+  assert.equal(await page.locator(".user-list").count(), 0);
+  assert.equal(await page.locator("#cfg-unit").count(), 0);
+  assert.equal(requests.includes("/admin/users"), false);
+  await page.locator('[data-tool-go="usuarios"]').click();
+  await page
+    .getByRole("heading", {
+      name: "Gestión de usuarios",
+      level: 2,
+      exact: true,
+    })
+    .waitFor();
+  await page.getByText("Tipos de usuario", { exact: true }).click();
+  assert.equal(
+    await page
+      .getByText(
+        "Empleado: gestiona el trabajo diario, sin acceso a la administración de usuarios.",
+        { exact: true },
+      )
+      .isVisible(),
+    true,
+  );
   await page
     .locator(".users-panel form [name=nombre]")
     .fill("Operario <img src=x onerror=alert(1)>");
@@ -161,6 +181,74 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
     .waitFor();
   assert.equal(await page.locator(".users-panel img").count(), 0);
   console.log("PASS gestión de usuarios y texto escapado");
+  await page
+    .getByRole("button", { name: "← Volver a Ajustes", exact: true })
+    .click();
+  await page.locator('[data-tool-go="ajustes-general"]').click();
+  await page.locator("#cfg-unit").waitFor();
+  assert.equal(await page.locator("#cfg-csv").count(), 0);
+  await page.locator("#cfg-vat").fill("10");
+  await page.locator("#cfg-save").click();
+  await page
+    .getByText("Configuración guardada en el servidor.", { exact: true })
+    .waitFor();
+  await page
+    .getByRole("button", { name: "← Volver a Ajustes", exact: true })
+    .click();
+  await page.locator('[data-tool-go="ajustes-tarifas"]').click();
+  await page.locator("#cfg-csv").setInputFiles({
+    name: "tarifas.csv",
+    mimeType: "text/csv",
+    buffer: Buffer.from("nombre,precio_m2,precio_ml\nFloat,100,10\n"),
+  });
+  await page
+    .getByText("1 artículos importados o actualizados.", { exact: true })
+    .waitFor();
+  await page.locator("[data-tariff-delete]").click();
+  await page.getByText("No hay tarifas.", { exact: true }).waitFor();
+  await page
+    .getByRole("button", { name: "← Volver a Ajustes", exact: true })
+    .click();
+  await page.locator('[data-tool-go="ajustes-plantillas"]').click();
+  await page.locator("#plantilla-new").click();
+  await page
+    .locator("#plantilla-form [name=nombre]")
+    .fill("Plantilla de prueba");
+  await page.locator("#plantilla-form [type=submit]").click();
+  await page.locator("#plantilla-editor").waitFor({ state: "hidden" });
+  await page.getByText("Plantilla de prueba", { exact: true }).waitFor();
+  await page
+    .getByRole("button", { name: "← Volver a Ajustes", exact: true })
+    .click();
+  await page.locator('[data-tool-go="ajustes-copias"]').click();
+  assert.equal(await page.locator("#backup-export").isVisible(), true);
+  assert.equal(await page.locator("#backup-import").count(), 1);
+  await page
+    .getByRole("button", { name: "← Volver a Ajustes", exact: true })
+    .click();
+  await page.locator('[data-tool-go="ajustes-ia"]').click();
+  assert.equal(await page.locator(".ai-usage").isVisible(), true);
+  await page
+    .getByRole("button", { name: "← Volver a Ajustes", exact: true })
+    .click();
+  assert.equal(await page.locator(".ai-usage").isVisible(), false);
+  await page.locator("[data-page=herramientas]").click();
+  await page.locator("[data-tool-go=usuarios]").click();
+  await page
+    .getByRole("button", { name: "← Volver a Herramientas", exact: true })
+    .click();
+  assert.equal(
+    await page
+      .locator("#nav [data-page=herramientas]")
+      .getAttribute("aria-current"),
+    "page",
+  );
+  console.log(
+    "PASS ajustes separados: usuarios bajo demanda, roles, navegación, configuración, tarifas, plantillas, copias e IA",
+  );
+  await page.locator("[data-page=ajustes]").click();
+  await page.locator('[data-tool-go="ajustes-cuenta"]').click();
+  await page.locator("#session-panel").waitFor();
   // A new page shares only the browser's persisted token, not the in-memory app state.
   const p2 = await context.newPage();
   p2.on("pageerror", (e) => errors.push(e.message));
@@ -184,17 +272,36 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
     .first()
     .waitFor({ state: "detached" });
   await page.locator("[data-page=ajustes]").click();
-  await page.locator("#session-panel").waitFor();
-  assert.equal(
-    await page.getByRole("heading", { name: "Usuarios", exact: true }).count(),
-    0,
-  );
+  await page.locator(".settings-home").waitFor();
+  assert.equal(await page.locator('[data-tool-go="usuarios"]').count(), 0);
+  await page.locator('[data-tool-go="ajustes-copias"]').click();
+  assert.equal(await page.locator("#backup-import").count(), 0);
   assert.equal(
     await page
       .getByRole("heading", { name: "Importar datos existentes", exact: true })
       .count(),
     0,
   );
+  await page
+    .getByRole("button", { name: "← Volver a Ajustes", exact: true })
+    .click();
+  await page.locator("[data-page=herramientas]").click();
+  assert.equal(await page.locator('[data-tool-go="usuarios"]').count(), 0);
+  const callsBefore = requests.filter((p) => p === "/admin/users").length;
+  await page.evaluate(() => window.vidresNavigate("usuarios"));
+  await page
+    .getByText("Solo un administrador puede gestionar usuarios.", {
+      exact: true,
+    })
+    .waitFor();
+  assert.equal(
+    requests.filter((p) => p === "/admin/users").length,
+    callsBefore,
+  );
+  await page
+    .getByRole("button", { name: "← Volver a Herramientas", exact: true })
+    .click();
+  await page.locator("[data-page=ajustes]").click();
   console.log("PASS empleado sin Usuarios ni importación administrativa");
   assert.deepEqual(errors, []);
   await fs.mkdir(path.join(root, "test-results"), { recursive: true });

@@ -3404,3 +3404,55 @@ body:not(.authenticated) > #quote-print {
     display: none !important;
   }
 }
+
+/* Ajustes: entradas breves y un solo apartado abierto cada vez. */
+.settings-intro {
+  margin: 8px 0 18px;
+}
+.tool-tiles button {
+  position: relative;
+  padding-right: 42px;
+}
+.settings-tile-arrow {
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 30px;
+  line-height: 1;
+  color: #15523e;
+}
+.settings-subpage-head {
+  margin-bottom: 18px;
+}
+.settings-subpage-head button {
+  min-height: 48px;
+  padding: 12px 16px;
+  border: 1px solid #c9dfd2;
+  border-radius: 12px;
+  background: white;
+  color: #15523e;
+  font-weight: 650;
+}
+.user-role-info {
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #f7faf8;
+  border: 1px solid #e0e8e3;
+}
+.user-role-info summary {
+  cursor: pointer;
+  font-weight: 650;
+}
+.user-role-info p {
+  margin: 12px 0 0;
+  line-height: 1.5;
+}
+@media (max-width: 600px) {
+  .settings-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .settings-grid button {
+    min-height: 100px;
+  }
+}

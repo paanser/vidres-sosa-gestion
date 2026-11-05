@@ -61,8 +61,93 @@
     selected = "all",
     pendingPdf = null;
   const catalog = () => read(T, []);
+  function tile(page, title, description) {
+    return (
+      '<button type="button" data-tool-go="' +
+      esc(page) +
+      '"><strong>' +
+      esc(title) +
+      "</strong><small>" +
+      esc(description) +
+      '</small><span class="settings-tile-arrow" aria-hidden="true">›</span></button>'
+    );
+  }
   function toolHome() {
-    return '<section class="panel"><h2>Herramientas de consulta</h2><div class="tool-tiles"><button data-tool-go="consultor"><strong>Consultar tarifas</strong><small>Buscar precios de vidrio</small></button><button data-tool-go="clientes"><strong>Clientes</strong><small>Datos de contacto e historial</small></button><button data-tool-go="calendario"><strong>Calendario</strong><small>Consultar fechas de los trabajos</small></button></div></section>';
+    return (
+      '<section class="panel"><h2>Herramientas de consulta</h2><div class="tool-tiles">' +
+      tile("consultor", "Consultar tarifas", "Buscar precios de vidrio") +
+      tile("clientes", "Clientes", "Datos de contacto e historial") +
+      tile("calendario", "Calendario", "Consultar fechas de los trabajos") +
+      (VSAuth.user.rol === "administrador"
+        ? tile(
+            "usuarios",
+            "Gestión de usuarios",
+            "Cuentas, roles, contraseñas y accesos",
+          )
+        : "") +
+      "</div></section>"
+    );
+  }
+  function settingsHome() {
+    const entries = [
+      [
+        "ajustes-general",
+        "Configuración general",
+        "Unidades, impuestos, empresa y mensajes",
+      ],
+      [
+        "ajustes-tarifas",
+        "Tarifas y documentos PDF",
+        "Importar y gestionar el catálogo de precios",
+      ],
+      [
+        "ajustes-plantillas",
+        "Plantillas de trabajo",
+        "Crear y editar modelos para nuevos partes",
+      ],
+      ...(VSAuth.user.rol === "administrador"
+        ? [
+            [
+              "usuarios",
+              "Gestión de usuarios",
+              "Crear usuarios, ver roles y gestionar sus accesos",
+            ],
+          ]
+        : []),
+      [
+        "ajustes-copias",
+        "Copias de seguridad",
+        VSAuth.user.rol === "administrador"
+          ? "Exportar copias e importar datos existentes"
+          : "Descargar una copia de los datos",
+      ],
+      [
+        "ajustes-cuenta",
+        "Mi cuenta y sesión",
+        "Cambiar mi contraseña o cerrar sesión",
+      ],
+      [
+        "ajustes-ia",
+        "Dictado e inteligencia artificial",
+        "Consultar el uso del dictado con IA",
+      ],
+    ];
+    return (
+      '<section class="panel settings-home"><h2>¿Qué quieres gestionar?</h2><p class="muted settings-intro">Sesión de ' +
+      esc(VSAuth.user.nombre) +
+      '</p><div class="tool-tiles settings-grid">' +
+      entries.map((e) => tile(...e)).join("") +
+      "</div></section>"
+    );
+  }
+  function settingsBack(label = "Ajustes", page = "ajustes") {
+    return (
+      '<div class="settings-subpage-head"><button type="button" data-tool-go="' +
+      esc(page) +
+      '">← Volver a ' +
+      esc(label) +
+      "</button></div>"
+    );
   }
 
   function consult() {
@@ -141,7 +226,7 @@
   function plantillasHtml() {
     const items = plantillas();
     return (
-      '<section class="panel"><h2>Plantillas de trabajo</h2><p class="muted">Plantillas para empezar un nuevo parte: descripción, tipo de cliente, notas y piezas sin medidas.</p><button type="button" id="plantilla-new" class="primary">+ Nueva plantilla</button>' +
+      '<section class="panel" data-settings-section="plantillas"><h2>Plantillas de trabajo</h2><p class="muted">Plantillas para empezar un nuevo parte: descripción, tipo de cliente, notas y piezas sin medidas.</p><button type="button" id="plantilla-new" class="primary">+ Nueva plantilla</button>' +
       (items.length
         ? '<div class="plantilla-list">' +
           items
@@ -172,7 +257,7 @@
       company = c.company || {},
       pdfs = read(P, []);
     return (
-      '<section class="panel"><h2>Configuración general</h2><div class="quote-fields"><label>Unidad de entrada<select id="cfg-unit"><option value="cm" ' +
+      '<section class="panel" data-settings-section="general"><h2>Configuración general</h2><div class="quote-fields"><label>Unidad de entrada<select id="cfg-unit"><option value="cm" ' +
       (c.unit !== "mm" ? "selected" : "") +
       '>Centímetros</option><option value="mm" ' +
       (c.unit === "mm" ? "selected" : "") +
@@ -227,7 +312,7 @@
         c.whatsappTemplate ||
           "Hola{cliente}, te paso el precio:\n\n{detalle}\n\nBase: {base}\nIVA: {iva}\nTotal: {total}\n\n{empresa}. Presupuesto válido {validez} días.",
       ) +
-      '</textarea></label><p class="muted">Campos disponibles: {cliente}, {detalle}, {base}, {iva}, {total}, {empresa}, {validez}.</p></details><p>Los impuestos y recargos se copian a los presupuestos nuevos. Los guardados conservan sus condiciones.</p><button id="cfg-save" class="primary">Guardar configuración</button><p id="cfg-notice" role="status"></p></section><section class="panel"><h2>Tarifas y documentos PDF</h2><label>Importar tarifas CSV<input id="cfg-csv" type="file" accept=".csv,text/csv"></label><p id="csv-notice" role="status"></p>' +
+      '</textarea></label><p class="muted">Campos disponibles: {cliente}, {detalle}, {base}, {iva}, {total}, {empresa}, {validez}.</p></details><p>Los impuestos y recargos se copian a los presupuestos nuevos. Los guardados conservan sus condiciones.</p><button id="cfg-save" class="primary">Guardar configuración</button><p id="cfg-notice" role="status"></p></section><section class="panel" data-settings-section="tarifas"><h2>Tarifas y documentos PDF</h2><label>Importar tarifas CSV<input id="cfg-csv" type="file" accept=".csv,text/csv"></label><p id="csv-notice" role="status"></p>' +
       tariffList() +
       '<label>Seleccionar PDF de tarifa<input id="cfg-pdf" type="file" accept=".pdf,application/pdf"></label><p id="pdf-notice" role="status"></p><p>El catálogo PDF solo registra el nombre, no guarda el archivo. Los documentos de cada expediente se guardan en su sección Documentos.</p>' +
       pdfs
@@ -247,14 +332,33 @@
   window.vidresToolsRender = (page) => {
     const root = document.querySelector("#content");
     if (!root) return;
-    root.innerHTML =
-      page === "herramientas"
-        ? toolHome()
-        : page === "consultor"
-          ? consult()
-          : settings();
-    if (page === "ajustes") window.VSUsers?.mount();
+    if (page === "herramientas" || page === "consultor" || page === "ajustes") {
+      root.innerHTML =
+        page === "herramientas"
+          ? toolHome()
+          : page === "consultor"
+            ? consult()
+            : settingsHome();
+      return;
+    }
+    const section = {
+      "ajustes-general": "general",
+      "ajustes-tarifas": "tarifas",
+      "ajustes-plantillas": "plantillas",
+    }[page];
+    root.innerHTML = settingsBack();
+    if (section) {
+      const template = document.createElement("template");
+      template.innerHTML = settings();
+      root.append(
+        template.content.querySelector(
+          '[data-settings-section="' + section + '"]',
+        ),
+      );
+    }
   };
+  window.vidresSettingsBack = settingsBack;
+
   window.vidresToolsClick = async (e, navigate) => {
     const t = e.target.closest("button");
     if (!t) return false;
@@ -280,7 +384,7 @@
         ),
       );
       window.dispatchEvent(new Event("vidres-tariffs-change"));
-      window.vidresNavigate("ajustes");
+      window.vidresNavigate("ajustes-tarifas");
       return true;
     }
     if (t.id === "cfg-save") {
@@ -338,7 +442,7 @@
       const pdfs = read(P, []);
       pdfs.splice(Number(t.dataset.pdfRemove), 1);
       await VSStorage.local.setItem(P, JSON.stringify(pdfs));
-      window.vidresToolsRender("ajustes");
+      window.vidresToolsRender("ajustes-tarifas");
       return true;
     }
     if (t.id === "plantilla-new") {
@@ -357,7 +461,7 @@
             plantillas().filter((x) => x.id !== t.dataset.plantillaDelete),
           ),
         );
-        window.vidresToolsRender("ajustes");
+        window.vidresToolsRender("ajustes-plantillas");
       }
       return true;
     }
@@ -427,7 +531,7 @@
           JSON.stringify(window.vidresTariffs.merge(catalog(), items)),
         );
         window.dispatchEvent(new Event("vidres-tariffs-change"));
-        window.vidresNavigate("ajustes");
+        window.vidresNavigate("ajustes-tarifas");
         document.querySelector("#csv-notice").textContent =
           items.length + " artículos importados o actualizados.";
       } catch (err) {
@@ -456,7 +560,7 @@
         date: new Date().toLocaleDateString("es-ES"),
       });
       await VSStorage.local.setItem(P, JSON.stringify(pdfs));
-      window.vidresToolsRender("ajustes");
+      window.vidresToolsRender("ajustes-tarifas");
       document.querySelector("#pdf-notice").textContent =
         "PDF registrado por nombre. El archivo NO se ha guardado ni enviado al servidor; queda pendiente de procesamiento.";
       return;
@@ -559,7 +663,7 @@
         else list[i] = item;
         await VSStorage.local.setItem(PL, JSON.stringify(list));
         plantillaDialog.close();
-        window.vidresToolsRender("ajustes");
+        window.vidresToolsRender("ajustes-plantillas");
       }),
     );
   }

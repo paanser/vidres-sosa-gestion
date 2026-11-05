@@ -75,9 +75,8 @@
     document.body.append(dialog);
     dialog.showModal();
   }
-  function mount() {
-    const host = document.querySelector("#content");
-    if (!host || host.querySelector("#session-panel")) return;
+  function renderAccount(host = document.querySelector("#content")) {
+    if (!host) return;
     const account = node("section");
     account.id = "session-panel";
     account.className = "panel users-panel";
@@ -106,10 +105,30 @@
       button("Cerrar sesión", () => VSAuth.logout()),
     );
     host.append(account);
-    if (VSAuth.user.rol !== "administrador") return;
+  }
+  function renderUsers(host = document.querySelector("#content")) {
+    if (!host) return;
+    if (VSAuth.user.rol !== "administrador") {
+      host.append(node("p", "Solo un administrador puede gestionar usuarios."));
+      return;
+    }
     const section = node("section");
     section.className = "panel users-panel";
-    section.append(node("h2", "Usuarios"));
+    section.append(node("h2", "Gestión de usuarios"));
+    const rolesInfo = node("details");
+    rolesInfo.className = "user-role-info";
+    rolesInfo.append(
+      node("summary", "Tipos de usuario"),
+      node(
+        "p",
+        "Administrador: gestiona usuarios y tiene acceso a todos los apartados de la aplicación.",
+      ),
+      node(
+        "p",
+        "Empleado: gestiona el trabajo diario, sin acceso a la administración de usuarios.",
+      ),
+    );
+    section.append(rolesInfo);
     const list = node("div");
     list.className = "user-list";
     section.append(list);
@@ -235,6 +254,9 @@
     refresh().catch((e) => {
       list.textContent = e.message;
     });
+  }
+  function renderMigration(host = document.querySelector("#content")) {
+    if (!host || VSAuth.user.rol !== "administrador") return;
     const migration = node("section");
     migration.className = "panel";
     migration.append(
@@ -255,5 +277,5 @@
     );
     host.append(migration);
   }
-  window.VSUsers = { mount };
+  window.VSUsers = { renderAccount, renderUsers, renderMigration };
 })();

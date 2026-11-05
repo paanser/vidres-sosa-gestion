@@ -1580,3 +1580,10 @@ window.vidresAppReady = (async () => {
     "No se pudo iniciar la aplicación: " + error.message;
   document.querySelector("#add").disabled = true;
 });
+
+// Navegación: cerrar el desplegable móvil al elegir una entrada.
+document.getElementById("nav")?.addEventListener("click", (event) => {
+  if (event.target.closest("button")) {
+    document.querySelector(".nav-more")?.removeAttribute("open");
+  }
+});

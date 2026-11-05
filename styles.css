@@ -3569,3 +3569,19 @@ dialog::backdrop { background:rgb(21 34 26 / 60%); backdrop-filter:none; }
 .client-card summary { padding:12px 0; color:#15523e; font-weight:600; cursor:pointer; }
 #client-editor { background:#f3f0e7; border-radius:5px; }
 
+
+/* Ajustes · entradas de menú y gestión de usuarios separada. */
+.tool-tiles,.settings-grid { display:grid; grid-template-columns:minmax(0,1fr); gap:0; border-top:1px solid #b6b9ad; }
+.tool-tiles button,.settings-grid button { min-height:78px; border:0; border-bottom:1px solid #b6b9ad; border-radius:0 !important; background:transparent; padding:18px 44px 18px 12px; text-align:left; color:#15523e; }
+.tool-tiles button:hover,.settings-grid button:hover { background:#e5e8dc; }
+.tool-tiles button strong { font-size:18px; }
+.tool-tiles button small,.tool-tiles button p { color:#535b50; }
+.settings-subpage-head button { background:#fffdf6; border:1px solid #8d9589; border-radius:4px; }
+.user-list { gap:0; }
+.user-row { border:0; border-bottom:1px solid #b6b9ad; border-radius:0; padding:20px 0; }
+.user-role-info { border:1px solid #c9c8bd; border-radius:4px; background:#efede3; }
+.auth-screen { background:#f3f0e7; }
+.auth-card { max-width:440px; border-top:4px solid #15523e; }
+.auth-card .primary { min-height:52px; }
+@media print { #nav,.global-text-controls { display:none !important; } main { padding:0; } }
+

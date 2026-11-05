@@ -1587,3 +1587,44 @@ document.getElementById("nav")?.addEventListener("click", (event) => {
     document.querySelector(".nav-more")?.removeAttribute("open");
   }
 });
+
+// Etiquetas de los módulos existentes: solo presentación, nunca texto del cliente.
+{
+  const labels = new Map([
+    ["⚡ Presupuesto rápido", "Presupuesto rápido"],
+    ["📷 Foto de medidas", "Foto de medidas"],
+    ["✎ Dibujar medidas", "Dibujar medidas"],
+    [
+      "✎ Dibujar medidas · Bloc de croquis",
+      "Dibujar medidas · Bloc de croquis",
+    ],
+    [
+      "✎ Dibujar medidas · Con anotaciones",
+      "Dibujar medidas · Con anotaciones",
+    ],
+    ["✎ Estuche", "Estuche"],
+    ["✎ Abrir pantalla del bloc", "Abrir pantalla del bloc"],
+  ]);
+  const updateLabels = () => {
+    document
+      .querySelectorAll(
+        "button, summary, label.exp-upload, .quick-quote-editor h2",
+      )
+      .forEach((element) => {
+        for (const node of element.childNodes) {
+          if (
+            node.nodeType === Node.TEXT_NODE &&
+            labels.has(node.textContent.trim())
+          ) {
+            node.textContent = labels.get(node.textContent.trim());
+          }
+        }
+      });
+  };
+  new MutationObserver(updateLabels).observe(document.body, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+  });
+  updateLabels();
+}

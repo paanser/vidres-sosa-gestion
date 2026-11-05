@@ -1,0 +1,28 @@
+name: Comprobar acceso en navegador móvil
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/browser.yml
+      - scripts/check-browser.cjs
+      - auth.js
+      - users.js
+      - loader.js
+      - index.html
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm install --no-save --package-lock=false playwright
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser

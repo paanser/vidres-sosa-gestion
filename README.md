@@ -1,6 +1,6 @@
 # Vidres Sosa · Gestión
 
-Aplicación en español para partes, clientes, mediciones/croquis, presupuestos, notas, fotografías y documentos. Interfaz HTML/CSS/JavaScript vanilla en GitHub Pages; backend Cloudflare Worker con D1 y R2 privado.
+Aplicación en español para partes, clientes, mediciones/croquis, presupuestos, notas, fotografías y documentos. Interfaz HTML/CSS/JavaScript vanilla en GitHub Pages; backend Cloudflare Worker con D1, incluidos adjuntos privados.
 
 **Esta versión requiere desplegar y configurar primero el nuevo Worker.** El frontend no abre los datos si la autenticación o el servidor no están disponibles. No publiques únicamente la interfaz sobre el Worker antiguo.
 
@@ -15,7 +15,7 @@ Aplicación en español para partes, clientes, mediciones/croquis, presupuestos,
 
 ## Datos compartidos
 
-D1 guarda los registros de negocio, usuarios, hashes de sesiones, numeración y controles de seguridad. R2 guarda fotos y documentos sin acceso público. El navegador conserva los datos descargados en memoria; en localStorage solo se escriben el token de sesión, preferencias visuales, fecha de copia y el contador informativo local de IA.
+D1 guarda los registros de negocio, usuarios, hashes de sesiones, numeración y controles de seguridad. D1 guarda también fotos y documentos por bloques sin acceso público. El navegador conserva los datos descargados en memoria; en localStorage solo se escriben el token de sesión, preferencias visuales, fecha de copia y el contador informativo local de IA.
 
 Los datos anteriores de localStorage/IndexedDB **se conservan sin modificarlos**. El administrador puede revisarlos e importarlos desde Ajustes. La importación muestra diferencias, descarga una copia previa y verifica los archivos antes de confirmar una transacción. También admite las copias JSON anteriores.
 
@@ -25,7 +25,7 @@ Se necesita conexión para consultar o guardar los datos. La PWA solo conserva l
 
 ## Despliegue, migración y pruebas
 
-Sigue [la guía completa](docs/SEGURIDAD-DESPLIEGUE.md). Incluye Wrangler, D1, R2, secretos, primer acceso, publicación de Pages, migración, pruebas y recuperación.
+Sigue [la guía completa](docs/SEGURIDAD-DESPLIEGUE.md). Incluye Wrangler, D1, secretos, primer acceso, publicación de Pages, migración, pruebas y recuperación.
 
 Con Node.js 24:
 

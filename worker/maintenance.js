@@ -21,7 +21,7 @@ export async function maintenance(env) {
       .bind(old),
   ]);
   const cursor = await db
-    .prepare("SELECT value FROM maintenance_state WHERE key='r2-cursor'")
+    .prepare("SELECT value FROM maintenance_state WHERE key='files-cursor'")
     .first();
   const page = await env.FILES.list({
     limit: 100,
@@ -45,7 +45,7 @@ export async function maintenance(env) {
   }
   await db
     .prepare(
-      "INSERT INTO maintenance_state(key,value) VALUES('r2-cursor',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+      "INSERT INTO maintenance_state(key,value) VALUES('files-cursor',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
     )
     .bind(page.truncated ? page.cursor : "")
     .run();

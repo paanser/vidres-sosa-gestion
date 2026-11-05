@@ -3,15 +3,14 @@ const { DatabaseSync } = require("node:sqlite");
 class D1 {
   constructor() {
     this.db = new DatabaseSync(":memory:");
-    this.db.exec(
-      fs.readFileSync(
-        require("node:path").join(
-          __dirname,
-          "../../worker/migrations/0001_auth_data.sql",
-        ),
-        "utf8",
-      ),
-    );
+    const dir = require("node:path").join(__dirname, "../../worker/migrations");
+    for (const name of fs
+      .readdirSync(dir)
+      .filter((n) => n.endsWith(".sql"))
+      .sort())
+      this.db.exec(
+        fs.readFileSync(require("node:path").join(dir, name), "utf8"),
+      );
   }
   withSession() {
     return this;

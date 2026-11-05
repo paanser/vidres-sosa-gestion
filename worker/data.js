@@ -398,10 +398,7 @@ export async function filesRoute(req, env, db, auth, path) {
         .first())
     )
       fail(400, "Trabajo no encontrado");
-    const bytes = await readBytes(
-        req,
-        kind === "photos" ? 20_000_000 : 8_000_000,
-      ),
+    const bytes = await readBytes(req, 8_000_000),
       hash = await digest(bytes);
     const mime = req.headers.get("Content-Type") || "application/octet-stream";
     if (

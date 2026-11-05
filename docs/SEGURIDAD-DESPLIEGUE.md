@@ -2,7 +2,7 @@
 
 ## Qué se entrega
 
-Interfaz vanilla con login y administración; Worker con usuarios, sesiones, datos e IA; migración SQL; configuración de Wrangler; script de primer acceso; pruebas y documentación. No se han creado recursos de Cloudflare ni trasladado datos reales. La URL de la interfaz sigue siendo `https://paanser.github.io/vidres-sosa-gestion/`.
+Interfaz vanilla con login y administración; Worker con usuarios, sesiones, datos e IA; migración SQL; configuración de Wrangler; script de primer acceso; pruebas y documentación. El despliegue automatizado configura los recursos autorizados. No se trasladan datos locales sin una importación confirmada. La URL de la interfaz sigue siendo `https://paanser.github.io/vidres-sosa-gestion/`.
 
 La aplicación se ha preparado sobre los cambios de cierre administrativo y archivo de trabajos de `d456ef57e7a7f89898184b51541afe7c206d501c`. Conserva facturado, cobrado, fecha de cierre, archivo y navegación de tarjetas.
 
@@ -17,7 +17,7 @@ La aplicación se ha preparado sobre los cambios de cierre administrativo y arch
 | Último administrador | Triggers SQL impiden su eliminación, desactivación o degradación incluso si llegan peticiones concurrentes                                                                                      |
 | Fuerza bruta         | Cinco fallos por usuario o IP en una ventana de 15 minutos bloquean temporalmente; mensajes genéricos y hash del identificador de la IP                                                         |
 | Datos                | D1, registros JSON validados por colección; API de estado con revisión optimista y transacción D1                                                                                               |
-| Adjuntos             | Bucket R2 privado. Cada descarga necesita sesión; no se publican URLs R2 ni enlaces permanentes sin autenticación                                                                               |
+| Adjuntos             | Bloques privados en D1. Cada descarga necesita sesión; no se publican URLs públicas de adjuntos ni enlaces permanentes sin autenticación                                                        |
 | IA                   | Sesión completa, 10 solicitudes/minuto por IP y 500/mes en total con reservas atómicas; máximo de respuesta y timeout; clave solo en Cloudflare                                                 |
 | XSS                  | `textContent` o `VSUtils.esc`, validación de tipos y enlaces, CSP sin JavaScript inline, sin manejadores HTML inline                                                                            |
 | CORS                 | Exclusivamente `https://paanser.github.io`. CORS no sustituye al token y no restringe a una ruta concreta de ese dominio                                                                        |
@@ -29,36 +29,30 @@ Todo el origen `https://paanser.github.io` comparte almacenamiento web entre sus
 
 Una sesión válida no caduca por tiempo, pero el navegador puede borrar su almacenamiento. La pantalla se vuelve a verificar al recuperar el foco y cada 30 segundos mientras está visible. Una petición tras la revocación se rechaza inmediatamente; los datos ya recibidos en memoria se ocultan al detectarla. Sin conexión no se permite un nuevo arranque con datos privados.
 
-## 1. Preparar herramientas y Cloudflare
+## 1. D1 sin tarjeta y despliegue desde GitHub
 
-Instala Node.js 24 y Python 3. Desde la raíz del proyecto:
+Esta versión no usa R2 ni solicita activar un plan de pago. Los adjuntos se guardan por bloques privados en la misma base D1 que los usuarios y registros. El Worker se despliega sin presupuesto de CPU de pago personalizado. Se aplican las cuotas del plan actual; no se actualiza el plan automáticamente.
+
+El proceso automatizado está en `.github/workflows/cloudflare.yml`. Utiliza los secretos de GitHub `CLOUDFLARE_API_TOKEN` y `ADMIN_INITIAL_PASSWORD`. El Account ID está en `worker/account.json` y no es un secreto. El token solo necesita permisos de edición de Workers Scripts y D1. Los permisos R2 ya no se utilizan.
+
+El workflow valida las pruebas y el formato, localiza o crea `vidres-sosa`, genera una configuración sin secretos, aplica las migraciones y despliega. Crea un pepper aleatorio directamente en Cloudflare si todavía no hay usuarios y no existe uno anterior. Nunca cambia el pepper de una instalación con usuarios. Conserva la clave OpenAI ya configurada. No imprime contraseñas ni tokens en los registros.
+
+Para despliegue manual, con Node.js 24 y Python 3:
 
 ```sh
 npm ci
 npm install --no-save wrangler@4
 npx wrangler login
-```
-
-Wrangler y las credenciales de Cloudflare son herramientas locales; no deben copiarse a la web ni al repositorio. El uso de D1/R2 y el presupuesto de CPU pueden requerir activar servicios o un plan compatible en tu cuenta. `worker/wrangler.jsonc` pide 100 ms de CPU; comprueba que el plan lo admite para PBKDF2. No reduzcas el coste del hash para eludir los límites de un plan.
-
-Crea la base de datos y el bucket:
-
-```sh
 npx wrangler d1 create vidres-sosa
-npx wrangler r2 bucket create vidres-sosa-privado
 ```
 
-Copia el `database_id` devuelto por Cloudflare en `worker/wrangler.jsonc`, sustituyendo el marcador. Conserva `binding: DB`. El nombre del bucket debe coincidir con la configuración y su binding es `FILES`.
-
-En Cloudflare, comprueba que R2 no tiene habilitado acceso público, URL de desarrollo pública ni dominio público. Todos los archivos pasan por el Worker autenticado.
-
-Aplica la migración:
+Copia el `database_id` devuelto en `worker/wrangler.jsonc`. Conserva el binding `DB` y la opción `nodejs_compat`, necesaria para la codificación eficiente de adjuntos. No añadas bindings R2 ni opciones de CPU de pago.
 
 ```sh
 npx wrangler d1 migrations apply vidres-sosa --remote --config worker/wrangler.jsonc
 ```
 
-No apliques esta migración sobre una base ajena con otras tablas del mismo nombre. Guarda los identificadores reales de recursos en tu configuración de despliegue; no contienen secretos.
+No apliques las migraciones a una base ajena. El límite interno es de 350 MB de contenido codificado, aproximadamente 250 MB útiles para adjuntos, para dejar margen al resto de registros y metadatos en D1. El límite por archivo es de 8 MB. Las imágenes se comprimen en el navegador antes de subirlas. Si no queda espacio, el servidor rechaza la subida y conserva lo existente; no activa facturación ni cambia de plan.
 
 ## 2. Desplegar primero el Worker protegido
 
@@ -82,7 +76,7 @@ npx wrangler secret put OPENAI_API_KEY --config worker/wrangler.jsonc
 
 La URL esperada está en `ai-config.js`: `https://vidres-sosa-ia.pausosagomez.workers.dev`. Si Cloudflare devuelve otra, actualiza ese valor **y** el origen permitido en `connect-src` de la CSP de `index.html`. La URL no es un secreto. El origen del frontend en producción permanece fijado en el servidor a `https://paanser.github.io`.
 
-Los bindings KV `USAGE` y el secreto `ACCESS_CODE` ya no se utilizan. Después de verificar el nuevo Worker puedes retirar el secreto antiguo:
+Los bindings KV `USAGE`, el almacenamiento R2 y el secreto `ACCESS_CODE` ya no se utilizan. Después de verificar el nuevo Worker puedes retirar el secreto antiguo:
 
 ```sh
 npx wrangler secret delete ACCESS_CODE --config worker/wrangler.jsonc
@@ -125,7 +119,7 @@ Integra la entrega en `main` y comprueba el workflow **Publicar Vidres Sosa Gest
 
 GitHub Pages sigue usando GitHub Actions como fuente. El workflow asigna el SHA a `version.json`, recursos y caché PWA. Revisa la publicación y abre la app con conexión. En dispositivos que tengan instalada la versión anterior, acepta la actualización y recarga antes de introducir datos.
 
-El frontend y el código JavaScript son públicos. Lo protegido son los datos y las acciones del servidor. Eliminar visualmente la pantalla de login no permite consultar D1, R2 o IA sin un token válido.
+El frontend y el código JavaScript son públicos. Lo protegido son los datos y las acciones del servidor. Eliminar visualmente la pantalla de login no permite consultar datos, adjuntos o IA sin un token válido.
 
 ## 5. Importar los datos existentes
 
@@ -144,7 +138,7 @@ Si tienes datos diferentes en varios dispositivos, prepara una copia unificada y
 
 Una interrupción antes del commit conserva el estado anterior del servidor. Si se pierde la respuesta justo al confirmar, recarga y revisa el resultado antes de repetir la importación. No se afirma que una descarga se haya guardado en disco: debe comprobarlo la persona que importa.
 
-Los registros tienen límites: estado de hasta 8 MB por petición, 5.000 registros por colección, un registro de hasta aproximadamente 500 KB, documentos de hasta 8 MB e imágenes de hasta 20 MB por subida. La interfaz comprime fotografías. La importación JSON completa admite hasta 250 MB antes de separar sus adjuntos. Para volúmenes superiores, habrá que adaptar la importación y paginación; no dividas copias sustituyendo sin revisar.
+Los registros tienen límites: estado de hasta 8 MB por petición, 5.000 registros por colección, un registro de hasta aproximadamente 500 KB, documentos e imágenes de hasta 8 MB por subida. La interfaz comprime fotografías. La importación JSON completa admite hasta 250 MB antes de separar sus adjuntos. Para volúmenes superiores, habrá que adaptar la importación y paginación; no dividas copias sustituyendo sin revisar.
 
 ## Endpoints
 
@@ -177,9 +171,9 @@ Las únicas peticiones HTTP sin sesión son login y preflight `OPTIONS`. Un orig
 
 ## Mantenimiento y copias
 
-El cron interno de Cloudflare limpia contadores vencidos y preparaciones canceladas o abandonadas durante más de siete días. Recorre R2 en lotes de 100 objetos por ejecución y elimina objetos sin referencia con más de 24 horas de antigüedad. Mantiene un cursor para continuar. No caduca ni elimina sesiones por antigüedad. La limpieza no tiene endpoint HTTP.
+El cron interno limpia contadores vencidos y preparaciones abandonadas durante más de siete días. Recorre los objetos de adjuntos de D1 en lotes de 100 y elimina objetos sin referencia con más de 24 horas. Mantiene un cursor y actualiza la cuota al borrar. No elimina sesiones por antigüedad. La limpieza no tiene endpoint HTTP.
 
-Exporta copias completas periódicas y protege además las copias de D1, R2 y el pepper con los mecanismos de tu cuenta. Prueba su restauración en un entorno separado. Una copia JSON no está cifrada y puede incluir datos personales. La protección técnica de acceso no sustituye las decisiones de retención y tratamiento de esos datos.
+Exporta copias completas periódicas y protege además las copias de D1 y del pepper con los mecanismos de tu cuenta. Prueba su restauración en un entorno separado. Una copia JSON no está cifrada y puede incluir datos personales. La protección técnica de acceso no sustituye las decisiones de retención y tratamiento de esos datos.
 
 Los registros administrativos no incluyen contraseñas, tokens, cuerpos de login ni claves del proveedor. No habilites registro de cuerpos o encabezados Authorization en herramientas externas.
 
@@ -195,7 +189,7 @@ npx prettier --check .
 
 También puedes ejecutar `npm run check:secrets` (Python 3), que revisa patrones en el historial y el árbol de trabajo sin imprimir credenciales. En Windows puedes usar `py scripts/check-secrets.py`. No sustituye una revisión manual.
 
-Las pruebas de backend usan SQLite real y transacciones/triggers, con bindings D1/R2 simulados y OpenAI simulado. Las del frontend ejecutan login y almacenamiento en un contexto JavaScript aislado; no sustituyen un navegador real.
+Las pruebas de backend usan SQLite real y transacciones/triggers, con bindings D1 simulados y OpenAI simulado. Las del frontend ejecutan login y almacenamiento en un contexto JavaScript aislado; no sustituyen un navegador real.
 
 Comprobador opcional de navegador:
 
@@ -205,7 +199,7 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-Sirve la interfaz por interceptación en su origen HTTPS real y conecta sus peticiones al Worker de pruebas. Usa cuentas ficticias; no toca D1/R2 reales ni OpenAI. Comprueba login, cambio obligatorio, creación de parte con medición y foto, usuarios, XSS, sesión persistente y empleado sin administración. Guarda captura en `test-results/`, carpeta ignorada. Puedes indicar `CHROMIUM_PATH` si usas un Chromium del sistema.
+Sirve la interfaz por interceptación en su origen HTTPS real y conecta sus peticiones al Worker de pruebas. Usa cuentas ficticias; no toca D1 reales ni OpenAI. Comprueba login, cambio obligatorio, creación de parte con medición y foto, usuarios, XSS, sesión persistente y empleado sin administración. Guarda captura en `test-results/`, carpeta ignorada. Puedes indicar `CHROMIUM_PATH` si usas un Chromium del sistema.
 
 **Limitación de esta entrega:** Chromium no pudo arrancar dentro de las restricciones de sockets del entorno de ejecución. Las pruebas automatizadas de Node sí se han ejecutado. No se ha certificado el runtime real de Cloudflare, la publicación de esta versión, ni iPhone/Android; completa las pruebas de aceptación siguientes tras configurar los servicios.
 
@@ -222,7 +216,7 @@ Sirve la interfaz por interceptación en su origen HTTPS real y conecta sus peti
 - [ ] Peticiones sin token a estado, adjuntos, administración, raíz antigua e IA devuelven 401 sin llamar a OpenAI.
 - [ ] Un origen diferente recibe 403 y no obtiene un encabezado CORS que le permita leer respuestas.
 - [ ] Crear/editar trabajos, clientes, mediciones/croquis, presupuestos, tarifas y notas persiste al recargar y se ve desde otro dispositivo.
-- [ ] Fotos/documentos se pueden descargar con sesión y no mediante una URL pública de R2.
+- [ ] Fotos/documentos se pueden descargar con sesión y no mediante una URL sin autenticación.
 - [ ] Dos dispositivos editando la misma revisión producen un conflicto 409 sin sobrescribir el primer guardado.
 - [ ] Un fallo de red mantiene el formulario y no muestra un éxito ficticio.
 - [ ] Importación verificada conserva campos de cierre y archivos, no borra originales locales y no expone datos antes del commit.

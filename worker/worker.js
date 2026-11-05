@@ -7,11 +7,15 @@ import {
   importsRoute,
   reserveQuoteNumber,
 } from "./data.js";
+import { D1Files } from "./d1-files.js";
 import { maintenance } from "./maintenance.js";
 import { interpret } from "./ai.js";
 export default {
   async scheduled(controller, env, ctx) {
-    ctx.waitUntil(maintenance(env));
+    const db = env.DB?.withSession
+      ? env.DB.withSession("first-primary")
+      : env.DB;
+    ctx.waitUntil(maintenance({ ...env, FILES: env.FILES || new D1Files(db) }));
   },
   async fetch(req, env) {
     const origin = req.headers.get("Origin"),
@@ -68,8 +72,8 @@ export default {
         if (req.method === "PUT") return json(await saveState(req, db, auth));
       }
       if (path.startsWith("/api/files")) {
-        if (!env.FILES) fail(503, "Almacenamiento de archivos sin configurar");
-        const r = await filesRoute(req, env, db, auth, path);
+        const storageEnv = { ...env, FILES: env.FILES || new D1Files(db) };
+        const r = await filesRoute(req, storageEnv, db, auth, path);
         if (r instanceof Response) {
           const h = new Headers(r.headers);
           for (const [k, v] of Object.entries(headers)) h.set(k, v);
@@ -121,6 +125,11 @@ export default {
           ? error.message
           : "No se pudo completar la operación";
       const codes = [
+        [
+          "STORAGE_FULL",
+          507,
+          "El espacio de archivos está lleno. Exporta una copia y elimina adjuntos que ya no necesites.",
+        ],
         [
           "FILE_CONFLICT",
           409,

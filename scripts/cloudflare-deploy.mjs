@@ -47,8 +47,7 @@ async function wrangler(args, account) {
       },
     );
     // Never relay raw CLI errors or request dumps from a process with credentials.
-    let stdout = "";
-    child.stdout.on("data", (chunk) => (stdout += chunk));
+    child.stdout.resume();
     child.stderr.resume();
     child.on("error", () => reject(Error("No se pudo iniciar Wrangler")));
     child.on("close", (code) =>
@@ -97,30 +96,16 @@ async function main() {
   if (!/^[a-f0-9-]{36}$/.test(databaseId || ""))
     throw Error("Cloudflare no devolvió un identificador D1 válido");
   say("Base de datos D1 localizada o creada.");
-  const bucketName = "vidres-sosa-privado",
-    buckets = await api(prefix + "/r2/buckets");
-  if (!(buckets.buckets || []).some((bucket) => bucket.name === bucketName))
-    await api(prefix + "/r2/buckets", "POST", { name: bucketName });
-  const managed = await api(
-    prefix + "/r2/buckets/" + bucketName + "/domains/managed",
+  say(
+    "Archivos privados en D1: no se utiliza R2 ni se activa una suscripción de almacenamiento.",
   );
-  const domains = await api(
-    prefix + "/r2/buckets/" + bucketName + "/domains/custom",
-  );
-  if (
-    managed.enabled ||
-    (domains.domains || []).some((domain) => domain.enabled)
-  )
-    throw Error(
-      "El bucket tiene acceso público. Desactívalo antes de continuar; no se han subido datos.",
-    );
-  say("Bucket R2 privado comprobado.");
   const config = {
     name: "vidres-sosa-ia",
     account_id: account,
     main: "worker.js",
     compatibility_date: "2026-11-04",
     workers_dev: true,
+    compatibility_flags: ["nodejs_compat"],
     triggers: { crons: ["0 3 * * *"] },
     vars: { ALLOWED_ORIGIN: "https://paanser.github.io" },
     d1_databases: [
@@ -131,8 +116,6 @@ async function main() {
         migrations_dir: "migrations",
       },
     ],
-    r2_buckets: [{ binding: "FILES", bucket_name: bucketName }],
-    limits: { cpu_ms: 100 },
     observability: { enabled: false },
   };
   const configFile = "worker/wrangler.deploy.json";
@@ -223,6 +206,51 @@ async function main() {
   say(
     "Verificado: datos, archivos, usuarios e IA rechazan peticiones sin sesión (401).",
   );
+  const pending = await api(
+    prefix + "/d1/database/" + databaseId + "/query",
+    "POST",
+    { sql: "SELECT must_change FROM users WHERE username='pau'" },
+  );
+  const requiresChange =
+    count === 0 || pending[0]?.results[0]?.must_change === 1;
+  if (requiresChange && process.env.ADMIN_INITIAL_PASSWORD) {
+    const logged = await fetch(endpoint + "/auth/login", {
+      method: "POST",
+      redirect: "error",
+      headers: { ...origin, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        usuario: "pau",
+        password: process.env.ADMIN_INITIAL_PASSWORD,
+      }),
+      signal: AbortSignal.timeout(30000),
+    });
+    if (!logged.ok)
+      throw Error(
+        "El login inicial no superó la comprobación en Workers (HTTP " +
+          logged.status +
+          "). No se publicará todavía la interfaz.",
+      );
+    const session = await logged.json();
+    if (!session.user?.cambioObligatorio)
+      throw Error("No está activo el cambio obligatorio de contraseña");
+    const blocked = await fetch(endpoint + "/api/state", {
+      headers: { ...origin, Authorization: "Bearer " + session.token },
+      redirect: "error",
+    });
+    if (blocked.status !== 403)
+      throw Error(
+        "El primer acceso no bloqueó los datos antes del cambio de contraseña",
+      );
+    const logout = await fetch(endpoint + "/auth/logout", {
+      method: "POST",
+      headers: { ...origin, Authorization: "Bearer " + session.token },
+      redirect: "error",
+    });
+    if (!logout.ok) throw Error("No se pudo revocar la sesión de comprobación");
+    say(
+      "Login inicial probado en Cloudflare; cambio obligatorio activo y sesión de prueba revocada.",
+    );
+  }
   say(
     count === 0
       ? "Backend preparado. Falta el primer login y cambio obligatorio de contraseña antes de publicar la interfaz."

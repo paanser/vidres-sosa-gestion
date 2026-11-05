@@ -17,6 +17,6 @@ La implementación sigue las fases acordadas: backend de usuarios/sesiones; logi
 
 ## Límites de lo comprobado
 
-Los bindings D1/R2 se simulan, aunque se ejecuta SQL real. No se ha desplegado esta versión en Cloudflare ni verificado su CPU real o facturación. Chromium no pudo iniciarse por las restricciones de sockets del entorno. El script opcional `scripts/check-browser.cjs` permite ejecutar la prueba de navegador fuera de ese entorno.
+Los bindings D1 se simulan, aunque se ejecuta SQL real. No se ha desplegado esta versión en Cloudflare ni verificado su CPU real o facturación. Chromium no pudo iniciarse por las restricciones de sockets del entorno. El script opcional `scripts/check-browser.cjs` permite ejecutar la prueba de navegador fuera de ese entorno.
 
 La matriz completa de aceptación y los comandos de despliegue están en [Seguridad y despliegue](SEGURIDAD-DESPLIEGUE.md). Completa la prueba visual y funcional en iPhone/Android y en el Worker real antes de utilizar datos reales.

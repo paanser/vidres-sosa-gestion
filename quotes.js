@@ -7,7 +7,7 @@
   let draft = null,
     quickMode = false;
   const quotes = () => VSStorage.read(Q, []),
-    tariffs = () => VSStorage.read(T, []),
+    tariffs = () => window.vidresTariffs.catalog(VSStorage.read(T, [])),
     config = () => VSStorage.read(C, {});
   const pricing = (q) =>
     q?.pricing || { vat: 21, energyMode: "pending", energy: "" };

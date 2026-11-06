@@ -1018,6 +1018,8 @@ window.vidresAppReady = (async () => {
       return false;
     try {
       const after = await VSBackup.snapshot();
+      const photosToRemove = after.photos.filter((x) => x.trabajo === id),
+        documentsToRemove = after.documents.filter((x) => x.trabajo === id);
       after.trabajos = after.trabajos.filter((j) => j.id !== id);
       after.mediciones = after.mediciones.filter((m) => m.trabajo !== id);
       after.photos = after.photos.filter((x) => x.trabajo !== id);
@@ -1026,6 +1028,14 @@ window.vidresAppReady = (async () => {
         q.job === id ? { ...q, job: "" } : q,
       );
       await VSBackup.transaction(after);
+      for (const photo of photosToRemove)
+        await VSFiles.remove("photos", photo.id).catch((e) =>
+          console.warn("Adjunto sin eliminar:", photo.id, e),
+        );
+      for (const doc of documentsToRemove)
+        await VSFiles.remove("documents", doc.id).catch((e) =>
+          console.warn("Adjunto sin eliminar:", doc.id, e),
+        );
       jobs = after.trabajos;
       measurements = after.mediciones;
       render();

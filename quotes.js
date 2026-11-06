@@ -21,7 +21,11 @@
     return value.toLocaleDateString("en-CA");
   }
   const unit = () => (config().unit === "mm" ? "mm" : "cm"),
-    display = (v) => (unit() === "mm" ? String(num(v) * 10) : v);
+    display = (v) => {
+      if (unit() !== "mm") return v;
+      if (v === "" || v == null) return "";
+      return String(Math.round(num(v) * 100) / 10);
+    };
   const glassName = (l) =>
     l.glass || tariffs().find((t) => t.id === l.tariff)?.name || "";
   const emptyLine = () => ({

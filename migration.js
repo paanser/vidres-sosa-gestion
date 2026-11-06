@@ -43,12 +43,22 @@
 
     const data = { format: "vidres-sosa-backup", version: 2 };
     for (const [name, key] of Object.entries(VSBackup.keys)) {
-      const raw = localStorage.getItem(key);
-      data[name] = raw
-        ? JSON.parse(raw)
-        : ["configuracion", "numeracion"].includes(name)
-          ? {}
-          : [];
+      const raw = localStorage.getItem(key),
+        fallback = ["configuracion", "numeracion"].includes(name) ? {} : [];
+      if (!raw) {
+        data[name] = fallback;
+        continue;
+      }
+      let parsed = null;
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        parsed = null;
+      }
+      data[name] =
+        parsed && Array.isArray(parsed) === Array.isArray(fallback)
+          ? parsed
+          : fallback;
     }
     const measures = await readDB("vidres-gestion-v1", "mediciones"),
       legacy = JSON.parse(localStorage.getItem("vidres-mediciones-v1") || "[]");

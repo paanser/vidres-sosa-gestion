@@ -44,12 +44,12 @@
     return { base, iva, total: round2(base + iva) };
   }
   // Los importes adicionales son por línea completa, no por pieza.
-  // El margen se aplica sobre coste o venta, siempre antes del IVA.
+  // Nuevos presupuestos: incremento solo del vidrio; los antiguos conservan su fórmula.
   function quoteDetails(quote) {
     const config = quote.pricing || {},
       marginRate = num(config.margin),
       factor =
-        config.marginMode === "sale"
+        config.marginScope !== "glass" && config.marginMode === "sale"
           ? marginRate < 100
             ? 1 / (1 - marginRate / 100)
             : NaN
@@ -62,9 +62,21 @@
           extraCost =
             line.kind === "concept" ? 0 : round2(num(line.extraAmount)),
           cost = round2(glassCost + extraCost),
-          sale = round2(cost * factor),
+          marginBase =
+            config.marginScope === "glass"
+              ? line.kind === "concept"
+                ? 0
+                : dimensions.area * num(line.price) * dimensions.qty
+              : cost,
+          sale = round2(
+            config.marginScope === "glass"
+              ? cost + marginBase * (factor - 1)
+              : cost * factor,
+          ),
           separate = line.extraMode === "separate",
-          extraSale = separate ? round2(extraCost * factor) : 0;
+          extraSale = separate
+            ? round2(extraCost * (config.marginScope === "glass" ? 1 : factor))
+            : 0;
         return {
           ...dimensions,
           glassCost,

@@ -60,3 +60,9 @@ CHROMIUM_PATH=/usr/bin/chromium npm run test:browser` (en una sola línea).
   Pages. La publicación actual se completa mediante el workflow del repositorio.
 - El rediseño anterior no se ha retomado. Sigue vigente la parada obligatoria
   después del paso 2 antes de iniciar el paso 3.
+
+- Fecha: 2026-11-06 · Tarea: selección Reuglass e incremento solo del vidrio.
+- Causa: autocompletado por nombre sin selector de tarifa; margen global sobre todos los costes y dos fórmulas en pantalla.
+- Solución: selector por identificador con nombre/precio; un único incremento del vidrio, sin margen en mano de obra, cantos, energía ni extras. Presupuestos anteriores conservan su fórmula hasta editar, con aviso.
+- Validación: npm test, navegador completo (390/768/1024/1440 px, Reuglass, PDF, WhatsApp y persistencia), Prettier, revisión de secretos y git diff --check correctos.
+- Pendientes: revisión e integración del PR; sin merge ni despliegue en esta tarea.

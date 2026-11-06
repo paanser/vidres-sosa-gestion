@@ -173,6 +173,76 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
   );
   await require("./check-quotes-browser.cjs")(page, context, root);
 
+  await page.evaluate(async () => {
+    await VSStorage.write(VSStorage.keys.clientes, [
+      {
+        nombre: "Cliente registrado",
+        telefono: "",
+        direccion: "Calle Fiscal 10",
+      },
+    ]);
+    vidresReloadData();
+  });
+  await page.locator("#add").click();
+  assert.equal(await page.locator("#start-template").count(), 0);
+  assert.equal(await page.locator("#form [name=facturado]").count(), 0);
+  assert.equal(
+    await page.locator(".job-extra-fields [name=hora]").isVisible(),
+    true,
+  );
+  assert.equal(
+    await page
+      .locator('#known-clients option[value="Cliente registrado"]')
+      .count(),
+    1,
+  );
+  await page.locator("#form [name=cliente]").fill("Cliente registrado");
+  assert.equal(
+    await page.locator("#form [name=direccion]").inputValue(),
+    "Calle Fiscal 10",
+  );
+  assert.equal(
+    await page
+      .locator("#client-address-choice")
+      .evaluate((el) => el.checkValidity()),
+    false,
+  );
+  await page.locator("#client-address-choice").selectOption("other");
+  assert.equal(await page.locator("#form [name=direccion]").inputValue(), "");
+  await page.locator("#form [name=direccion]").fill("Calle Medidas 20");
+  await page.locator("#form button[type=submit]").click();
+  await page.waitForFunction(() => !document.querySelector("#editor").open);
+  const saved = await page.evaluate(() => ({
+    job: vidresGetJobs().find((j) => j.cliente === "Cliente registrado"),
+    client: VSStorage.read(VSStorage.keys.clientes, [])[0],
+  }));
+  assert.equal(saved.job.direccion, "Calle Medidas 20");
+  assert.equal(saved.client.direccion, "Calle Fiscal 10");
+  await page.evaluate((id) => vidresOpenJobEditor(id), saved.job.id);
+  assert.equal(
+    await page.locator("#form [name=direccion]").inputValue(),
+    "Calle Medidas 20",
+  );
+  await page.locator("#cancel").click();
+  await page.locator("#add").click();
+  await page.locator("#form [name=cliente]").fill("Cliente registrado");
+  assert.equal(
+    await page.locator("#form [name=direccion]").inputValue(),
+    "Calle Fiscal 10",
+  );
+  await page.locator("#client-address-choice").selectOption("same");
+  await page.locator("#cancel").click();
+  await page.evaluate(async (id) => {
+    await VSStorage.write(
+      VSStorage.keys.trabajos,
+      vidresGetJobs().filter((j) => j.id !== id),
+    );
+    vidresReloadData();
+  }, saved.job.id);
+  console.log(
+    "PASS nuevo parte: cliente registrado, dirección independiente, reapertura y campos visibles",
+  );
+
   await page.locator("#add").click();
   await page.locator("#form [name=cliente]").fill("Cliente de navegador");
   await page.locator("#form [name=descripcion]").fill("Prueba completa");

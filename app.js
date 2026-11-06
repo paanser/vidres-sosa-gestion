@@ -897,26 +897,12 @@ window.vidresAppReady = (async () => {
     editing = id;
     convertingNote = id ? "" : prefill.noteId || "";
     form.reset();
+    selectedClient = "";
+    $("#client-address-question").hidden = true;
+    $("#client-address-choice").required = false;
+
     form.querySelectorAll("details").forEach((el) => (el.open = false));
     window.vidresNewMeasures.reset(id);
-    const tplWrap = $("#template-start"),
-      tplSelect = $("#start-template");
-    if (tplWrap && tplSelect) {
-      tplWrap.hidden = Boolean(id);
-      tplSelect.innerHTML =
-        '<option value="">Sin plantilla</option>' +
-        (window.vidresPlantillasList?.() || [])
-          .map(
-            (t) =>
-              '<option value="' +
-              esc(t.id) +
-              '">' +
-              esc(t.nombre) +
-              "</option>",
-          )
-          .join("");
-      tplSelect.value = "";
-    }
     pendingMeasurePhotos = [];
     renderPendingMeasurePhotos();
     for (const [selector, field] of [
@@ -925,7 +911,11 @@ window.vidresAppReady = (async () => {
     ]) {
       const list = $(selector);
       if (list)
-        list.innerHTML = [...new Set(jobs.map((j) => j[field]).filter(Boolean))]
+        list.innerHTML = (
+          field === "cliente"
+            ? clientNames()
+            : [...new Set(jobs.map((j) => j[field]).filter(Boolean))]
+        )
           .map((v) => '<option value="' + esc(v) + '"></option>')
           .join("");
     }
@@ -946,46 +936,47 @@ window.vidresAppReady = (async () => {
       ])
         form.elements[key].value = job[key] || "";
       form.elements["tipoCliente"].value = job.tipoCliente || "Particular";
-      if (form.elements.facturado)
-        form.elements.facturado.checked = Boolean(job.facturado);
-      if (form.elements.cobrado)
-        form.elements.cobrado.checked = Boolean(job.cobrado);
     } else {
       form.elements.cliente.value = prefill.cliente || "";
       form.elements.descripcion.value = prefill.descripcion || "";
+      syncClientAddress();
     }
+    if (id)
+      selectedClient = clients.some(
+        (c) => normName(c.nombre) === normName(form.elements.cliente.value),
+      )
+        ? normName(form.elements.cliente.value)
+        : "";
     dlg.showModal();
   }
-  function applyTemplate(id) {
-    const select = $("#start-template");
-    if (!id) return;
-    const t = (window.vidresPlantillasList?.() || []).find((x) => x.id === id);
-    if (!t) return;
-    const hasInfo =
-      form.elements.descripcion.value.trim() !== "" ||
-      form.elements.notas.value.trim() !== "" ||
-      (form.elements.tipoCliente.value || "Particular") !== "Particular" ||
-      document.querySelectorAll(".new-measure-piece").length > 0;
-    if (
-      hasInfo &&
-      !confirm(
-        "Ya hay información escrita. ¿Sustituirla por la plantilla «" +
-          t.nombre +
-          "»?",
-      )
-    ) {
-      select.value = "";
-      return;
-    }
-    form.elements.descripcion.value = t.descripcion || "";
-    form.elements.tipoCliente.value = t.tipoCliente || "Particular";
-    form.elements.notas.value = t.notas || "";
-    window.vidresNewMeasures.applyTemplatePieces?.(t.piezas || []);
-    select.value = "";
+  let selectedClient = "";
+  function syncClientAddress() {
+    const client = clients.find(
+      (c) => normName(c.nombre) === normName(form.elements.cliente.value),
+    );
+    const name = client ? normName(client.nombre) : "";
+    if (name === selectedClient) return;
+    const previous = selectedClient;
+    selectedClient = name;
+    const question = $("#client-address-question"),
+      choice = $("#client-address-choice");
+    question.hidden = !client;
+    choice.required = Boolean(client);
+    choice.value = "";
+    if (client) form.elements.direccion.value = client.direccion || "";
+    else if (previous) form.elements.direccion.value = "";
   }
-  $("#start-template")?.addEventListener("change", (e) =>
-    applyTemplate(e.target.value),
-  );
+  form.elements.cliente.addEventListener("input", syncClientAddress);
+  form.elements.cliente.addEventListener("change", syncClientAddress);
+  $("#client-address-choice").addEventListener("change", (e) => {
+    const client = clients.find((c) => normName(c.nombre) === selectedClient);
+    if (e.target.value === "same")
+      form.elements.direccion.value = client?.direccion || "";
+    else if (e.target.value === "other") {
+      form.elements.direccion.value = "";
+      form.elements.direccion.focus();
+    }
+  });
   window.vidresOpenJobEditor = open;
   window.vidresChangeJobStatus = async (id, status) => {
     const next = jobs.map((j) =>
@@ -1453,8 +1444,8 @@ window.vidresAppReady = (async () => {
                 ? old.finalizadoEn || new Date().toISOString()
                 : new Date().toISOString()
               : null,
-          facturado: Boolean(form.elements.facturado?.checked),
-          cobrado: Boolean(form.elements.cobrado?.checked),
+          facturado: Boolean(old.facturado),
+          cobrado: Boolean(old.cobrado),
           archivadoEn:
             values.estado === "Finalizado" ? old.archivadoEn || null : null,
         };
@@ -1471,8 +1462,8 @@ window.vidresAppReady = (async () => {
           ...values,
           finalizadoEn:
             values.estado === "Finalizado" ? new Date().toISOString() : null,
-          facturado: Boolean(form.elements.facturado?.checked),
-          cobrado: Boolean(form.elements.cobrado?.checked),
+          facturado: false,
+          cobrado: false,
           archivadoEn: null,
           historial: [
             {

@@ -218,12 +218,6 @@
               No se guardará nada sin pulsar Guardar.
             </p>
           </details>
-          <label class="template-start" id="template-start" hidden>
-            Empezar desde plantilla
-            <select id="start-template">
-              <option value="">Sin plantilla</option>
-            </select>
-          </label>
           <label
             >Cliente<input
               name="cliente"
@@ -231,8 +225,39 @@
               maxlength="100"
               list="known-clients"
               autocomplete="organization" /></label
-          ><datalist id="known-clients"></datalist
-          ><label
+          ><datalist id="known-clients"></datalist>
+          <label
+            >Dirección de medidas<input name="direccion" maxlength="180"
+          /></label>
+          <div class="location-actions">
+            <button type="button" id="location-get">📍 Usar mi ubicación</button
+            ><button type="button" id="location-map">🗺️ Abrir mapa</button>
+          </div>
+          <p id="location-message" class="muted" role="status">
+            La ubicación solo se solicita cuando pulses el botón.
+          </p>
+          <label
+            >Tipo de cliente<select name="tipoCliente">
+              <option>Particular</option>
+              <option>Vitralia</option>
+              <option>Mapfre</option>
+              <option>Otros</option>
+            </select></label
+          >
+          <label id="client-address-question" hidden>
+            ¿La dirección de medidas coincide con la de la ficha del cliente?
+            <select id="client-address-choice">
+              <option value="">Selecciona una opción</option>
+              <option value="same">Sí, usar la dirección de la ficha</option>
+              <option value="other">
+                No, indicar otra dirección de medidas
+              </option>
+            </select>
+            <small
+              >Los cambios de dirección solo se guardan en este parte.</small
+            >
+          </label>
+          <label
             >Descripción (opcional)<input
               name="descripcion"
               maxlength="180"
@@ -256,17 +281,8 @@
               <option>Crítico</option>
             </select></label
           >
-          <fieldset class="job-close-fields">
-            <legend>Control administrativo</legend>
-            <label><input type="checkbox" name="facturado" /> Facturado</label
-            ><label><input type="checkbox" name="cobrado" /> Cobrado</label>
-            <p class="muted">
-              Al marcar Finalizado se guarda la fecha de cierre. Después podrás
-              archivar el expediente desde la lista de trabajos finalizados.
-            </p>
-          </fieldset>
-          <details class="job-extra-fields">
-            <summary>Más datos del trabajo</summary>
+          <section class="job-extra-fields">
+            <h3>Más datos del trabajo</h3>
             <label
               >Hora prevista (opcional)<input name="hora" type="time" /></label
             ><label
@@ -277,26 +293,10 @@
                 max="1440"
                 step="1"
             /></label>
-            <label>Dirección<input name="direccion" maxlength="180" /></label>
-            <div class="location-actions">
-              <button type="button" id="location-get">
-                📍 Usar mi ubicación</button
-              ><button type="button" id="location-map">🗺️ Abrir mapa</button>
-            </div>
-            <p id="location-message" class="muted" role="status">
-              La ubicación solo se solicita cuando pulses el botón.
-            </p>
             <label
-              >Tipo de cliente<select name="tipoCliente">
-                <option>Particular</option>
-                <option>Vitralia</option>
-                <option>Mapfre</option>
-                <option>Otros</option>
-              </select></label
-            ><label
               >Notas<textarea name="notas" rows="3" maxlength="1000"></textarea>
             </label>
-          </details>
+          </section>
           <section id="new-job-measures" class="new-job-measures">
             <h3>Foto de medidas en papel</h3>
             <div class="measure-photo-actions">

@@ -2636,7 +2636,6 @@ nav button[data-page="criticos"].active {
   margin-bottom: 18px;
 }
 .advanced-work-filters summary,
-.job-extra-fields summary,
 .ai-usage summary {
   cursor: pointer;
   min-height: 44px;
@@ -2649,12 +2648,9 @@ nav button[data-page="criticos"].active {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 .job-extra-fields {
-  padding: 0 12px;
+  padding: 0 12px 12px;
   border: 1px solid #d5dfd8;
   border-radius: 8px;
-}
-.job-extra-fields[open] {
-  padding-bottom: 12px;
 }
 .job-extra-fields > label {
   margin-top: 12px;

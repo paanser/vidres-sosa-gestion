@@ -554,15 +554,19 @@
         notice.textContent = "El PDF supera 15 MB.";
         return;
       }
-      const pdfs = read(P, []);
-      pdfs.push({
-        name: file.name,
-        date: new Date().toLocaleDateString("es-ES"),
-      });
-      await VSStorage.local.setItem(P, JSON.stringify(pdfs));
-      window.vidresToolsRender("ajustes-tarifas");
-      document.querySelector("#pdf-notice").textContent =
-        "PDF registrado por nombre. El archivo NO se ha guardado ni enviado al servidor; queda pendiente de procesamiento.";
+      try {
+        const pdfs = read(P, []);
+        pdfs.push({
+          name: file.name,
+          date: new Date().toLocaleDateString("es-ES"),
+        });
+        await VSStorage.local.setItem(P, JSON.stringify(pdfs));
+        window.vidresToolsRender("ajustes-tarifas");
+        document.querySelector("#pdf-notice").textContent =
+          "PDF registrado por nombre. El archivo NO se ha guardado ni enviado al servidor; queda pendiente de procesamiento.";
+      } catch (err) {
+        notice.textContent = "No se pudo registrar el PDF: " + err.message;
+      }
       return;
     }
   };

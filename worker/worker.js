@@ -19,7 +19,7 @@ export default {
   },
   async fetch(req, env) {
     const origin = req.headers.get("Origin"),
-      allowed = "https://paanser.github.io";
+      allowed = env.ALLOWED_ORIGIN || "https://paanser.github.io";
     const headers = {
       ...(origin === allowed ? { "Access-Control-Allow-Origin": allowed } : {}),
       "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",

@@ -4,11 +4,12 @@
 - Objetivo: añadir margen seleccionable, importes y conceptos libres, precio
   manual por m² y presupuestos interno y para cliente.
 - Rama: `feat/presupuestos-margen-conceptos`, basada en `main` (`a25a2e1`), que
-  contiene correcciones posteriores a `rediseno`. No se ha modificado `main`.
+  contiene correcciones posteriores a `rediseno`. El usuario autorizó publicar
+  con «publica» y se integró la PR #34 en `main` (`2491599`).
   No existen instrucciones `AGENTS.md` en el repositorio clonado.
-- Último commit al redactar: `eec7c9f` (editor, documentos y pruebas de navegador).
-  Anterior: `1b42c6e` (cálculos, validación del servidor y pruebas). Este resumen
-  se guarda después en un commit documental; consultar `git log -1` para su SHA.
+- Último commit al redactar: `2491599` (integración de la PR #34). Commits de
+  implementación: `1b42c6e` y `eec7c9f`; revisión desplegada del Worker: `d19b913`.
+  Este resumen se guarda después en un commit documental; consultar `git log -1`.
 - Terminado:
   - Margen por presupuesto: sobre coste (`coste × (1 + porcentaje / 100)`) o
     sobre venta sin IVA (`coste / (1 - porcentaje / 100)`, inferior al 100 %).
@@ -36,12 +37,26 @@
 - Navegador: usar `PLAYWRIGHT_MODULE_PATH=/opt/codex/cua_node/lib/node_modules/playwright
 CHROMIUM_PATH=/usr/bin/chromium npm run test:browser` (en una sola línea).
 - Cambios sin commit: ninguno tras el commit de este documento.
-- GitHub: se sube la rama de la tarea con los commits al cerrar la sesión;
-  comprobar la referencia remota si se retoma desde otro entorno.
-- Publicación: no publicado, sin merge ni cambios en `main` o `rediseno`.
-  La función necesita tanto el frontend como la validación nueva del Worker.
-- Siguiente paso: revisar la rama y, con autorización para publicar, desplegar
-  primero el Worker y después integrar el frontend en `main` para GitHub Pages.
-  No publicar solo el frontend: el Worker anterior rechaza conceptos sin medidas.
+- GitHub: PR #34 integrada en `main`. La rama de la tarea se conserva y se
+  actualiza con este documento; no se ha modificado `rediseno`.
+- Publicación autorizada y realizada:
+  - Worker desplegado primero desde `d19b913`: ejecución `42226140393`, correcta.
+    Conserva los secretos y las rutas privadas rechazan acceso sin sesión (401).
+  - Interfaz integrada en `main` (`2491599`): ejecución Pages `42226295611`,
+    correcta. En la URL pública se han comprobado los controles de margen,
+    conceptos libres y PDF interno. Sin pruebas que modifiquen datos reales.
+  - URL: https://paanser.github.io/vidres-sosa-gestion/
+  - Este commit documental activa otra publicación; comprobar su ejecución y
+    `version.json` al finalizar. Los cambios funcionales ya están publicados.
+- Configuración pendiente: Pages está en modo `legacy` (rama `main`, raíz),
+  además del workflow `pages.yml`. El intento de cambiar a `workflow` mediante
+  la API fue rechazado con 403; no se cambió esa configuración. Se canceló la
+  ejecución paralela `42226294420` para evitar sobrescribir el artefacto versionado.
+  Tras cada push a `main`, hasta corregir la configuración, cancelar el flujo
+  automático «pages build and deployment» y comprobar que el de `pages.yml`
+  termina correctamente y `version.json` coincide con el SHA publicado.
+- Siguiente paso: en Settings → Pages → Build and deployment → Source, elegir
+  GitHub Actions con una cuenta o integración que tenga permiso para cambiar
+  Pages. La publicación actual se completa mediante el workflow del repositorio.
 - El rediseño anterior no se ha retomado. Sigue vigente la parada obligatoria
   después del paso 2 antes de iniciar el paso 3.

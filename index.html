@@ -262,12 +262,7 @@
               name="descripcion"
               maxlength="180"
               placeholder="Ej. Sustituir vidrio de escaparate" /></label
-          ><label
-            >Responsable<input
-              name="responsable"
-              maxlength="80"
-              list="known-workers" /></label
-          ><datalist id="known-workers"></datalist
+          ><label>Responsable<select name="responsable"></select></label
           ><label>Fecha prevista<input name="fecha" type="date" /></label
           ><label
             >Estado<select name="estado">
@@ -284,15 +279,9 @@
           <section class="job-extra-fields">
             <h3>Más datos del trabajo</h3>
             <label
-              >Hora prevista (opcional)<input name="hora" type="time" /></label
-            ><label
-              >Duración prevista (minutos, opcional)<input
-                name="duracion"
-                type="number"
-                min="1"
-                max="1440"
-                step="1"
+              >Hora prevista (opcional)<input name="hora" type="time"
             /></label>
+            <input name="duracion" type="hidden" />
             <label
               >Notas<textarea name="notas" rows="3" maxlength="1000"></textarea>
             </label>

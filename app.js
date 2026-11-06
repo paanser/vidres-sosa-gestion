@@ -893,6 +893,7 @@ window.vidresAppReady = (async () => {
       .join("");
   }
   let convertingNote = "";
+  let workerOptionsRequest = 0;
   function open(id, prefill = {}) {
     editing = id;
     convertingNote = id ? "" : prefill.noteId || "";
@@ -905,10 +906,7 @@ window.vidresAppReady = (async () => {
     window.vidresNewMeasures.reset(id);
     pendingMeasurePhotos = [];
     renderPendingMeasurePhotos();
-    for (const [selector, field] of [
-      ["#known-clients", "cliente"],
-      ["#known-workers", "responsable"],
-    ]) {
+    for (const [selector, field] of [["#known-clients", "cliente"]]) {
       const list = $(selector);
       if (list)
         list.innerHTML = (
@@ -919,6 +917,36 @@ window.vidresAppReady = (async () => {
           .map((v) => '<option value="' + esc(v) + '"></option>')
           .join("");
     }
+    const responsible = form.elements.responsable,
+      currentName = window.VSAuth.user.nombre,
+      requestId = ++workerOptionsRequest;
+    responsible.innerHTML =
+      '<option value="' +
+      esc(currentName) +
+      '">' +
+      esc(currentName) +
+      "</option>";
+    window.VSAuth.json("/api/users")
+      .then(({ users }) => {
+        if (requestId !== workerOptionsRequest || !dlg.open) return;
+        const selected = responsible.value;
+        responsible.innerHTML = [
+          ...new Set([selected, ...users.map((u) => u.nombre)]),
+        ]
+          .filter(Boolean)
+          .map(
+            (name) =>
+              '<option value="' + esc(name) + '">' + esc(name) + "</option>",
+          )
+          .join("");
+        responsible.value = selected;
+      })
+      .catch(() => {
+        if (requestId === workerOptionsRequest && dlg.open)
+          alert(
+            "No se pudo cargar la lista de usuarios. Cierra y vuelve a abrir el parte para reintentarlo.",
+          );
+      });
     $("#formtitle").textContent = id ? "Editar trabajo" : "Nuevo parte";
     if (id) {
       const job = jobs.find((j) => j.id === id);
@@ -927,7 +955,6 @@ window.vidresAppReady = (async () => {
         "cliente",
         "descripcion",
         "direccion",
-        "responsable",
         "fecha",
         "hora",
         "duracion",

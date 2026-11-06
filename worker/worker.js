@@ -65,6 +65,14 @@ export default {
         const r = await importsRoute(req, db, auth, path);
         if (r) return json(r);
       }
+      if (path === "/api/users" && req.method === "GET") {
+        const { results } = await db
+          .prepare(
+            "SELECT id, name AS nombre FROM users WHERE active=1 ORDER BY name, id",
+          )
+          .all();
+        return json({ users: results });
+      }
       if (path === "/api/quote-number" && req.method === "POST")
         return json(await reserveQuoteNumber(req, db, auth));
       if (path === "/api/state") {

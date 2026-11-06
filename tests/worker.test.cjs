@@ -677,3 +677,31 @@ test("mantenimiento limpia huérfanos y contadores sin caducar sesiones", async 
     200,
   );
 });
+
+test("active user directory exposes only id and name to authenticated workers", async () => {
+  const env = setup();
+  await admin(env);
+  assert.equal((await call(env, "/api/users")).status, 401);
+  await env.DB.prepare(
+    "INSERT INTO users(id,name,username,role,active,password_hash,salt,iterations,must_change,credential_version,created_at) SELECT 'worker','Operario','operario','empleado',1,password_hash,salt,iterations,0,1,created_at FROM users LIMIT 1",
+  ).run();
+  await env.DB.prepare(
+    "INSERT INTO users(id,name,username,role,active,password_hash,salt,iterations,must_change,credential_version,created_at) SELECT 'inactive','Inactivo','inactivo','empleado',0,password_hash,salt,iterations,0,1,created_at FROM users LIMIT 1",
+  ).run();
+  const login = await call(env, "/auth/login", "POST", {
+    usuario: "operario",
+    password: "changed-fixture-123",
+  });
+  const result = await call(
+    env,
+    "/api/users",
+    "GET",
+    undefined,
+    login.data.token,
+  );
+  assert.equal(result.status, 200);
+  assert.ok(result.data.users.some((u) => u.id === "worker"));
+  assert.ok(!result.data.users.some((u) => u.id === "inactive"));
+  for (const user of result.data.users)
+    assert.deepEqual(Object.keys(user).sort(), ["id", "nombre"]);
+});

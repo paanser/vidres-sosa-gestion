@@ -1,11 +1,11 @@
 name: Preparar backend privado de Cloudflare
 on:
   push:
-    branches: [feat/autenticacion-servidor]
+    branches: [main, feat/autenticacion-servidor]
     paths:
       - .github/workflows/cloudflare.yml
       - scripts/cloudflare-deploy.mjs
-      - worker/account.json
+      - worker/**
   workflow_dispatch:
 permissions:
   contents: read

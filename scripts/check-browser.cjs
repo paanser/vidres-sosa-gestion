@@ -184,6 +184,16 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
     vidresReloadData();
   });
   await page.locator("#add").click();
+  assert.equal(await page.locator("#form [name=duracion]").isVisible(), false);
+  assert.equal(
+    await page.locator("#form [name=responsable]").inputValue(),
+    await page.evaluate(() => VSAuth.user.nombre),
+  );
+  await page.waitForFunction(
+    () =>
+      document.querySelector("#form select[name=responsable]").options.length >
+      0,
+  );
   assert.equal(await page.locator("#start-template").count(), 0);
   assert.equal(await page.locator("#form [name=facturado]").count(), 0);
   assert.equal(

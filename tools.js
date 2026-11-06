@@ -60,7 +60,7 @@
   let query = "",
     selected = "all",
     pendingPdf = null;
-  const catalog = () => read(T, []);
+  const catalog = () => window.vidresTariffs.catalog(read(T, []));
   function tile(page, title, description) {
     return (
       '<button type="button" data-tool-go="' +
@@ -161,7 +161,7 @@
           .includes(query.toLocaleLowerCase("es")),
     );
     return (
-      '<section class="panel"><h2>Consultor de tarifas</h2><p class="muted">Consulta rápida de los artículos importados en CSV. No crea presupuestos.</p><div class="quote-fields"><label>Tarifa<select id="consult-filter"><option value="all">Todas las tarifas</option>' +
+      '<section class="panel"><h2>Consultor de tarifas</h2><p class="muted">Consulta rápida de Tarifa Reuglass y de los artículos importados en CSV. No crea presupuestos.</p><div class="quote-fields"><label>Tarifa<select id="consult-filter"><option value="all">Todas las tarifas</option>' +
       list
         .map(
           (t) =>
@@ -178,7 +178,8 @@
       esc(query) +
       '" autocomplete="off"></label></div><div id="consult-results">' +
       results(filtered) +
-      "</div></section>"
+      "</div></section>" +
+      window.vidresTariffs.documentPanel()
     );
   }
   function results(list) {
@@ -200,7 +201,7 @@
       : '<p class="muted">No hay resultados. Importa una tarifa CSV desde Ajustes o cambia la búsqueda.</p>';
   }
   function tariffList() {
-    const items = catalog();
+    const items = read(T, []);
     return (
       '<div class="tariff-list">' +
       items
@@ -218,7 +219,7 @@
         )
         .join("") +
       (items.length
-        ? '<button type="button" id="tariffs-clear">Eliminar todas las tarifas</button>'
+        ? '<button type="button" id="tariffs-clear">Eliminar todas las tarifas importadas</button>'
         : "<p>No hay tarifas.</p>") +
       "</div>"
     );
@@ -313,6 +314,7 @@
           "Hola{cliente}, te paso el precio:\n\n{detalle}\n\nBase: {base}\nIVA: {iva}\nTotal: {total}\n\n{empresa}. Presupuesto válido {validez} días.",
       ) +
       '</textarea></label><p class="muted">Campos disponibles: {cliente}, {detalle}, {base}, {iva}, {total}, {empresa}, {validez}.</p></details><p>Los impuestos y recargos se copian a los presupuestos nuevos. Los guardados conservan sus condiciones.</p><button id="cfg-save" class="primary">Guardar configuración</button><p id="cfg-notice" role="status"></p></section><section class="panel" data-settings-section="tarifas"><h2>Tarifas y documentos PDF</h2><label>Importar tarifas CSV<input id="cfg-csv" type="file" accept=".csv,text/csv"></label><p id="csv-notice" role="status"></p>' +
+      window.vidresTariffs.documentPanel() +
       tariffList() +
       '<label>Seleccionar PDF de tarifa<input id="cfg-pdf" type="file" accept=".pdf,application/pdf"></label><p id="pdf-notice" role="status"></p><p>El catálogo PDF solo registra el nombre, no guarda el archivo. Los documentos de cada expediente se guardan en su sección Documentos.</p>' +
       pdfs
@@ -370,7 +372,7 @@
       if (
         !confirm(
           t.id === "tariffs-clear"
-            ? "¿Eliminar todas las tarifas? Los presupuestos conservan sus precios guardados."
+            ? "¿Eliminar todas las tarifas importadas? Los presupuestos conservan sus precios guardados."
             : "¿Eliminar esta tarifa?",
         )
       )
@@ -380,7 +382,7 @@
         JSON.stringify(
           t.id === "tariffs-clear"
             ? []
-            : catalog().filter((x) => x.id !== t.dataset.tariffDelete),
+            : read(T, []).filter((x) => x.id !== t.dataset.tariffDelete),
         ),
       );
       window.dispatchEvent(new Event("vidres-tariffs-change"));
@@ -528,7 +530,7 @@
         if (!items.length) throw Error("CSV sin artículos.");
         await VSStorage.local.setItem(
           T,
-          JSON.stringify(window.vidresTariffs.merge(catalog(), items)),
+          JSON.stringify(window.vidresTariffs.merge(read(T, []), items)),
         );
         window.dispatchEvent(new Event("vidres-tariffs-change"));
         window.vidresNavigate("ajustes-tarifas");

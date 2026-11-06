@@ -60,3 +60,30 @@ CHROMIUM_PATH=/usr/bin/chromium npm run test:browser` (en una sola línea).
   Pages. La publicación actual se completa mediante el workflow del repositorio.
 - El rediseño anterior no se ha retomado. Sigue vigente la parada obligatoria
   después del paso 2 antes de iniciar el paso 3.
+
+## Sesión pendiente de aprobación · 6 de noviembre de 2026
+
+- Objetivo nuevo: cuatro cambios sucesivos: medidas en metros con milímetros,
+  peso y energía por kg, mano de obra integrada en vidrio y dos PDF detallados.
+- Rama: `feature/medidas-metros-20261106`, creada desde `origin/main` en
+  `8ada9e8`. Último commit anterior a esta nota: `8ada9e8`; consultar `git log -1`
+  para el commit documental que guarda esta sesión.
+- Revisión terminada: código de medidas, cálculos, presupuestos, ajustes,
+  tarifas, copias y validación del servidor. No hay AGENTS.md en la raíz.
+  La copia inicial local estaba en `work` (`a25a2e1`), limpia. GitHub confirma
+  `rediseno` en `29dcb38` (descarta el rediseño); no se retoma ese trabajo.
+- Pendiente: presentar el plan y esperar el visto bueno antes de escribir código,
+  tal como exige el texto adjunto. Después implementar SOLO el cambio 1 y esperar
+  otra indicación antes del cambio 2. Conservar margen y conceptos libres actuales.
+- Hallazgo: `worker/data.js` rechaza unidades distintas de cm/mm; admitir m es
+  necesario para guardar Ajustes. No cambiar auth.js ni storage.js.
+- Pruebas iniciales: `npm test`, 36 aprobadas y 0 fallos;
+  `npx prettier --check .`, correcto (npx usó Prettier 3.9.10 al faltar instalación
+  local). No hay pruebas nuevas ni comprobación visual en esta fase documental.
+- Cambios funcionales: ninguno. Cambios sin commit: ninguno tras guardar esta nota.
+- Siguiente paso: obtener aprobación del plan para el cambio 1; comprobar después
+  390, 768, 1024 y 1440 px con datos ficticios, compatibilidad y funcionamiento
+  sin conexión. No añadir recursos públicos salvo necesidad; si se añaden,
+  actualizar sw.js y la copia de pages.yml, y loader.js si son scripts.
+- GitHub: se intentará subir únicamente esta rama con la nota documental y se
+  verificará el SHA remoto. No se modifica main ni se publica la aplicación.

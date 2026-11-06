@@ -69,7 +69,7 @@ export function validateValues(values) {
       if (name === "configuracion") {
         if (value.vat != null) number(value.vat, 0, 100);
         if (value.energy != null && value.energy !== "") number(value.energy);
-        if (value.unit != null && !["mm", "cm"].includes(value.unit))
+        if (value.unit != null && !["mm", "cm", "m"].includes(value.unit))
           fail(400, "Unidad no válida");
         if (value.company != null && !object(value.company))
           fail(400, "Empresa no válida");
@@ -187,6 +187,8 @@ export function checked(values) {
         point(d.a);
         point(d.b);
         text(d.valor, 12);
+        if (d.unit != null && !["m", "cm", "mm"].includes(d.unit))
+          fail(400, "Unidad de cota no válida");
         id(d.id);
       });
       text(s.notes || "", 1000);

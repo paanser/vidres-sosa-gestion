@@ -526,10 +526,10 @@ window.vidresAppReady = (async () => {
                 " mm · " +
                 esc(m.cantidad) +
                 " ud.</p><p>" +
-                esc(m.ancho) +
+                VSUtils.formatMeters(m.ancho) +
                 " × " +
-                esc(m.alto) +
-                " cm · <strong>" +
+                VSUtils.formatMeters(m.alto) +
+                " m · <strong>" +
                 measurementArea(m).toFixed(4) +
                 ' m²</strong></p><p class="muted">' +
                 esc(m.observaciones || "") +
@@ -573,6 +573,12 @@ window.vidresAppReady = (async () => {
       ])
         form.elements[k].value = m[k] ?? "";
     else if (jobId) form.elements.trabajo.value = jobId;
+    VSMeasureInput.init(form);
+    for (const key of ["ancho", "alto"]) {
+      form.querySelector(`[data-measure-label="${key}"]`).textContent =
+        `${key === "ancho" ? "Ancho" : "Alto"} (${VSMeasureInput.unit()})`;
+      VSMeasureInput.set(form.elements[key], m?.[key] ?? "");
+    }
     window.vidresSketch.mount(
       document.querySelector("#measure-sketch"),
       m?.croquis,
@@ -601,7 +607,7 @@ window.vidresAppReady = (async () => {
               )
             )
               return;
-            input.value = value;
+            VSMeasureInput.set(input, value);
           };
           setMeasure("ancho", ancho);
           setMeasure("alto", alto);
@@ -1351,7 +1357,8 @@ window.vidresAppReady = (async () => {
     "submit",
     VSForms.guard(async (e) => {
       e.preventDefault();
-      if (!e.target.reportValidity()) return;
+      if (!VSMeasureInput.validate(e.target) || !e.target.reportValidity())
+        return;
       const data = new FormData(e.target),
         m = Object.fromEntries(
           [
@@ -1365,6 +1372,8 @@ window.vidresAppReady = (async () => {
             "observaciones",
           ].map((k) => [k, String(data.get(k) || "").trim()]),
         );
+      for (const key of ["ancho", "alto"])
+        m[key] = VSMeasureInput.read(e.target.elements[key]).cm;
       if (
         !jobs.some((j) => j.id === m.trabajo) ||
         !Number.isFinite(Number(m.ancho)) ||

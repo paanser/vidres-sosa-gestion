@@ -54,7 +54,7 @@
   }
   const euro = money;
   const config = () => ({
-    ...{ unit: "cm", energy: "", energyMode: "pending" },
+    ...{ unit: "m", energy: "", energyMode: "pending" },
     ...read(C, {}),
   });
   let query = "",
@@ -258,10 +258,12 @@
       pdfs = read(P, []);
     return (
       '<section class="panel" data-settings-section="general"><h2>Configuración general</h2><div class="quote-fields"><label>Unidad de entrada<select id="cfg-unit"><option value="cm" ' +
-      (c.unit !== "mm" ? "selected" : "") +
+      (c.unit === "cm" ? "selected" : "") +
       '>Centímetros</option><option value="mm" ' +
       (c.unit === "mm" ? "selected" : "") +
-      '>Milímetros</option></select></label><label>Días hasta reclamar un presupuesto<input id="cfg-followup-days" type="number" min="1" max="365" step="1" value="' +
+      '>Milímetros</option><option value="m" ' +
+      (c.unit === "m" ? "selected" : "") +
+      '>Metros con milímetros (1.234)</option></select></label><label>Días hasta reclamar un presupuesto<input id="cfg-followup-days" type="number" min="1" max="365" step="1" value="' +
       esc(c.followupDays || 4) +
       '"></label><label>IVA (%)<input id="cfg-vat" type="number" min="0" max="100" step="0.01" value="' +
       esc(c.vat ?? 21) +
@@ -424,6 +426,9 @@
       }
       await VSStorage.write(C, {
         ...config(),
+        legacyDimensionUnit:
+          config().legacyDimensionUnit ||
+          (config().unit === "mm" ? "mm" : "cm"),
         unit,
         energy,
         vat: Number(vat),

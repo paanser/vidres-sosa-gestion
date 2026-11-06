@@ -15,8 +15,8 @@ module.exports = async function checkQuotes(page, context, root) {
   });
   await set("#quote-client", "Cliente ficticio de prueba");
   await set('[data-field="glass"]', "Vidrio especial sin tarifa");
-  await set('[data-field="w"]', "120");
-  await set('[data-field="h"]', "120");
+  await set('[data-field="w"]', "1.200");
+  await set('[data-field="h"]', "1.200");
   await set('[data-field="price"]', "100");
   await set('[data-field="extraDescription"]', "Montaje interno reservado");
   await set('[data-field="extraAmount"]', "50");

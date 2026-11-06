@@ -21,12 +21,10 @@
     value.setDate(value.getDate() + days);
     return value.toLocaleDateString("en-CA");
   }
-  const unit = () => (config().unit === "mm" ? "mm" : "cm"),
-    display = (v) => {
-      if (unit() !== "mm") return v;
-      if (v === "" || v == null) return "";
-      return String(Math.round(num(v) * 100) / 10);
-    };
+  const unit = () => VSMeasureInput.unit(),
+    display = (v) => VSMeasureInput.display(v);
+  const measures = (w, h) =>
+    `${VSUtils.formatMeters(w)} × ${VSUtils.formatMeters(h)} m`;
   const glassName = (l) =>
     l.glass || tariffs().find((t) => t.id === l.tariff)?.name || "";
   const emptyLine = () => ({
@@ -68,13 +66,28 @@
     }
     const list = quotes(),
       jobs = window.vidresGetJobs?.() || [],
-      total = sum(draft),
       breakdown = details(draft);
     document.querySelector("#content").innerHTML =
       `<div class="quote-toolbar"><button type="button" class="quick-quote-button" id="quote-quick">⚡ Presupuesto rápido</button><button type="button" class="primary" id="quote-new">+ Nuevo presupuesto</button><button type="button" id="quote-settings">Ajustes de tarifas</button></div>
  <section class="panel quote-editor"><h2>Presupuesto de vidrio · ${esc(draft.id || "Sin guardar")}</h2><div class="quote-fields"><label>Cliente<input id="quote-client" maxlength="100" value="${esc(draft.client)}"></label><label>Parte relacionado<select id="quote-job"><option value="">Sin vincular</option>${jobs.map((j) => `<option value="${esc(j.id)}" ${draft.job === j.id ? "selected" : ""}>${esc(j.id + " · " + j.cliente)}</option>`).join("")}</select></label><label>Estado<select id="quote-status">${statuses.map((s) => `<option ${s === (draft.status || "Borrador") ? "selected" : ""}>${s}</option>`).join("")}</select></label></div>
- <div class="quote-margin"><label>Margen (%)<input id="quote-margin" type="number" min="0" step="0.01" value="${esc(pricing(draft).margin || "")}"></label><fieldset class="quote-margin-options"><legend>Calcular el margen sobre</legend><label><input type="radio" name="quote-margin-mode" value="cost" ${pricing(draft).marginMode !== "sale" ? "checked" : ""}>Precio de coste · 100 € con 20 % → 120 €</label><label><input type="radio" name="quote-margin-mode" value="sale" ${pricing(draft).marginMode === "sale" ? "checked" : ""}>Precio de venta sin IVA · 100 € con 20 % → 125 €</label></fieldset><p>Se aplica al vidrio, cantos, recargo energético y conceptos libres antes del IVA. Sobre venta, el porcentaje debe ser inferior al 100 %. Solo visible en la copia interna.</p></div><div id="quote-lines">${draft.lines.map(row).join("")}</div><button type="button" id="quote-add">+ Añadir otro vidrio</button><button type="button" id="quote-add-concept">+ Añadir concepto libre</button><div class="quote-total"><div class="quote-total-breakdown">Coste interno: <strong>${money(breakdown.cost)}</strong><br>Margen añadido: <strong>${money(breakdown.margin)}</strong><br>Base imponible de venta: <strong>${money(total.base)}</strong><br>IVA (${esc(pricing(draft).vat ?? 21)} %): <strong>${money(total.iva)}</strong><br>Total con IVA: <strong class="quote-grand-total">${money(total.total)}</strong></div></div><div class="quote-toolbar"><button type="button" class="primary" id="quote-save">Guardar presupuesto</button><button type="button" id="quote-whatsapp">Enviar por WhatsApp</button><button type="button" id="quote-pdf">PDF para cliente</button><button type="button" id="quote-pdf-internal">PDF interno · Vidres Sosa</button></div></section>
+ <div class="quote-margin"><label>Margen (%)<input id="quote-margin" type="number" min="0" step="0.01" value="${esc(pricing(draft).margin || "")}"></label><fieldset class="quote-margin-options"><legend>Calcular el margen sobre</legend><label><input type="radio" name="quote-margin-mode" value="cost" ${pricing(draft).marginMode !== "sale" ? "checked" : ""}>Precio de coste · 100 € con 20 % → 120 €</label><label><input type="radio" name="quote-margin-mode" value="sale" ${pricing(draft).marginMode === "sale" ? "checked" : ""}>Precio de venta sin IVA · 100 € con 20 % → 125 €</label></fieldset><p>Se aplica al vidrio, cantos, recargo energético y conceptos libres antes del IVA. Sobre venta, el porcentaje debe ser inferior al 100 %. Solo visible en la copia interna.</p></div><div id="quote-lines">${draft.lines.map(row).join("")}</div><button type="button" id="quote-add">+ Añadir otro vidrio</button><button type="button" id="quote-add-concept">+ Añadir concepto libre</button><div class="quote-total"><div class="quote-total-breakdown">${totalResult(breakdown)}</div></div><div class="quote-toolbar"><button type="button" class="primary" id="quote-save">Guardar presupuesto</button><button type="button" id="quote-whatsapp">Enviar por WhatsApp</button><button type="button" id="quote-pdf">PDF para cliente</button><button type="button" id="quote-pdf-internal">PDF interno · Vidres Sosa</button></div></section>
  <section class="panel"><h2>Presupuestos guardados</h2>${list.length ? list.map((q) => `<article class="quote-saved"><span>${esc(q.id)} · ${esc(q.client)} · ${esc(q.status || "Borrador")} · Total: ${money(sum(q).total)}</span><div><button type="button" data-load="${esc(q.id)}">Abrir</button><button type="button" data-whatsapp="${esc(q.id)}">WhatsApp</button><button type="button" data-duplicate="${esc(q.id)}">Duplicar</button><button type="button" data-delete-quote="${esc(q.id)}">Eliminar</button></div></article>`).join("") : "<p>No hay presupuestos guardados.</p>"}</section>`;
+    initMeasures();
+  }
+  function initMeasures() {
+    VSMeasureInput.init(document.querySelector("#content"));
+    document.querySelectorAll(".quote-line [data-measure]").forEach((input) => {
+      VSMeasureInput.set(
+        input,
+        draft.lines[Number(input.closest(".quote-line").dataset.line)][
+          input.dataset.field
+        ],
+      );
+    });
+    if (quickMode) {
+      VSMeasureInput.set(document.querySelector("#quick-w"), draft.lines[0].w);
+      VSMeasureInput.set(document.querySelector("#quick-h"), draft.lines[0].h);
+    }
   }
   function quickSync() {
     const line = draft.lines[0] || emptyLine(),
@@ -96,8 +109,8 @@
         <div class="quote-fields">
           <label>Cliente (opcional)<input id="quick-client" list="quick-quote-clients" maxlength="100" value="${esc(draft.client)}"></label>
           <datalist id="quick-quote-clients">${names.map((name) => `<option value="${esc(name)}"></option>`).join("")}</datalist>
-          <label>Ancho (${unit()})<input id="quick-w" type="number" min="0" step="0.1" value="${esc(display(line.w))}"></label>
-          <label>Alto (${unit()})<input id="quick-h" type="number" min="0" step="0.1" value="${esc(display(line.h))}"></label>
+          <label>Ancho (${unit()})<input id="quick-w" data-measure type="text" inputmode="decimal" value="${esc(display(line.w))}"></label>
+          <label>Alto (${unit()})<input id="quick-h" data-measure type="text" inputmode="decimal" value="${esc(display(line.h))}"></label>
           <label>Cantidad<input id="quick-qty" type="number" min="1" step="1" value="${esc(line.qty || 1)}"></label>
           <label>Tipo de vidrio<select id="quick-glass"><option value="">Selecciona una tarifa</option>${tariffs()
             .map(
@@ -120,9 +133,10 @@
         <div id="quick-result" class="quote-result quick-result">${quickResultHtml(result, total)}</div>
         <div class="quote-toolbar"><button type="button" id="quick-copy">Copiar mensaje</button><button type="button" id="quick-whatsapp">Enviar por WhatsApp</button><button type="button" class="primary" id="quick-save">Guardar como presupuesto</button></div>
       </section>`;
+    initMeasures();
   }
   function quickResultHtml(result, total) {
-    return `Medida real: ${result.w} × ${result.h} cm<br>Medida aplicada: ${result.aw} × ${result.ah} cm<br>Superficie aplicada: ${result.area.toFixed(4)} m² por pieza<br>Base: <strong>${money(total.base)}</strong><br>IVA (${esc(pricing(draft).vat ?? 21)} %): <strong>${money(total.iva)}</strong><br>Total: <strong class="quote-grand-total">${money(total.total)}</strong>`;
+    return `Medida real: ${measures(result.w, result.h)}<br>Medida aplicada: ${measures(result.aw, result.ah)}<br>Superficie aplicada: ${result.area.toFixed(4)} m² por pieza<br>Base: <strong>${money(total.base)}</strong><br>IVA (${esc(pricing(draft).vat ?? 21)} %): <strong>${money(total.iva)}</strong><br>Total: <strong class="quote-grand-total">${money(total.total)}</strong>`;
   }
   function readQuickForm() {
     const line = draft.lines[0] || emptyLine(),
@@ -130,10 +144,8 @@
       width = document.querySelector("#quick-w");
     if (!client || !width) return;
     draft.client = client.value.trim();
-    line.w =
-      unit() === "mm" ? String(num(width.value) / 10) : width.value.trim();
-    const height = document.querySelector("#quick-h").value;
-    line.h = unit() === "mm" ? String(num(height) / 10) : height.trim();
+    line.w = VSMeasureInput.read(width).cm ?? "";
+    line.h = VSMeasureInput.read(document.querySelector("#quick-h")).cm ?? "";
     line.qty = document.querySelector("#quick-qty").value;
     const tariff = tariffs().find(
       (item) => item.id === document.querySelector("#quick-glass").value,
@@ -163,7 +175,7 @@
           const result = breakdown.lines[i];
           if (line.kind === "concept")
             return `• ${line.description}: ${money(result.sale)}`;
-          return `• ${glassName(line) || "Vidrio"} ${result.w}×${result.h} cm (${result.qty} ud.): ${money(result.glassSale)}${result.separate && result.extraCost ? `\n• ${line.extraDescription || "Otros conceptos"}: ${money(result.extraSale)}` : ""}`;
+          return `• ${glassName(line) || "Vidrio"} ${measures(result.w, result.h)} (${result.qty} ud.): ${money(result.glassSale)}${result.separate && result.extraCost ? `\n• ${line.extraDescription || "Otros conceptos"}: ${money(result.extraSale)}` : ""}`;
         })
         .join("\n"),
       template =
@@ -240,7 +252,7 @@
     ]
       .map(
         ([k, label, v]) =>
-          `<label>${label}<input type="number" min="${k === "qty" ? 1 : 0}" step="${k === "qty" ? 1 : 0.1}" data-field="${k}" value="${esc(v)}"></label>`,
+          `<label>${label}<input ${k === "qty" ? 'type="number" min="1" step="1"' : 'data-measure type="text" inputmode="decimal"'} data-field="${k}" value="${esc(v)}"></label>`,
       )
       .join(
         "",
@@ -260,7 +272,14 @@
       )
       .join(
         "",
-      )}</div><div class="quote-fields quote-extras"><label>Descripción del concepto adicional<input data-field="extraDescription" maxlength="160" placeholder="Ej.: montaje, transporte, herrajes" value="${esc(l.extraDescription || "")}"></label><label>Coste adicional (€ por toda esta línea)<input type="number" min="0" step="0.01" data-field="extraAmount" value="${esc(l.extraAmount ?? "")}"></label><label>Presentación al cliente<select data-field="extraMode"><option value="included" ${l.extraMode !== "separate" ? "selected" : ""}>Integrado en el precio del vidrio</option><option value="separate" ${l.extraMode === "separate" ? "selected" : ""}>Como concepto separado</option></select></label></div><div class="quote-result">Real: ${c.w} × ${c.h} cm · ${c.real.toFixed(4)} m²<br>Aplicada: ${c.aw} × ${c.ah} cm · ${c.area.toFixed(4)} m²<br>Canto por pieza: ${c.ml.toFixed(2)} ml · Unidades: ${c.qty} · Coste de vidrio y cantos: ${money(c.total)}${c.energy ? "<br>Recargo energético incluido: " + money(c.energy) : ""}</div></div>`;
+      )}</div><div class="quote-fields quote-extras"><label>Descripción del concepto adicional<input data-field="extraDescription" maxlength="160" placeholder="Ej.: montaje, transporte, herrajes" value="${esc(l.extraDescription || "")}"></label><label>Coste adicional (€ por toda esta línea)<input type="number" min="0" step="0.01" data-field="extraAmount" value="${esc(l.extraAmount ?? "")}"></label><label>Presentación al cliente<select data-field="extraMode"><option value="included" ${l.extraMode !== "separate" ? "selected" : ""}>Integrado en el precio del vidrio</option><option value="separate" ${l.extraMode === "separate" ? "selected" : ""}>Como concepto separado</option></select></label></div><div class="quote-result">${lineResult(c)}</div></div>`;
+  }
+  function lineResult(c) {
+    return `Real: ${measures(c.w, c.h)} · ${c.real.toFixed(4)} m²<br>Aplicada: ${measures(c.aw, c.ah)} · ${c.area.toFixed(4)} m²<br>Canto por pieza: ${c.ml.toFixed(2)} ml · Unidades: ${c.qty} · Coste de vidrio y cantos: ${money(c.total)}${c.energy ? "<br>Recargo energético incluido: " + money(c.energy) : ""}`;
+  }
+  function totalResult(breakdown) {
+    const total = breakdown.totals;
+    return `Coste interno: <strong>${money(breakdown.cost)}</strong><br>Margen añadido: <strong>${money(breakdown.margin)}</strong><br>Base imponible de venta: <strong>${money(total.base)}</strong><br>IVA (${esc(pricing(draft).vat ?? 21)} %): <strong>${money(total.iva)}</strong><br>Total con IVA: <strong class="quote-grand-total">${money(total.total)}</strong>`;
   }
   function fromForm() {
     if (!draft || !document.querySelector("#quote-client")) return;
@@ -278,10 +297,9 @@
       const l = draft.lines[Number(el.dataset.line)];
       el.querySelectorAll("[data-field]").forEach(
         (input) =>
-          (l[input.dataset.field] =
-            unit() === "mm" && ["w", "h"].includes(input.dataset.field)
-              ? String(num(input.value) / 10)
-              : input.value),
+          (l[input.dataset.field] = ["w", "h"].includes(input.dataset.field)
+            ? (VSMeasureInput.read(input).cm ?? "")
+            : input.value),
       );
       l.sides = [...el.querySelectorAll("[data-edge]:checked")].map(
         (x) => x.dataset.edge,
@@ -289,6 +307,8 @@
     });
   }
   function valid(print = false) {
+    if (!VSMeasureInput.validate(document.querySelector("#content")))
+      return false;
     const nonNegative = (value) => {
       const n = Number(String(value ?? "").replace(",", "."));
       return Number.isFinite(n) && n >= 0;
@@ -422,7 +442,7 @@
         const a = breakdown.lines[i];
         if (l.kind === "concept")
           return `<tr><td>${esc(l.description)}</td>${internal ? `<td>${money(a.cost)}</td><td>${money(a.margin)}</td>` : ""}<td>${money(a.sale)}</td></tr>`;
-        const label = `${esc(glassName(l) || "Vidrio")} · ${a.w} × ${a.h} cm · ${a.qty} ud.`;
+        const label = `${esc(glassName(l) || "Vidrio")} · ${measures(a.w, a.h)} · ${a.qty} ud.`;
         if (internal)
           return `<tr><td>${label}<br>Precio vidrio: ${money(num(l.price))}/m² · canto: ${money(num(l.edgePrice))}/ml<br>Real: ${a.real.toFixed(4)} m²/pieza · aplicada: ${a.area.toFixed(4)} m²/pieza · canto: ${a.ml.toFixed(2)} ml/pieza<br>Vidrio y cantos: ${money(a.glassCost - a.energy)} · recargo energético: ${money(a.energy)}<br>Otros conceptos: ${esc(l.extraDescription || "Sin concepto")} · ${money(a.extraCost)} (${a.separate ? "separado" : "integrado en vidrio"})</td><td>${money(a.cost)}</td><td>${money(a.margin)}</td><td>${money(a.sale)}</td></tr>`;
         return `<tr><td>${label}</td><td>${money(a.glassSale)}</td></tr>${a.separate && a.extraCost ? `<tr><td>${esc(l.extraDescription || "Otros conceptos")}</td><td>${money(a.extraSale)}</td></tr>` : ""}`;
@@ -547,10 +567,22 @@
         l.edgePrice = "";
       }
     }
-    sync();
+    if (e.target.dataset.field === "glass") sync();
+    else window.vidresQuoteInput();
   };
   window.vidresQuoteInput = () => {
-    if (quickMode) updateQuickResult();
+    if (quickMode) {
+      updateQuickResult();
+      return;
+    }
+    fromForm();
+    document.querySelectorAll(".quote-line").forEach((el) => {
+      const line = draft.lines[Number(el.dataset.line)];
+      if (line.kind !== "concept")
+        el.querySelector(".quote-result").innerHTML = lineResult(calc(line));
+    });
+    const host = document.querySelector(".quote-total-breakdown");
+    if (host) host.innerHTML = totalResult(details(draft));
   };
   window.vidresQuotesForJob = (id) =>
     quotes()

@@ -211,10 +211,10 @@
                   "<article><strong>" +
                   esc(m.tipo) +
                   "</strong><p>" +
-                  esc(m.ancho) +
+                  VSUtils.formatMeters(m.ancho) +
                   " × " +
-                  esc(m.alto) +
-                  " cm · " +
+                  VSUtils.formatMeters(m.alto) +
+                  " m · " +
                   esc(m.cantidad) +
                   " ud.</p><p>" +
                   (

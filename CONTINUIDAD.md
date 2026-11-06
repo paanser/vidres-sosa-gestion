@@ -61,29 +61,54 @@ CHROMIUM_PATH=/usr/bin/chromium npm run test:browser` (en una sola línea).
 - El rediseño anterior no se ha retomado. Sigue vigente la parada obligatoria
   después del paso 2 antes de iniciar el paso 3.
 
-## Sesión pendiente de aprobación · 6 de noviembre de 2026
+## Cambio 1 terminado · 6 de noviembre de 2026
 
-- Objetivo nuevo: cuatro cambios sucesivos: medidas en metros con milímetros,
-  peso y energía por kg, mano de obra integrada en vidrio y dos PDF detallados.
-- Rama: `feature/medidas-metros-20261106`, creada desde `origin/main` en
-  `8ada9e8`. Último commit anterior a esta nota: `8ada9e8`; consultar `git log -1`
-  para el commit documental que guarda esta sesión.
-- Revisión terminada: código de medidas, cálculos, presupuestos, ajustes,
-  tarifas, copias y validación del servidor. No hay AGENTS.md en la raíz.
-  La copia inicial local estaba en `work` (`a25a2e1`), limpia. GitHub confirma
-  `rediseno` en `29dcb38` (descarta el rediseño); no se retoma ese trabajo.
-- Pendiente: presentar el plan y esperar el visto bueno antes de escribir código,
-  tal como exige el texto adjunto. Después implementar SOLO el cambio 1 y esperar
-  otra indicación antes del cambio 2. Conservar margen y conceptos libres actuales.
-- Hallazgo: `worker/data.js` rechaza unidades distintas de cm/mm; admitir m es
-  necesario para guardar Ajustes. No cambiar auth.js ni storage.js.
-- Pruebas iniciales: `npm test`, 36 aprobadas y 0 fallos;
-  `npx prettier --check .`, correcto (npx usó Prettier 3.9.10 al faltar instalación
-  local). No hay pruebas nuevas ni comprobación visual en esta fase documental.
-- Cambios funcionales: ninguno. Cambios sin commit: ninguno tras guardar esta nota.
-- Siguiente paso: obtener aprobación del plan para el cambio 1; comprobar después
-  390, 768, 1024 y 1440 px con datos ficticios, compatibilidad y funcionamiento
-  sin conexión. No añadir recursos públicos salvo necesidad; si se añaden,
-  actualizar sw.js y la copia de pages.yml, y loader.js si son scripts.
-- GitHub: se intentará subir únicamente esta rama con la nota documental y se
-  verificará el SHA remoto. No se modifica main ni se publica la aplicación.
+- Objetivo: entrada en metros con tres decimales (milímetros), sin modificar
+  cálculos de precios ni datos antiguos. Plan aprobado con «ok». Solo se ha
+  implementado el cambio 1 del texto adjunto.
+- Rama: `feature/medidas-metros-20261106`, basada en `origin/main` (`8ada9e8`).
+  Último commit previo: `351eb29` (plan). Código y esta nota se guardan juntos;
+  el commit final se consulta con `git log -1` o en la rama de GitHub.
+- Terminado:
+  - `utils.js`: parseMeters, formatMeters, formatMeasure, conversión m a cm y
+    entrada compartida con errores, confirmación por encima de 6 m y ayuda en vivo.
+  - `tools.js`: metros por defecto si no hay unidad configurada; conserva cm/mm.
+    Al cambiar unidad conserva la unidad histórica de cotas sin metadatos en
+    el campo opcional legacyDimensionUnit. No se migran ni convierten sus valores.
+  - `quotes.js`: editor y rápido, resultados Real/Aplicada, WhatsApp y copia de
+    mensaje, PDF cliente/interno. Actualiza resultados sin reconstruir campos.
+    Al guardar un presupuesto antiguo conserva medidas de precisión superior
+    a la mostrada si no se han editado, para no cambiar importes.
+  - `job-measures.js`, `app.js`, `index.html`: piezas del parte y editor de
+    mediciones; el área y el guardado usan centímetros numéricos internamente.
+  - `sketch.js`: confirmación en vivo del teclado, cotas en metros, transferencia
+    correcta a piezas y unidad opcional por cota para evitar reinterpretaciones.
+  - Tarjetas de mediciones en `app.js` y ficha del parte en `expediente.js`:
+    medidas en metros. `styles.css`: medidas de 16 px y 44 px de altura, errores.
+  - `worker/data.js`: permite m y valida la unidad opcional de las cotas;
+    `backup.js`: valida esa unidad sin cambiar el formato de copias.
+- Sin cambios en calculations.js (calc, totals y quoteDetails conservados),
+  auth.js, storage.js, claves existentes, seguridad ni CSP. Sin recursos públicos
+  nuevos: no hacen falta cambios en sw.js, loader.js ni pages.yml.
+- Pruebas: npm test, 41 aprobadas y 0 fallos; cinco pruebas nuevas en
+  tests/meters.test.cjs cubren los ejemplos solicitados, errores, formatos,
+  confirmación, round6, importes antiguos y validación de unidades del servidor.
+  npx prettier --check ., correcto con la versión instalada del lockfile.
+  git diff --check, correcto.
+- Navegador: npm run test:browser con las variables documentadas arriba, correcto.
+  Nuevo scripts/check-meters-browser.cjs, invocado por check-browser.cjs;
+  check-quotes-browser.cjs adapta medidas de prueba a m. Comprobados foco y campo
+  estable, errores, confirmación rechazada, cálculo sin conexión, guardado,
+  reapertura de antiguos, cm/mm/m, WhatsApp, PDF, rápido, piezas, cotas y edición
+  de mediciones. Servidor simulado y SQLite en memoria; sin datos reales.
+  Anchuras: 390, 768, 1024 y 1440 px, sin desbordamiento. Capturas locales
+  ignoradas en test-results/medidas-\*.png; revisadas visualmente móvil/escritorio.
+- Cambios sin commit: ninguno tras el commit conjunto de código y continuidad.
+- GitHub: se sube únicamente la rama de la tarea y se comprueba el SHA remoto.
+  No se ha fusionado ni publicado este cambio; main permanece en 8ada9e8.
+- Publicación pendiente: cuando el usuario la autorice, desplegar primero el
+  Worker que admite m y después la interfaz; el Worker publicado todavía solo
+  admite cm/mm en Ajustes. Respetar el problema de Pages descrito arriba.
+- Siguiente paso: entregar el cambio 1 y esperar indicación expresa antes del
+  cambio 2 (peso y energía por kg). No retomar el rediseño ni publicar por iniciativa
+  propia. Pendientes cambios 2, 3 y 4 del texto adjunto.

@@ -535,6 +535,7 @@ textarea:focus-visible {
 .quote-toolbar button,
 .quote-saved button,
 #quote-add,
+#quote-add-concept,
 .quiet {
   border: 1px solid #c5d8cc;
   background: white;
@@ -838,6 +839,7 @@ textarea:focus {
 .quote-toolbar button,
 .quote-saved button,
 #quote-add,
+#quote-add-concept,
 .quiet {
   min-height: 42px;
   border-radius: 10px;
@@ -965,7 +967,8 @@ textarea:focus {
   font-weight: 800;
   color: var(--vs-green);
 }
-#quote-add {
+#quote-add,
+#quote-add-concept {
   border: 1px dashed #81b89a;
   background: #f4faf6;
   color: var(--vs-green);
@@ -2990,6 +2993,64 @@ nav button[data-page="criticos"].active {
   }
 }
 
+.quote-margin {
+  display: grid;
+  grid-template-columns: minmax(180px, 260px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  padding: 16px;
+  margin: 16px 0;
+  border: 1px solid #dbe8df;
+  border-radius: 12px;
+}
+.quote-margin label {
+  display: grid;
+  gap: 8px;
+  font-weight: 600;
+}
+.quote-margin p {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 13px;
+}
+.quote-margin-options {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #dbe8df;
+}
+.quote-margin-options label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+  font-size: 13px;
+  font-weight: 400;
+}
+.quote-margin-options input {
+  width: auto;
+  flex: 0 0 auto;
+}
+.quote-extras {
+  padding-top: 16px;
+  border-top: 1px solid #dbe8df;
+}
+.quote-line.quote-concept .quote-fields {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+}
+@media (max-width: 1023px) {
+  .quote-margin {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .quote-extras label:last-child {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 767px) {
+  .quote-line .quote-extras,
+  .quote-line.quote-concept .quote-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 #quote-print {
   display: none;
 }

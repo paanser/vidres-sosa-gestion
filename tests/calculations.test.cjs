@@ -156,3 +156,39 @@ test("margen incluye cantos y energía; suma de conceptos coincide con base y to
   assert.equal(round2(result.cost + result.margin), result.totals.base);
   assert.equal(result.totals.iva, round2(result.totals.base * 0.1));
 });
+
+test("incremento solo sobre vidrio, sin margen en cantos, energía ni mano de obra", () => {
+  const q = {
+    pricing: {
+      marginScope: "glass",
+      marginMode: "cost",
+      margin: 20,
+      energyMode: "percent",
+      energy: 10,
+      vat: 21,
+    },
+    lines: [
+      {
+        w: 120,
+        h: 120,
+        qty: 2,
+        price: 100,
+        edgePrice: 10,
+        sides: ["top"],
+        extraAmount: 50,
+        extraMode: "separate",
+      },
+      { kind: "concept", description: "Mano de obra", amount: 100 },
+    ],
+  };
+  const result = quoteDetails(q);
+  assert.equal(result.margin, 57.6);
+  assert.equal(result.lines[0].extraSale, 50);
+  assert.equal(result.lines[1].sale, 100);
+  assert.equal(result.cost, 493.2);
+  assert.deepEqual(result.totals, { base: 550.8, iva: 115.67, total: 666.47 });
+  q.lines[0].extraMode = "included";
+  assert.deepEqual(quoteDetails(q).totals, result.totals);
+  q.pricing.margin = 100;
+  assert.equal(quoteDetails(q).margin, 288);
+});

@@ -3481,3 +3481,27 @@ body:not(.authenticated) > #quote-print {
 .job-editor-header .save-status {
   margin: 0;
 }
+
+/* Barra de navegación inferior en móvil: más accesible con el pulgar. */
+@media (max-width: 600px) {
+  #nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 70;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+    padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
+    background: #fff;
+    border-top: 1px solid #e3e9e6;
+    box-shadow: 0 -4px 14px rgba(18, 43, 32, 0.15);
+  }
+  main {
+    padding-bottom: calc(150px + env(safe-area-inset-bottom, 0px));
+  }
+  aside {
+    padding-bottom: 10px;
+  }
+}

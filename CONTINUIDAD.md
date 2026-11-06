@@ -26,7 +26,7 @@
     presupuestos antiguos mantienen su cálculo y redondeo anterior.
   - `worker/data.js` admite y valida los nuevos campos y las líneas libres;
     era necesario porque el servidor exigía medidas a todas las líneas.
-    No se han modificado autenticación, `storage.js`, datos reales ni seguridad.
+    No se han modificado `auth.js`, `storage.js`, `worker/security.js` ni datos reales.
 - Pruebas: `npm test`, 36 aprobadas; `npx prettier --check .`, correcto;
   `git diff --check`, correcto. Navegador completo correcto, con servidor local
   simulado y base de datos en memoria, sin acceder a datos reales.
@@ -34,9 +34,9 @@
   textos escapados, PDF interno/cliente, WhatsApp, guardado, recarga y duplicado.
   Capturas locales ignoradas en `test-results/presupuesto-*.png`.
 - Navegador: usar `PLAYWRIGHT_MODULE_PATH=/opt/codex/cua_node/lib/node_modules/playwright
-  CHROMIUM_PATH=/usr/bin/chromium npm run test:browser` (en una sola línea).
+CHROMIUM_PATH=/usr/bin/chromium npm run test:browser` (en una sola línea).
 - Cambios sin commit: ninguno tras el commit de este documento.
-- GitHub: se sube la rama de la tarea con los tres commits al cerrar la sesión;
+- GitHub: se sube la rama de la tarea con los commits al cerrar la sesión;
   comprobar la referencia remota si se retoma desde otro entorno.
 - Publicación: no publicado, sin merge ni cambios en `main` o `rediseno`.
   La función necesita tanto el frontend como la validación nueva del Worker.

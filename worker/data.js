@@ -206,6 +206,13 @@ export function checked(values) {
       fail(400, "Líneas no válidas");
     q.lines.forEach((l) => {
       if (!object(l)) fail(400, "Línea no válida");
+      if (l.kind === "concept") {
+        text(l.description, 300, 1);
+        if (!l.description.trim()) fail(400, "Descripción no válida");
+        number(l.amount);
+        return;
+      }
+      if (l.kind != null) fail(400, "Tipo de línea no válido");
       number(l.w, 0.001);
       number(l.h, 0.001);
       number(l.qty, 1, 100000);
@@ -213,6 +220,19 @@ export function checked(values) {
       number(l.price || 0);
       number(l.edgePrice || 0);
       strings(l, { glass: 200, tariff: 150 });
+      if (l.extraAmount != null && l.extraAmount !== "") number(l.extraAmount);
+      strings(l, { extraDescription: 160 });
+      if (
+        l.extraMode != null &&
+        !["included", "separate"].includes(l.extraMode)
+      )
+        fail(400, "Presentación del concepto no válida");
+      if (
+        Number(l.extraAmount) > 0 &&
+        l.extraMode === "separate" &&
+        !l.extraDescription?.trim()
+      )
+        fail(400, "Falta la descripción del concepto");
       if (
         l.sides &&
         (!Array.isArray(l.sides) ||
@@ -224,6 +244,15 @@ export function checked(values) {
       if (!object(q.pricing)) fail(400, "Fiscalidad no válida");
       number(q.pricing.vat ?? 21, 0, 100);
       if (q.pricing.energy) number(q.pricing.energy);
+      if (q.pricing.margin != null && q.pricing.margin !== "")
+        number(q.pricing.margin);
+      if (
+        q.pricing.marginMode != null &&
+        !["cost", "sale"].includes(q.pricing.marginMode)
+      )
+        fail(400, "Tipo de margen no válido");
+      if (q.pricing.marginMode === "sale" && Number(q.pricing.margin) >= 100)
+        fail(400, "El margen sobre venta debe ser inferior al 100 %");
     }
   }
   for (const t of out[KEYS.tarifas]) {

@@ -171,6 +171,7 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
   console.log(
     "PASS guardado: desconexión, fallo, espera, confirmación y conflicto del servidor",
   );
+  await require("./check-quotes-browser.cjs")(page, context, root);
 
   await page.locator("#add").click();
   await page.locator("#form [name=cliente]").fill("Cliente de navegador");

@@ -43,7 +43,58 @@
       iva = round2((base * rate) / 100);
     return { base, iva, total: round2(base + iva) };
   }
-  const api = { calc, totals, round2 };
+  // Los importes adicionales son por línea completa, no por pieza.
+  // El margen se aplica sobre coste o venta, siempre antes del IVA.
+  function quoteDetails(quote) {
+    const config = quote.pricing || {},
+      marginRate = num(config.margin),
+      factor =
+        config.marginMode === "sale"
+          ? marginRate < 100
+            ? 1 / (1 - marginRate / 100)
+            : NaN
+          : 1 + marginRate / 100,
+      lines = quote.lines.map((line) => {
+        const dimensions = calc(line, config),
+          glassCost = round2(
+            line.kind === "concept" ? num(line.amount) : dimensions.total,
+          ),
+          extraCost =
+            line.kind === "concept" ? 0 : round2(num(line.extraAmount)),
+          cost = round2(glassCost + extraCost),
+          sale = round2(cost * factor),
+          separate = line.extraMode === "separate",
+          extraSale = separate ? round2(extraCost * factor) : 0;
+        return {
+          ...dimensions,
+          glassCost,
+          extraCost,
+          cost,
+          margin: round2(sale - cost),
+          sale,
+          glassSale: round2(sale - extraSale),
+          extraSale,
+          separate,
+        };
+      });
+    // Sin opciones nuevas se conserva el redondeo de presupuestos anteriores.
+    const legacy =
+        !marginRate &&
+        !quote.lines.some((l) => num(l.extraAmount) || l.kind === "concept"),
+      base = legacy
+        ? totals(quote.lines, config).base
+        : round2(lines.reduce((n, l) => n + l.sale, 0)),
+      cost = legacy ? base : round2(lines.reduce((n, l) => n + l.cost, 0)),
+      rate = config.vat === "" || config.vat == null ? 21 : num(config.vat),
+      iva = round2((base * rate) / 100);
+    return {
+      lines,
+      cost,
+      margin: round2(base - cost),
+      totals: { base, iva, total: round2(base + iva) },
+    };
+  }
+  const api = { calc, totals, quoteDetails, round2 };
   if (typeof module !== "undefined") module.exports = api;
   else root.VSCalculations = api;
 })(globalThis);

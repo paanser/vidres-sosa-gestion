@@ -1,6 +1,6 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { calc, totals } = require("../calculations.js");
+const { calc, totals, quoteDetails } = require("../calculations.js");
 const { round6, num } = require("../utils.js");
 test("redondeo comercial y múltiplos exactos", () => {
   assert.equal(round6(180), 180);
@@ -65,4 +65,94 @@ test("IVA y recargo explícito por porcentaje o m²", () => {
     totals([line], { energy: 50, energyMode: "pending" }),
     totals([line]),
   );
+});
+
+test("presupuestos antiguos conservan importes y redondeo fiscal", () => {
+  const lines = [
+    { w: 6, h: 6, price: 1 },
+    { w: 6, h: 6, price: 1 },
+  ];
+  assert.deepEqual(quoteDetails({ lines }).totals, totals(lines));
+  assert.deepEqual(
+    quoteDetails({ lines, pricing: { vat: 0, margin: "" } }).totals,
+    totals(lines, { vat: 0 }),
+  );
+});
+
+test("margen seleccionable sobre coste o venta y conceptos sin tarifa ni medidas", () => {
+  const q = {
+    lines: [
+      {
+        kind: "concept",
+        description: "Trabajo fuera de tarifa",
+        amount: "100",
+      },
+    ],
+    pricing: { margin: 20, marginMode: "cost", vat: 21 },
+  };
+  assert.deepEqual(quoteDetails(q).totals, {
+    base: 120,
+    iva: 25.2,
+    total: 145.2,
+  });
+  q.pricing.marginMode = "sale";
+  assert.deepEqual(quoteDetails(q).totals, {
+    base: 125,
+    iva: 26.25,
+    total: 151.25,
+  });
+  assert.equal(quoteDetails(q).margin, 25);
+  q.pricing.margin = 100;
+  assert.ok(!Number.isFinite(quoteDetails(q).totals.total));
+  q.pricing.margin = 0;
+  assert.deepEqual(quoteDetails(q).totals, { base: 100, iva: 21, total: 121 });
+});
+
+test("margen sobre coste, importe libre por línea y presentación sin cambiar el total", () => {
+  const q = {
+    lines: [{ w: 120, h: 120, qty: 2, price: 100, extraAmount: "50,50" }],
+    pricing: { margin: "20", vat: 21 },
+  };
+  const included = quoteDetails(q);
+  assert.equal(included.cost, 338.5);
+  assert.equal(included.margin, 67.7);
+  assert.deepEqual(included.totals, { base: 406.2, iva: 85.3, total: 491.5 });
+  assert.equal(included.lines[0].glassSale, 406.2);
+  assert.equal(included.lines[0].extraSale, 0);
+  q.lines[0].extraMode = "separate";
+  const separate = quoteDetails(q);
+  assert.deepEqual(separate.totals, included.totals);
+  assert.equal(separate.lines[0].glassSale, 345.6);
+  assert.equal(separate.lines[0].extraSale, 60.6);
+});
+
+test("margen incluye cantos y energía; suma de conceptos coincide con base y total", () => {
+  const q = {
+    lines: [
+      {
+        w: 83,
+        h: 101,
+        qty: 3,
+        price: 42.17,
+        edgePrice: 5.23,
+        sides: ["top"],
+        extraAmount: 19.99,
+        extraMode: "separate",
+      },
+      { w: 120, h: 60, qty: 1, price: 70.15, extraAmount: 12.34 },
+    ],
+    pricing: { margin: "12,5", energy: 5, energyMode: "percent", vat: 10 },
+  };
+  const result = quoteDetails(q);
+  const { round2 } = require("../calculations.js");
+  assert.equal(
+    result.lines[0].glassCost,
+    round2(calc(q.lines[0], q.pricing).total),
+  );
+  assert.equal(
+    round2(result.lines.reduce((n, l) => n + l.glassSale + l.extraSale, 0)),
+    result.totals.base,
+  );
+  assert.equal(round2(result.cost + result.margin), result.totals.base);
+  assert.equal(result.totals.iva, round2(result.totals.base * 0.1));
 });

@@ -51,6 +51,19 @@
     line.tariff = "";
     line.glass = `Doble acristalamiento ${line.doubleComposition || "4/16/4"} · ${line.faceOneName || "Float 4"} / ${line.faceTwoName || "Float 4"}`;
   }
+  function readDouble(line) {
+    line.doubleBase ??= 27;
+    line.doubleComposition ||= "4/16/4";
+    for (const [field, price, name] of [
+      ["faceOne", "faceOnePrice", "faceOneName"],
+      ["faceTwo", "faceTwoPrice", "faceTwoName"],
+    ]) {
+      const selected = substitutions().find((t) => t.id === line[field]);
+      line[price] = selected?.price ?? 0;
+      line[name] = selected ? glassName({ glass: selected.name }) : "Float 4";
+    }
+    doublePrice(line);
+  }
   function doubleFields(l) {
     const face = (field, label) =>
       `<label>${label}<select data-field="${field}"><option value="">Float 4 · sin cambio (+0 €/m²)</option>${substitutions()
@@ -132,13 +145,14 @@
           <label>Ancho (${unit()})<input id="quick-w" type="number" min="0" step="0.1" value="${esc(display(line.w))}"></label>
           <label>Alto (${unit()})<input id="quick-h" type="number" min="0" step="0.1" value="${esc(display(line.h))}"></label>
           <label>Cantidad<input id="quick-qty" type="number" min="1" step="1" value="${esc(line.qty || 1)}"></label>
-          <label>Tipo de vidrio<select id="quick-glass"><option value="">Selecciona una tarifa</option>${tariffs()
+          <label>Tipo de vidrio<select id="quick-glass" ${line.doubleGlazing ? "disabled" : ""}><option value="">Selecciona una tarifa</option>${tariffs()
             .map(
               (tariff) =>
                 `<option value="${esc(tariff.id)}" ${line.tariff === tariff.id ? "selected" : ""}>${esc(tariff.name)} · ${money(tariff.price)}/m²</option>`,
             )
             .join("")}</select></label>
         </div>
+        <section class="quick-double">${doubleFields(line)}</section>
         <fieldset class="quote-edges"><legend>Cantos a pulir</legend>${[
           ["top", "Superior"],
           ["bottom", "Inferior"],
@@ -175,6 +189,11 @@
     line.glass = tariff?.name || "";
     line.price = tariff?.price ?? "";
     line.edgePrice = tariff?.edge ?? "";
+    document.querySelectorAll(".quick-double [data-field]").forEach((input) => {
+      line[input.dataset.field] =
+        input.type === "checkbox" ? input.checked : input.value;
+    });
+    if (line.doubleGlazing) readDouble(line);
     line.sides = [
       ...document.querySelectorAll("[data-quick-edge]:checked"),
     ].map((input) => input.dataset.quickEdge);
@@ -319,19 +338,7 @@
                 ? String(num(input.value) / 10)
                 : input.value),
       );
-      if (l.doubleGlazing) {
-        l.doubleBase ??= 27;
-        l.doubleComposition ||= "4/16/4";
-        for (const [field, price, name] of [
-          ["faceOne", "faceOnePrice", "faceOneName"],
-          ["faceTwo", "faceTwoPrice", "faceTwoName"],
-        ]) {
-          const selected = substitutions().find((t) => t.id === l[field]);
-          l[price] = selected?.price ?? 0;
-          l[name] = selected ? glassName({ glass: selected.name }) : "Float 4";
-        }
-        doublePrice(l);
-      }
+      if (l.doubleGlazing) readDouble(l);
       l.sides = [...el.querySelectorAll("[data-edge]:checked")].map(
         (x) => x.dataset.edge,
       );
@@ -577,6 +584,7 @@
   window.vidresQuoteChange = (e) => {
     if (quickMode) {
       updateQuickResult();
+      if (e.target.closest(".quick-double")) sync();
       return;
     }
     fromForm();

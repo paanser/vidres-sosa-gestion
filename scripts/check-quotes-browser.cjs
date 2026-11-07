@@ -212,6 +212,29 @@ module.exports = async function checkQuotes(page, context, root) {
   );
   await page.locator("#quote-pdf").click();
   assert.match(await page.locator("#quote-print").textContent(), /121,00/);
+  await page.locator("#quote-quick").click();
+  await set("#quick-w", "100");
+  await set("#quick-h", "100");
+  await page.locator('[data-field="doubleGlazing"]').check();
+  await page.locator('[data-field="faceOne"]').selectOption("reuglass-3-1");
+  assert.match(await page.locator(".quick-double").textContent(), /35,98/);
+  await page.locator('[data-field="faceTwo"]').selectOption("reuglass-4-1");
+  assert.match(await page.locator(".quick-double").textContent(), /46,73/);
+  await page.locator("#quick-save").click();
+  await page.waitForFunction(
+    (key) =>
+      VSStorage.read(key, []).some(
+        (q) => q.lines[0].doubleGlazing && q.lines[0].price === 46.73,
+      ),
+    key,
+  );
+  assert.equal(
+    await page.locator('[data-field="doubleGlazing"]').isChecked(),
+    true,
+  );
+  console.log(
+    "PASS doble acristalamiento en presupuesto rápido: base, ambas sustituciones y guardado",
+  );
   await page.evaluate(() => window.vidresNavigate("inicio"));
   console.log(
     "PASS presupuestos: incremento solo vidrio y tarifas Reuglass, extras, concepto libre, PDF interno/cliente, WhatsApp, validación, persistencia y 390/768/1024/1440 px",

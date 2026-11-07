@@ -137,7 +137,13 @@
       esc(VSAuth.user.nombre) +
       '</p><div class="tool-tiles settings-grid">' +
       entries.map((e) => tile(...e)).join("") +
-      "</div></section>"
+      '</div></section><section class="panel text-settings-panel"><h2>Tamaño de letra</h2><p>Ajusta el tamaño del texto de toda la app.</p><div class="text-settings-actions"><button type="button" data-text-scale="-1" aria-label="Reducir letra">A−</button><button type="button" data-text-scale="0" aria-label="Restablecer tamaño de letra">' +
+      Math.round(
+        (Number(
+          document.documentElement.style.getPropertyValue("--vs-text-scale"),
+        ) || 1) * 100,
+      ) +
+      ' %</button><button type="button" data-text-scale="1" aria-label="Aumentar letra">A+</button></div></section>'
     );
   }
   function settingsBack(label = "Ajustes", page = "ajustes") {

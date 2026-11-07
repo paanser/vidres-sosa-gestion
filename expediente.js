@@ -421,29 +421,45 @@
       .querySelectorAll('[data-text-scale="0"]')
       .forEach((b) => (b.textContent = Math.round(scale * 100) + " %"));
   }
-  const sideControls = document.querySelector(".global-text-controls");
-  sideControls
-    ?.querySelector(".text-settings-toggle")
-    ?.addEventListener("click", () => {
-      const panel = sideControls.querySelector("#text-settings-panel");
-      panel.hidden = !panel.hidden;
-      sideControls
-        .querySelector(".text-settings-toggle")
-        .setAttribute("aria-expanded", String(!panel.hidden));
-    });
-  sideControls?.addEventListener("click", (e) => {
+  document.addEventListener("click", (e) => {
     const b = e.target.closest("[data-text-scale]");
     if (b) changeScale(Number(b.dataset.textScale));
   });
-  document
-    .querySelectorAll('[data-text-scale="0"]')
-    .forEach((b) => (b.textContent = Math.round(scale * 100) + " %"));
+
+  // Keep page gestures available only when they start on a photo or the notebook.
+  // Do not restrict the viewport: the permitted surfaces need native pinch zoom.
+  const zoomSurface =
+    ".measure-photo-viewer img, .sketch-sheet, .sketch-sheet *";
+  let allowPinch = false;
+  document.addEventListener(
+    "touchstart",
+    (e) => {
+      if (e.touches.length === 1)
+        allowPinch = Boolean(e.target.closest(zoomSurface));
+      if (e.touches.length > 1 && !allowPinch) e.preventDefault();
+    },
+    { passive: false },
+  );
+  document.addEventListener(
+    "touchmove",
+    (e) => {
+      if (e.touches.length > 1 && !allowPinch) e.preventDefault();
+    },
+    { passive: false },
+  );
+  for (const type of ["gesturestart", "gesturechange"]) {
+    document.addEventListener(
+      type,
+      (e) => {
+        if (!e.target.closest(zoomSurface)) e.preventDefault();
+      },
+      { passive: false },
+    );
+  }
   dialog.addEventListener("click", async (e) => {
     const b = e.target.closest("button");
     if (!b) return;
-    if (b.dataset.textScale !== undefined) {
-      changeScale(Number(b.dataset.textScale));
-    } else if (b.hasAttribute("data-exp-view-photos")) {
+    if (b.hasAttribute("data-exp-view-photos")) {
       tab = "fotos";
       await render();
     } else if (b.dataset.expTab) {

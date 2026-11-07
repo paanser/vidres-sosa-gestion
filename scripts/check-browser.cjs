@@ -102,6 +102,38 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
     .first()
     .waitFor({ state: "detached" });
   console.log("PASS login, cambio obligatorio y carga privada");
+  assert.equal(await page.locator(".global-text-controls").count(), 0);
+  assert.equal(await page.locator("[data-text-scale]").count(), 0);
+  await page.locator('#nav [data-page="ajustes"]').click();
+  await page.locator('[data-text-scale="1"]').click();
+  assert.equal(
+    await page.evaluate(() =>
+      document.documentElement.style.getPropertyValue("--vs-text-scale"),
+    ),
+    "1.1",
+  );
+  await page.locator('[data-text-scale="0"]').click();
+  assert.equal(
+    await page.evaluate(() =>
+      document.documentElement.style.getPropertyValue("--vs-text-scale"),
+    ),
+    "1",
+  );
+  assert.equal(
+    await page.evaluate(() => {
+      const e = new Event("touchmove", { bubbles: true, cancelable: true });
+      Object.defineProperty(e, "touches", { value: [{}, {}] });
+      document.querySelector("#title").dispatchEvent(e);
+      return e.defaultPrevented;
+    }),
+    true,
+  );
+  await page.locator('#nav [data-page="inicio"]').click();
+  assert.equal(await page.locator("[data-text-scale]").count(), 0);
+  console.log(
+    "PASS tamaño de letra solo en Ajustes y bloqueo de pellizco general",
+  );
+
   await context.setOffline(true);
   await page
     .locator("#save-status")

@@ -19,12 +19,10 @@
   }
   function hidePrivate() {
     document.body.classList.remove("authenticated");
-    document
-      .querySelectorAll("body > .layout, body > .global-text-controls")
-      .forEach((el) => {
-        el.hidden = true;
-        el.inert = true;
-      });
+    document.querySelectorAll("body > .layout").forEach((el) => {
+      el.hidden = true;
+      el.inert = true;
+    });
     document.querySelectorAll("dialog[open]").forEach((d) => d.close());
     document.querySelector("#content").replaceChildren();
     window.VSStorage?.clear?.();
@@ -150,12 +148,10 @@
     }
     screen.hidden = true;
     document.body.classList.add("authenticated");
-    document
-      .querySelectorAll("body > .layout, body > .global-text-controls")
-      .forEach((el) => {
-        el.hidden = false;
-        el.inert = false;
-      });
+    document.querySelectorAll("body > .layout").forEach((el) => {
+      el.hidden = false;
+      el.inert = false;
+    });
     resolveReady(user);
   }
   document.querySelectorAll("[data-show-password]").forEach((button) =>

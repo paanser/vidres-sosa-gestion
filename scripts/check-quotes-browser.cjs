@@ -24,6 +24,41 @@ module.exports = async function checkQuotes(page, context, root) {
     await page.locator('[data-field="glass"]').inputValue(),
     /Float 4/,
   );
+  await set('[data-field="w"]', "100");
+  await set('[data-field="h"]', "100");
+  await page.locator("#quote-pdf").click();
+  assert.match(await page.locator("#quote-print").textContent(), /Float 4/);
+  assert.doesNotMatch(
+    await page.locator("#quote-print").textContent(),
+    /Tarifa|Reuglass|· MF/,
+  );
+  await page.locator('[data-field="doubleGlazing"]').check();
+  assert.equal(await page.locator('[data-field="price"]').inputValue(), "27");
+  await page.locator('[data-field="faceOne"]').selectOption("reuglass-3-1");
+  assert.equal(
+    await page.locator('[data-field="price"]').inputValue(),
+    "35.98",
+  );
+  await page.locator('[data-field="faceTwo"]').selectOption("reuglass-4-1");
+  assert.equal(
+    await page.locator('[data-field="price"]').inputValue(),
+    "46.73",
+  );
+  await set('[data-field="doubleBase"]', "30");
+  assert.equal(
+    await page.locator('[data-field="price"]').inputValue(),
+    "49.73",
+  );
+  await page.locator("#quote-pdf").click();
+  assert.match(
+    await page.locator("#quote-print").textContent(),
+    /Doble acristalamiento.*Float 5 \/ Float 6/,
+  );
+  assert.doesNotMatch(
+    await page.locator("#quote-print").textContent(),
+    /Tarifa|Reuglass|Sustituciones/,
+  );
+  await page.locator('[data-field="doubleGlazing"]').uncheck();
   await page.locator('[data-field="tariff"]').selectOption("");
 
   await set('[data-field="glass"]', "Vidrio especial sin tarifa");

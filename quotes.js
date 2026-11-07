@@ -27,8 +27,40 @@
       if (v === "" || v == null) return "";
       return String(Math.round(num(v) * 100) / 10);
     };
-  const glassName = (l) =>
-    l.glass || tariffs().find((t) => t.id === l.tariff)?.name || "";
+  // Los nombres del catálogo incluyen la tarifa para distinguir precios internos.
+  // Los documentos y mensajes al cliente muestran únicamente el vidrio.
+  const glassName = (l) => {
+    const name =
+      l.glass || tariffs().find((t) => t.id === l.tariff)?.name || "";
+    return name
+      .replace(/^tarifa\s+[^·]+\s*·\s*/i, "")
+      .replace(/\s*·\s*(MF|Sustituciones|Templado)\s*$/i, "")
+      .trim();
+  };
+  const substitutions = () =>
+    tariffs().filter((t) => /· Sustituciones$/.test(t.name));
+  function doublePrice(line) {
+    if (!line.doubleGlazing) return;
+    line.price =
+      Math.round(
+        (num(line.doubleBase) +
+          num(line.faceOnePrice) +
+          num(line.faceTwoPrice)) *
+          100,
+      ) / 100;
+    line.tariff = "";
+    line.glass = `Doble acristalamiento ${line.doubleComposition || "4/16/4"} · ${line.faceOneName || "Float 4"} / ${line.faceTwoName || "Float 4"}`;
+  }
+  function doubleFields(l) {
+    const face = (field, label) =>
+      `<label>${label}<select data-field="${field}"><option value="">Float 4 · sin cambio (+0 €/m²)</option>${substitutions()
+        .map(
+          (t) =>
+            `<option value="${esc(t.id)}" ${l[field] === t.id ? "selected" : ""}>${esc(glassName({ glass: t.name }))} · +${money(t.price)}/m²</option>`,
+        )
+        .join("")}</select></label>`;
+    return `<label class="quote-edges"><input type="checkbox" data-field="doubleGlazing" ${l.doubleGlazing ? "checked" : ""}>Calcular doble acristalamiento</label>${l.doubleGlazing ? `<div class="quote-fields"><label>Composición base<input data-field="doubleComposition" maxlength="40" value="${esc(l.doubleComposition || "4/16/4")}"></label><label>Precio base del doble (€/m²)<input data-field="doubleBase" type="number" min="0" step="0.01" value="${esc(l.doubleBase ?? 27)}"></label>${face("faceOne", "Sustitución cara 1")}${face("faceTwo", "Sustitución cara 2")}</div><p>Base ${money(num(l.doubleBase))}/m² + cara 1 ${money(num(l.faceOnePrice))}/m² + cara 2 ${money(num(l.faceTwoPrice))}/m² = <strong>${money(num(l.price))}/m²</strong>. Selecciona solo las caras que cambian respecto al vidrio base de 4 mm.</p>` : ""}`;
+  }
   const emptyLine = () => ({
     w: "",
     h: "",
@@ -234,7 +266,7 @@
     if (l.kind === "concept")
       return `<div class="quote-line quote-concept" data-line="${i}"><div class="quote-line-head"><strong>Concepto libre</strong><button type="button" data-remove="${i}">Eliminar</button></div><div class="quote-fields"><label>Descripción libre<textarea data-field="description" maxlength="300" rows="2" placeholder="Ej.: montaje, reparación, transporte…">${esc(l.description || "")}</textarea></label><label>Importe de coste (€ sin IVA)<input type="number" min="0" step="0.01" data-field="amount" value="${esc(l.amount ?? "")}"></label></div><p>Importe por todo el concepto, sin medidas ni tarifa. Sin margen; se presenta por separado al cliente.</p></div>`;
     const c = calc(l);
-    return `<div class="quote-line" data-line="${i}"><div class="quote-line-head"><strong>Vidrio ${i + 1}</strong><button type="button" data-remove="${i}">Eliminar</button></div><div class="quote-fields">${[
+    return `<div class="quote-line" data-line="${i}"><div class="quote-line-head"><strong>Vidrio ${i + 1}</strong><button type="button" data-remove="${i}">Eliminar</button></div>${doubleFields(l)}<div class="quote-fields">${[
       ["w", "Ancho real (" + unit() + ")", display(l.w)],
       ["h", "Alto real (" + unit() + ")", display(l.h)],
       ["qty", "Cantidad", l.qty ?? 1],
@@ -245,14 +277,14 @@
       )
       .join(
         "",
-      )}<label>Tarifa de vidrio<select data-field="tariff"><option value="">Sin tarifa · precio manual</option>${tariffs()
+      )}<label>Tarifa de vidrio<select data-field="tariff" ${l.doubleGlazing ? "disabled" : ""}><option value="">Sin tarifa · precio manual</option>${tariffs()
       .map(
         (t) =>
           `<option value="${esc(t.id)}" ${l.tariff === t.id ? "selected" : ""}>${esc(t.name)} · ${money(t.price)}/m²</option>`,
       )
       .join(
         "",
-      )}</select></label><label>Tipo de vidrio<input data-field="glass" value="${esc(glassName(l))}"></label><label>Precio vidrio (€/m², editable sin tarifa)<input type="number" min="0" step="0.01" data-field="price" value="${esc(l.price)}"></label><label>Precio canto (€/ml)<input type="number" min="0" step="0.01" data-field="edgePrice" value="${esc(l.edgePrice)}"></label></div><div class="quote-edges">${[
+      )}</select></label><label>Tipo de vidrio<input data-field="glass" ${l.doubleGlazing ? "readonly" : ""} value="${esc(glassName(l))}"></label><label>Precio vidrio (€/m², editable sin tarifa)<input type="number" min="0" step="0.01" data-field="price" ${l.doubleGlazing ? "readonly" : ""} value="${esc(l.price)}"></label><label>Precio canto (€/ml)<input type="number" min="0" step="0.01" data-field="edgePrice" value="${esc(l.edgePrice)}"></label></div><div class="quote-edges">${[
       ["top", "Superior"],
       ["bottom", "Inferior"],
       ["left", "Izquierdo"],
@@ -281,10 +313,25 @@
       el.querySelectorAll("[data-field]").forEach(
         (input) =>
           (l[input.dataset.field] =
-            unit() === "mm" && ["w", "h"].includes(input.dataset.field)
-              ? String(num(input.value) / 10)
-              : input.value),
+            input.type === "checkbox"
+              ? input.checked
+              : unit() === "mm" && ["w", "h"].includes(input.dataset.field)
+                ? String(num(input.value) / 10)
+                : input.value),
       );
+      if (l.doubleGlazing) {
+        l.doubleBase ??= 27;
+        l.doubleComposition ||= "4/16/4";
+        for (const [field, price, name] of [
+          ["faceOne", "faceOnePrice", "faceOneName"],
+          ["faceTwo", "faceTwoPrice", "faceTwoName"],
+        ]) {
+          const selected = substitutions().find((t) => t.id === l[field]);
+          l[price] = selected?.price ?? 0;
+          l[name] = selected ? glassName({ glass: selected.name }) : "Float 4";
+        }
+        doublePrice(l);
+      }
       l.sides = [...el.querySelectorAll("[data-edge]:checked")].map(
         (x) => x.dataset.edge,
       );
@@ -304,6 +351,7 @@
       !Number.isFinite(sum(draft).total) ||
       !draft.lines.every(
         (l) =>
+          (!l.doubleGlazing || nonNegative(l.doubleBase)) &&
           nonNegative(l.extraAmount) &&
           (!num(l.extraAmount) ||
             l.extraMode !== "separate" ||
@@ -533,6 +581,12 @@
     }
     fromForm();
     const el = e.target.closest(".quote-line");
+    if (el && e.target.dataset.field === "doubleGlazing" && !e.target.checked) {
+      const l = draft.lines[Number(el.dataset.line)];
+      l.price = "";
+      l.glass = "";
+      l.tariff = "";
+    }
     if (el && ["glass", "tariff"].includes(e.target.dataset.field)) {
       const l = draft.lines[Number(el.dataset.line)],
         t = tariffs().find((t) =>

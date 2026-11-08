@@ -3799,6 +3799,15 @@ input[data-measure] {
   }
 }
 
+/* En pantallas estrechas, la etiqueta más larga necesita algo más de ancho. */
+@media (max-width: 360px) {
+  #nav {
+    grid-template-columns:
+      minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.3fr)
+      minmax(0, 1fr);
+  }
+}
+
 /* Canto pulido: precio y lados agrupados, con controles táctiles compactos. */
 .quote-edge-panel {
   min-width: 0;

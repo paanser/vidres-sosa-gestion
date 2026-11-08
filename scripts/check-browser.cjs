@@ -102,6 +102,12 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
     .first()
     .waitFor({ state: "detached" });
   console.log("PASS login, cambio obligatorio y carga privada");
+  assert.deepEqual(
+    await page
+      .locator("#nav [data-page]")
+      .evaluateAll((nodes) => nodes.map((node) => node.dataset.page)),
+    ["inicio", "trabajos", "presupuestos", "calendario"],
+  );
   assert.equal(await page.locator(".global-text-controls").count(), 0);
   assert.equal(await page.locator("[data-text-scale]").count(), 0);
   await page.locator('.header-actions [data-page="ajustes"]').click();
@@ -630,17 +636,24 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
   await page
     .getByRole("button", { name: "← Volver a Ajustes", exact: true })
     .click();
-  await page.locator('[data-tool-go="ajustes-plantillas"]').click();
-  await page.locator("#plantilla-new").click();
-  await page
-    .locator("#plantilla-form [name=nombre]")
-    .fill("Plantilla de prueba");
-  await page.locator("#plantilla-form [type=submit]").click();
-  await page.locator("#plantilla-editor").waitFor({ state: "hidden" });
-  await page.getByText("Plantilla de prueba", { exact: true }).waitFor();
-  await page
-    .getByRole("button", { name: "← Volver a Ajustes", exact: true })
-    .click();
+  assert.equal(
+    await page.locator('[data-tool-go="ajustes-plantillas"]').count(),
+    0,
+  );
+  await page.evaluate(() => window.vidresNavigate("ajustes-plantillas"));
+  assert.equal(await page.locator(".settings-home").isVisible(), true);
+  assert.equal(await page.locator("#plantilla-new").count(), 0);
+  await page.locator('[data-tool-go="calendario"]').click();
+  assert.equal(await page.locator(".cal-panel").isVisible(), true);
+  assert.equal(
+    await page
+      .locator('#nav [data-page="calendario"]')
+      .getAttribute("aria-current"),
+    "page",
+  );
+  await page.locator('[data-month="1"]').click();
+  await page.locator('[data-month="0"]').click();
+  await page.locator('[data-page="ajustes"]').click();
   await page.locator('[data-tool-go="ajustes-copias"]').click();
   assert.equal(await page.locator("#backup-export").isVisible(), true);
   assert.equal(await page.locator("#backup-import").count(), 1);
@@ -653,19 +666,33 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
     .getByRole("button", { name: "← Volver a Ajustes", exact: true })
     .click();
   assert.equal(await page.locator(".ai-usage").isVisible(), false);
-  await page.locator("[data-page=herramientas]").click();
+  await page.locator("[data-tool-go=herramientas]").click();
   await page.locator("[data-tool-go=usuarios]").click();
   await page
     .getByRole("button", { name: "← Volver a Herramientas", exact: true })
     .click();
   assert.equal(
     await page
-      .locator("#nav [data-page=herramientas]")
+      .locator(".header-actions [data-page=ajustes]")
       .getAttribute("aria-current"),
     "page",
   );
+  await page.locator('[data-tool-go="consultor"]').click();
+  assert.equal(await page.locator("#consult-filter").isVisible(), true);
+  await page
+    .getByRole("button", { name: "← Volver a Herramientas", exact: true })
+    .click();
+  await page.locator('[data-tool-go="clientes"]').click();
+  assert.equal(await page.locator("#title").textContent(), "Clientes");
+  await page
+    .getByRole("button", { name: "← Volver a Herramientas", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "← Volver a Ajustes", exact: true })
+    .click();
+  assert.equal(await page.locator(".settings-home").isVisible(), true);
   console.log(
-    "PASS ajustes separados: usuarios bajo demanda, roles, navegación, configuración, tarifas, plantillas, copias e IA",
+    "PASS ajustes: herramientas integradas, calendario en menú, plantillas ocultas, usuarios, configuración, tarifas, copias e IA",
   );
   await page.locator("[data-page=ajustes]").click();
   await page.locator('[data-tool-go="ajustes-cuenta"]').click();
@@ -706,7 +733,7 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
   await page
     .getByRole("button", { name: "← Volver a Ajustes", exact: true })
     .click();
-  await page.locator("[data-page=herramientas]").click();
+  await page.locator("[data-tool-go=herramientas]").click();
   assert.equal(await page.locator('[data-tool-go="usuarios"]').count(), 0);
   const callsBefore = requests.filter((p) => p === "/admin/users").length;
   await page.evaluate(() => window.vidresNavigate("usuarios"));

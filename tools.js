@@ -74,6 +74,7 @@
   }
   function toolHome() {
     return (
+      settingsBack() +
       '<section class="panel"><h2>Herramientas de consulta</h2><div class="tool-tiles">' +
       tile("consultor", "Consultar tarifas", "Buscar precios de vidrio") +
       tile("clientes", "Clientes", "Datos de contacto e historial") +
@@ -100,10 +101,11 @@
         "Tarifas y documentos PDF",
         "Importar y gestionar el catálogo de precios",
       ],
+      ["calendario", "Calendario", "Consultar fechas de los trabajos"],
       [
-        "ajustes-plantillas",
-        "Plantillas de trabajo",
-        "Crear y editar modelos para nuevos partes",
+        "herramientas",
+        "Herramientas",
+        "Consultar tarifas y gestionar clientes",
       ],
       ...(VSAuth.user.rol === "administrador"
         ? [
@@ -350,12 +352,14 @@
   window.vidresToolsRender = (page) => {
     const root = document.querySelector("#content");
     if (!root) return;
+    // Plantillas ocultas temporalmente; se conservan los datos y su editor.
+    if (page === "ajustes-plantillas") page = "ajustes";
     if (page === "herramientas" || page === "consultor" || page === "ajustes") {
       root.innerHTML =
         page === "herramientas"
           ? toolHome()
           : page === "consultor"
-            ? consult()
+            ? settingsBack("Herramientas", "herramientas") + consult()
             : settingsHome();
       return;
     }

@@ -3798,3 +3798,77 @@ input[data-measure] {
     overflow-wrap: anywhere;
   }
 }
+
+/* Canto pulido: precio y lados agrupados, con controles táctiles compactos. */
+.quote-edge-panel {
+  min-width: 0;
+  margin: 10px 0;
+  padding: 8px 10px 10px;
+  border: 1px solid #dce8df;
+  border-radius: 9px;
+}
+.quote-edge-panel legend {
+  padding: 0 4px;
+  font-size: 0.9em;
+  font-weight: 600;
+}
+.quote-edge-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 12px;
+}
+.quote-edge-price {
+  display: grid;
+  gap: 4px;
+  width: 150px;
+  max-width: 100%;
+  font-size: 0.9em;
+}
+.quote-edge-price input {
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: 8px;
+}
+.quote-edge-options {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  flex: 1 1 430px;
+  gap: 6px;
+}
+.quote-edge-options label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 6px 8px;
+  border: 1px solid #dce8df;
+  border-radius: 7px;
+  font-size: 0.9em;
+  cursor: pointer;
+}
+.quote-edge-options label:has(input:checked) {
+  background: #e6f3eb;
+  border-color: #116243;
+}
+.quote-edge-options input {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  min-height: 0;
+  margin: 0;
+  accent-color: var(--vs-green);
+}
+.quote-line-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  line-height: 1.5;
+}
+@media (max-width: 600px) {
+  .quote-edge-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

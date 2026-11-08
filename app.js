@@ -663,13 +663,10 @@ window.vidresAppReady = (async () => {
       usagePanel.hidden = true;
     }
     const mainPage =
-      page === "usuarios"
-        ? usersBackPage
-        : isSettingsPage(page)
-          ? "ajustes"
-          : ["consultor", "clientes", "calendario", "mediciones"].includes(page)
-            ? "herramientas"
-            : page;
+      isSettingsPage(page) ||
+      ["herramientas", "consultor", "clientes", "mediciones"].includes(page)
+        ? "ajustes"
+        : page;
     document
       .querySelectorAll("#nav [data-page], .header-actions [data-page]")
       .forEach((b) => {
@@ -772,7 +769,9 @@ window.vidresAppReady = (async () => {
           ? jobCards(criticalJobs)
           : '<div class="empty-state"><strong>No hay trabajos críticos</strong><p>Para incluir un trabajo aquí, selecciona Crítico en su estado y guarda los cambios.</p></div>');
     } else if (page === "clientes") {
-      html = clientsHtml();
+      html =
+        '<div class="settings-subpage-head"><button type="button" data-go="herramientas">← Volver a Herramientas</button></div>' +
+        clientsHtml();
     } else if (page === "calendario") {
       html = calendarHtml();
     } else if (page === "mediciones") {
@@ -884,6 +883,7 @@ window.vidresAppReady = (async () => {
       });
   }
   window.vidresNavigate = (p) => {
+    if (p === "ajustes-plantillas") p = "ajustes";
     if (p === "usuarios")
       usersBackPage = page === "herramientas" ? "herramientas" : "ajustes";
     page = p;

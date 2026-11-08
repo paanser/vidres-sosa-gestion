@@ -106,6 +106,51 @@
   async function nextId() {
     return VSStorage.reserveQuoteNumber();
   }
+  function measurePanel() {
+    if (!draft.job)
+      return '<p class="muted">Selecciona un parte relacionado para consultar sus medidas, croquis y fotos de medidas en papel.</p>';
+    const measures = (window.vidresGetMeasurements?.() || []).filter(
+      (m) => m.trabajo === draft.job,
+    );
+    return `<details id="quote-measures" class="quote-measures" data-job="${esc(draft.job)}"><summary>Ver medidas del parte · ${esc(draft.job)}${measures.length ? ` · ${measures.length} piezas` : ""}</summary><div class="quote-measures-body"><p class="muted">Medidas originales para consultar mientras preparas el presupuesto.</p><div class="quote-measure-grid">${measures.map((m, i) => `<article><h3>Pieza ${i + 1} · ${esc(m.tipo || "Vidrio")}</h3><p>${esc(display(m.ancho))} × ${esc(display(m.alto))} ${unit()} · ${esc(m.cantidad)} ud.${m.espesor ? ` · Espesor: ${esc(m.espesor)} mm` : ""}</p>${m.observaciones ? `<p class="quote-measure-notes">${esc(m.observaciones)}</p>` : ""}${m.croquis?.notes ? `<p class="quote-measure-notes">${esc(m.croquis.notes)}</p>` : ""}${m.croquis?.strokes?.length || m.croquis?.dims?.length ? `<button type="button" data-quote-reference aria-label="Ampliar croquis de la pieza ${i + 1}"><img src="${window.vidresSketch.preview(m.croquis)}" alt="Croquis de la pieza ${i + 1}"></button>` : ""}</article>`).join("")}</div>${measures.length ? "" : '<p class="muted">Todavía no hay piezas medidas en este parte.</p>'}<h3>Fotos de medidas en papel</h3><div class="measure-paper-grid" data-quote-paper aria-live="polite"></div></div></details>`;
+  }
+  async function loadMeasurePhotos(panel) {
+    const host = panel.querySelector("[data-quote-paper]");
+    if (host.dataset.loaded) return;
+    host.dataset.loaded = "true";
+    host.textContent = "Cargando fotos de medidas…";
+    try {
+      const photos = await VSFiles.all("photos", {
+        trabajo: panel.dataset.job,
+        tipo: "medidas",
+      });
+      const images = await Promise.all(
+        photos.map(
+          (photo) =>
+            new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve({ ...photo, src: reader.result });
+              reader.onerror = () => reject(reader.error);
+              reader.readAsDataURL(photo.blob);
+            }),
+        ),
+      );
+      if (!panel.isConnected) return;
+      host.innerHTML = images.length
+        ? images
+            .map(
+              (photo) =>
+                `<figure><button type="button" data-quote-reference aria-label="Ampliar foto de medidas: ${esc(photo.nombre || "Medidas en papel")}"><img src="${esc(photo.src)}" alt="${esc(photo.nombre || "Medidas en papel")}"></button><figcaption class="quote-measure-notes">${esc(photo.nota || photo.nombre || "Medidas en papel")}</figcaption></figure>`,
+            )
+            .join("")
+        : '<p class="muted">No hay fotos de medidas en papel en este parte.</p>';
+    } catch {
+      if (!panel.isConnected) return;
+      delete host.dataset.loaded;
+      host.innerHTML =
+        '<p>No se pudieron cargar las fotos de medidas.</p><button type="button" id="quote-measures-retry">Reintentar</button>';
+    }
+  }
   function sync() {
     if (!draft) draft = fresh();
     if (quickMode) {
@@ -116,11 +161,20 @@
       jobs = window.vidresGetJobs?.() || [],
       total = sum(draft),
       breakdown = details(draft);
+    const previousMeasures = document.querySelector("#quote-measures");
     document.querySelector("#content").innerHTML =
       `<div class="quote-toolbar"><button type="button" class="quick-quote-button" id="quote-quick">⚡ Presupuesto rápido</button><button type="button" class="primary" id="quote-new">+ Nuevo presupuesto</button><button type="button" id="quote-settings">Ajustes de tarifas</button></div>
  <section class="panel quote-editor"><h2>Presupuesto de vidrio · ${esc(draft.id || "Sin guardar")}</h2><div class="quote-fields"><label>Cliente<input id="quote-client" list="quote-clients" maxlength="100" value="${esc(draft.client)}"></label><datalist id="quote-clients">${(window.vidresClientNames?.() || []).map((name) => `<option value="${esc(name)}"></option>`).join("")}</datalist><label>Parte relacionado<select id="quote-job"><option value="">Sin vincular</option>${jobs.map((j) => `<option value="${esc(j.id)}" ${draft.job === j.id ? "selected" : ""}>${esc(j.id + " · " + j.cliente)}</option>`).join("")}</select></label><label>Estado<select id="quote-status">${statuses.map((s) => `<option ${s === (draft.status || "Borrador") ? "selected" : ""}>${s}</option>`).join("")}</select></label></div>
- <div class="quote-margin"><label>Margen (%)<input id="quote-margin" type="number" min="0" step="0.01" value="${esc(pricing(draft).margin || "")}"></label><p>Incremento sobre el precio del vidrio: 100 € con 20 % → 120 €. Mano de obra, cantos, recargos y conceptos adicionales sin margen. Antes del IVA; solo visible en la copia interna.</p>${pricing(draft).marginScope !== "glass" && num(pricing(draft).margin) ? "<p>Presupuesto anterior: conserva el cálculo guardado. Al editar se aplicará el incremento solo al vidrio.</p>" : ""}</div><div id="quote-lines">${draft.lines.map(row).join("")}</div><button type="button" id="quote-add">+ Añadir otro vidrio</button><button type="button" id="quote-add-concept">+ Añadir concepto libre</button><div class="quote-total"><div class="quote-total-breakdown">Coste interno: <strong>${money(breakdown.cost)}</strong><br>Margen añadido: <strong>${money(breakdown.margin)}</strong><br>Base imponible de venta: <strong>${money(total.base)}</strong><br>IVA (${esc(pricing(draft).vat ?? 21)} %): <strong>${money(total.iva)}</strong><br>Total con IVA: <strong class="quote-grand-total">${money(total.total)}</strong></div></div><div class="quote-toolbar"><button type="button" class="primary" id="quote-save">Guardar presupuesto</button><button type="button" id="quote-whatsapp">Enviar por WhatsApp</button><button type="button" id="quote-pdf">PDF para cliente</button><button type="button" id="quote-pdf-internal">PDF interno · Vidres Sosa</button></div></section>
+ ${measurePanel()}<div class="quote-margin"><label>Margen (%)<input id="quote-margin" type="number" min="0" step="0.01" value="${esc(pricing(draft).margin || "")}"></label><p>Incremento sobre el precio del vidrio: 100 € con 20 % → 120 €. Mano de obra, cantos, recargos y conceptos adicionales sin margen. Antes del IVA; solo visible en la copia interna.</p>${pricing(draft).marginScope !== "glass" && num(pricing(draft).margin) ? "<p>Presupuesto anterior: conserva el cálculo guardado. Al editar se aplicará el incremento solo al vidrio.</p>" : ""}</div><div id="quote-lines">${draft.lines.map(row).join("")}</div><button type="button" id="quote-add">+ Añadir otro vidrio</button><button type="button" id="quote-add-concept">+ Añadir concepto libre</button><div class="quote-total"><div class="quote-total-breakdown">Coste interno: <strong>${money(breakdown.cost)}</strong><br>Margen añadido: <strong>${money(breakdown.margin)}</strong><br>Base imponible de venta: <strong>${money(total.base)}</strong><br>IVA (${esc(pricing(draft).vat ?? 21)} %): <strong>${money(total.iva)}</strong><br>Total con IVA: <strong class="quote-grand-total">${money(total.total)}</strong></div></div><div class="quote-toolbar"><button type="button" class="primary" id="quote-save">Guardar presupuesto</button><button type="button" id="quote-whatsapp">Enviar por WhatsApp</button><button type="button" id="quote-pdf">PDF para cliente</button><button type="button" id="quote-pdf-internal">PDF interno · Vidres Sosa</button></div></section>
  <section class="panel"><h2>Presupuestos guardados</h2>${list.length ? list.map((q) => `<article class="quote-saved"><span>${esc(q.id)} · ${esc(q.client)} · ${esc(q.status || "Borrador")} · Total: ${money(sum(q).total)}</span><div><button type="button" data-load="${esc(q.id)}">Abrir</button><button type="button" data-whatsapp="${esc(q.id)}">WhatsApp</button><button type="button" data-duplicate="${esc(q.id)}">Duplicar</button><button type="button" data-delete-quote="${esc(q.id)}">Eliminar</button></div></article>`).join("") : "<p>No hay presupuestos guardados.</p>"}</section>`;
+    const panel = document.querySelector("#quote-measures");
+    if (panel && previousMeasures?.dataset.job === draft.job) {
+      panel.replaceWith(previousMeasures);
+    } else if (panel) {
+      panel.addEventListener("toggle", () => {
+        if (panel.open) loadMeasurePhotos(panel);
+      });
+    }
   }
   function quickSync() {
     const line = draft.lines[0] || emptyLine(),
@@ -491,7 +545,17 @@
     const b = e.target.closest("button");
     if (!b) return;
     try {
-      if (b.id === "quote-new") {
+      if (b.hasAttribute("data-quote-reference")) {
+        const image = b.querySelector("img"),
+          viewer = document.querySelector("#measure-photo-viewer"),
+          enlarged = viewer.querySelector("img");
+        enlarged.src = image.src;
+        enlarged.alt = image.alt;
+        enlarged.style.transform = "scale(1)";
+        viewer.showModal();
+      } else if (b.id === "quote-measures-retry") {
+        await loadMeasurePhotos(b.closest("#quote-measures"));
+      } else if (b.id === "quote-new") {
         if (discard()) {
           quickMode = false;
           draft = fresh();
@@ -626,6 +690,7 @@
       }));
   window.vidresQuoteStartForJob = (id, client, measures) => {
     if (!discard()) return;
+    quickMode = false;
     draft = fresh();
     draft.job = id;
     draft.client = client || "";
@@ -642,6 +707,7 @@
   };
   window.vidresQuoteOpenSaved = (id) => {
     if (discard()) {
+      quickMode = false;
       draft = structuredClone(quotes().find((q) => q.id === id));
       window.vidresQuotePage = "presupuestos";
       window.vidresNavigate("presupuestos");

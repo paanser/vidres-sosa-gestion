@@ -162,6 +162,92 @@
       return "cm";
     }
   };
+  function draw(ctx, stroke) {
+    ctx.save();
+    ctx.globalCompositeOperation =
+      stroke.tool === "eraser" ? "destination-out" : "source-over";
+    ctx.strokeStyle = ctx.fillStyle = stroke.color;
+    ctx.lineWidth = stroke.width || (stroke.tool === "eraser" ? 24 : 3);
+    ctx.lineCap = ctx.lineJoin = "round";
+    const [first, ...rest] = stroke.points;
+    if (!first) {
+      ctx.restore();
+      return;
+    }
+    if (!rest.length) {
+      ctx.beginPath();
+      ctx.arc(first[0], first[1], ctx.lineWidth / 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      return;
+    }
+    ctx.beginPath();
+    ctx.moveTo(...first);
+    for (const p of rest) ctx.lineTo(...p);
+    ctx.stroke();
+    ctx.restore();
+  }
+  function drawDim(ctx, d, selected = false) {
+    ctx.save();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = selected ? "#b42318" : "#315c42";
+    ctx.setLineDash([6, 5]);
+    ctx.beginPath();
+    ctx.moveTo(d.a[0], d.a[1]);
+    ctx.lineTo(d.b[0], d.b[1]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    const dx = d.b[0] - d.a[0],
+      dy = d.b[1] - d.a[1],
+      len = Math.hypot(dx, dy) || 1,
+      ux = dx / len,
+      uy = dy / len,
+      px = -uy,
+      py = ux;
+    for (const p of [d.a, d.b]) {
+      ctx.beginPath();
+      ctx.moveTo(p[0] - px * 8, p[1] - py * 8);
+      ctx.lineTo(p[0] + px * 8, p[1] + py * 8);
+      ctx.stroke();
+    }
+    for (const p of [d.a, d.b]) {
+      ctx.beginPath();
+      ctx.arc(p[0], p[1], 3, 0, Math.PI * 2);
+      ctx.fillStyle = ctx.strokeStyle;
+      ctx.fill();
+    }
+    const label = d.valor + " " + unitName(),
+      mx = (d.a[0] + d.b[0]) / 2,
+      my = (d.a[1] + d.b[1]) / 2;
+    ctx.font =
+      "bold 15px system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
+    const w = ctx.measureText(label).width,
+      pad = 4,
+      ty = my - 14;
+    ctx.fillStyle = "rgba(255,255,255,0.94)";
+    ctx.fillRect(mx - w / 2 - pad, ty - 10, w + pad * 2, 20);
+    ctx.fillStyle = "#17251e";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(label, mx, ty);
+    ctx.restore();
+    if (selected) {
+      ctx.save();
+      ctx.fillStyle = "#b42318";
+      for (const p of [d.a, d.b]) ctx.fillRect(p[0] - 6, p[1] - 6, 12, 12);
+      ctx.restore();
+    }
+  }
+  function preview(value) {
+    const state = clean(value),
+      canvas = document.createElement("canvas");
+    canvas.width = 1000;
+    canvas.height = state.pageHeight;
+    const ctx = canvas.getContext("2d");
+    state.strokes.forEach((stroke) => draw(ctx, stroke));
+    state.dims.forEach((dim) => drawDim(ctx, dim));
+    return canvas.toDataURL("image/png");
+  }
   function mount(host, initial, options = {}) {
     instances.get(host)?.destroy();
     host.replaceChildren();
@@ -423,83 +509,6 @@
     if (state.strokes.length || state.notes || state.dims.length)
       details.querySelector("summary").textContent =
         "✎ Dibujar medidas · Con anotaciones";
-    function draw(stroke) {
-      ctx.save();
-      ctx.globalCompositeOperation =
-        stroke.tool === "eraser" ? "destination-out" : "source-over";
-      ctx.strokeStyle = ctx.fillStyle = stroke.color;
-      ctx.lineWidth = stroke.width || (stroke.tool === "eraser" ? 24 : 3);
-      ctx.lineCap = ctx.lineJoin = "round";
-      const [first, ...rest] = stroke.points;
-      if (!first) {
-        ctx.restore();
-        return;
-      }
-      if (!rest.length) {
-        ctx.beginPath();
-        ctx.arc(first[0], first[1], ctx.lineWidth / 2, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-        return;
-      }
-      ctx.beginPath();
-      ctx.moveTo(...first);
-      for (const p of rest) ctx.lineTo(...p);
-      ctx.stroke();
-      ctx.restore();
-    }
-    function drawDim(d) {
-      const selected = d.id === selectedDim;
-      ctx.save();
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = selected ? "#b42318" : "#315c42";
-      ctx.setLineDash([6, 5]);
-      ctx.beginPath();
-      ctx.moveTo(d.a[0], d.a[1]);
-      ctx.lineTo(d.b[0], d.b[1]);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      const dx = d.b[0] - d.a[0],
-        dy = d.b[1] - d.a[1],
-        len = Math.hypot(dx, dy) || 1,
-        ux = dx / len,
-        uy = dy / len,
-        px = -uy,
-        py = ux;
-      for (const p of [d.a, d.b]) {
-        ctx.beginPath();
-        ctx.moveTo(p[0] - px * 8, p[1] - py * 8);
-        ctx.lineTo(p[0] + px * 8, p[1] + py * 8);
-        ctx.stroke();
-      }
-      for (const p of [d.a, d.b]) {
-        ctx.beginPath();
-        ctx.arc(p[0], p[1], 3, 0, Math.PI * 2);
-        ctx.fillStyle = ctx.strokeStyle;
-        ctx.fill();
-      }
-      const label = d.valor + " " + unitName(),
-        mx = (d.a[0] + d.b[0]) / 2,
-        my = (d.a[1] + d.b[1]) / 2;
-      ctx.font =
-        "bold 15px system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
-      const w = ctx.measureText(label).width,
-        pad = 4,
-        ty = my - 14;
-      ctx.fillStyle = "rgba(255,255,255,0.94)";
-      ctx.fillRect(mx - w / 2 - pad, ty - 10, w + pad * 2, 20);
-      ctx.fillStyle = "#17251e";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(label, mx, ty);
-      ctx.restore();
-      if (selected) {
-        ctx.save();
-        ctx.fillStyle = "#b42318";
-        for (const p of [d.a, d.b]) ctx.fillRect(p[0] - 6, p[1] - 6, 12, 12);
-        ctx.restore();
-      }
-    }
     const snapshot = () => ({
       strokes: structuredClone(state.strokes),
       dims: structuredClone(state.dims),
@@ -512,7 +521,7 @@
     function redraw() {
       if (canvas.height !== state.pageHeight) canvas.height = state.pageHeight;
       ctx.clearRect(0, 0, 1000, state.pageHeight);
-      state.strokes.forEach(draw);
+      state.strokes.forEach((stroke) => draw(ctx, stroke));
       if (cotaMode && cotaStart && previewEnd) {
         ctx.save();
         ctx.strokeStyle = "#b42318";
@@ -529,7 +538,7 @@
         ctx.fill();
         ctx.restore();
       }
-      state.dims.forEach(drawDim);
+      state.dims.forEach((dim) => drawDim(ctx, dim, dim.id === selectedDim));
       editor.querySelector("[data-sketch-undo]").disabled = !history.length;
       editor.querySelector("[data-sketch-clear]").disabled =
         !state.strokes.length;
@@ -977,6 +986,7 @@
   }
   window.vidresSketch = {
     mount,
+    preview,
     destroy: (host) => instances.get(host)?.destroy(),
     open: (host) => instances.get(host)?.open(),
     read: (host) => instances.get(host)?.read() || { strokes: [], notes: "" },

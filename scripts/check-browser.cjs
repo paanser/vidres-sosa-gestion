@@ -455,6 +455,7 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
   console.log(
     "PASS parte, medición y foto en servidor, sin copia local de negocio",
   );
+  await require("./check-quote-measures-browser.cjs")(page, context, root);
   for (const focus of ["undated", "today", "late", ""]) {
     await page.locator('[data-page="trabajos"]').click();
     await page.locator("#search").fill("búsqueda-que-no-coincide");

@@ -77,6 +77,7 @@
         a,
         b,
         valor,
+        unit: ["m", "cm", "mm"].includes(d.unit) ? d.unit : legacyUnit(),
         eje: ejeOf({ a, b }),
       });
     }
@@ -177,13 +178,16 @@
     if (dy > dx * 2) return "v";
     return "d";
   }
-  const unitName = () => {
+  const unitName = () => VSMeasureInput.unit();
+  // Las cotas antiguas no llevaban unidad: antes solo existían cm y mm.
+  function legacyUnit() {
     try {
-      return VSStorage.read("vs-config-v1", {}).unit === "mm" ? "mm" : "cm";
+      const c = VSStorage.read("vs-config-v1", {});
+      return (c.legacyDimensionUnit || c.unit) === "mm" ? "mm" : "cm";
     } catch {
       return "cm";
     }
-  };
+  }
   function draw(ctx, stroke) {
     ctx.save();
     ctx.globalCompositeOperation =
@@ -238,7 +242,10 @@
       ctx.fillStyle = ctx.strokeStyle;
       ctx.fill();
     }
-    const label = d.valor + " " + unitName(),
+    const label =
+        VSUtils.formatMeters(
+          VSUtils.dimensionToCm(d.valor, d.unit || legacyUnit()),
+        ) + " m",
       mx = (d.a[0] + d.b[0]) / 2,
       my = (d.a[1] + d.b[1]) / 2;
     ctx.font =
@@ -328,6 +335,7 @@
       <p class="sketch-keypad-title">Valor de la cota</p>
       <output class="sketch-keypad-value" aria-live="polite">0</output>
       <p class="sketch-keypad-unit">Unidad: <span data-keypad-unit>cm</span></p>
+      <p class="measure-feedback" data-keypad-feedback aria-live="polite"></p>
       <div class="sketch-keypad-grid" role="group" aria-label="Teclado numérico">
         <button type="button" data-kp="7">7</button>
         <button type="button" data-kp="8">8</button>
@@ -636,13 +644,13 @@
         );
         return;
       }
-      const unit = unitName(),
-        toCm = (d) => VSUtils.dimensionToCm(d.valor, unit),
+      const toCm = (d) =>
+          VSUtils.dimensionToCm(d.valor, d.unit || legacyUnit()),
         hVal = horizontal.length ? toCm(horizontal[0]) : null,
         vVal = vertical.length ? toCm(vertical[0]) : null;
       const parts = [];
-      if (hVal != null) parts.push("ancho = " + hVal + " cm");
-      if (vVal != null) parts.push("alto = " + vVal + " cm");
+      if (hVal != null) parts.push("ancho = " + VSUtils.formatMeasure(hVal));
+      if (vVal != null) parts.push("alto = " + VSUtils.formatMeasure(vVal));
       if (
         !confirm(
           "¿Copiar las cotas a las medidas de la pieza? " +
@@ -655,6 +663,21 @@
       message.textContent =
         "Cotas aplicadas a las medidas. Revisa los campos antes de guardar.";
     }
+    function keypadResult() {
+      const r =
+        unitName() === "m"
+          ? VSUtils.parseMeters(keypad._value)
+          : VSUtils.parseDimension(keypad._value);
+      const feedback = keypad.querySelector("[data-keypad-feedback]");
+      feedback.textContent = r.ok
+        ? "= " +
+          VSUtils.formatMeasure(
+            VSUtils.dimensionToCm(keypad._value, unitName()),
+          )
+        : r.error;
+      feedback.classList.toggle("measure-error", !r.ok);
+      return r;
+    }
     function openKeypad(initialValue, onAccept) {
       keypad.querySelector(".sketch-keypad-value").textContent =
         initialValue || "0";
@@ -664,6 +687,7 @@
       keypad.querySelector("[data-keypad-unit]").textContent = unitName();
       keypad._value = String(initialValue || "");
       keypad._onAccept = onAccept;
+      keypadResult();
       keypad.showModal();
       requestAnimationFrame(() =>
         keypad.querySelector("[data-kp-accept]").focus(),
@@ -683,19 +707,13 @@
         keypad.close();
         return;
       } else if (b.hasAttribute("data-kp-accept")) {
-        const res = VSUtils.parseDimension(keypad._value);
+        const res = keypadResult();
         if (!res.ok) {
           alert(res.error);
           return;
         }
-        const cm = VSUtils.dimensionToCm(res.value, unitName());
-        if (
-          cm > 1000 &&
-          !confirm(
-            "La medida equivale a más de 1000 cm. ¿Confirmar este valor?",
-          )
-        )
-          return;
+        const cm = VSUtils.dimensionToCm(keypad._value, unitName());
+        if (cm > 600 && !confirm(`¿Seguro? ${cm / 100} m`)) return;
         const onAccept = keypad._onAccept,
           valor = keypad._value;
         keypad._value = "";
@@ -706,6 +724,7 @@
       const out = keypad.querySelector(".sketch-keypad-value");
       out.textContent = keypad._value || "0";
       out.classList.toggle("empty", !keypad._value);
+      keypadResult();
     });
     canvas.addEventListener("pointerdown", (e) => {
       if (saving || pointer !== null || !e.isPrimary || e.button !== 0) return;
@@ -735,6 +754,7 @@
               a,
               b,
               valor,
+              unit: unitName(),
               eje: ejeOf({ a, b }),
             });
             selectedDim = null;
@@ -892,12 +912,18 @@
       if (b.hasAttribute("data-dim-edit")) {
         const d = state.dims.find((x) => x.id === selectedDim);
         if (d)
-          openKeypad(d.valor, (valor) => {
-            remember();
-            d.valor = valor;
-            message.textContent = "Valor de la cota actualizado.";
-            redraw();
-          });
+          openKeypad(
+            VSMeasureInput.display(
+              VSUtils.dimensionToCm(d.valor, d.unit || legacyUnit()),
+            ),
+            (valor) => {
+              remember();
+              d.valor = valor;
+              d.unit = unitName();
+              message.textContent = "Valor de la cota actualizado.";
+              redraw();
+            },
+          );
         return;
       }
       if (b.hasAttribute("data-dim-delete")) {

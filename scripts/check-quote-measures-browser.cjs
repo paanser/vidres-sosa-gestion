@@ -10,9 +10,12 @@ module.exports = async function checkQuoteMeasures(page, context, root) {
       first = jobs[0],
       second = { ...first, id: "VS-REFERENCIA-2", cliente: "Otro parte" };
     await VSStorage.patchValues({
+      [VSStorage.keys.configuracion]: { ...config, unit: "cm" },
       [VSStorage.keys.trabajos]: [...jobs, second],
       [VSStorage.keys.mediciones]: measures.map((m) => ({
         ...m,
+        ancho: 100,
+        alto: 80,
         espesor: "6",
         observaciones: "Medida original <img src=x onerror=alert(1)>",
         croquis: {

@@ -24,8 +24,8 @@ module.exports = async function checkQuotes(page, context, root) {
     await page.locator('[data-field="glass"]').inputValue(),
     /Float 4/,
   );
-  await set('[data-field="w"]', "100");
-  await set('[data-field="h"]', "100");
+  await set('[data-field="w"]', "1.000");
+  await set('[data-field="h"]', "1.000");
   await page.locator("#quote-pdf").click();
   assert.match(await page.locator("#quote-print").textContent(), /Float 4/);
   assert.doesNotMatch(
@@ -62,8 +62,8 @@ module.exports = async function checkQuotes(page, context, root) {
   await page.locator('[data-field="tariff"]').selectOption("");
 
   await set('[data-field="glass"]', "Vidrio especial sin tarifa");
-  await set('[data-field="w"]', "120");
-  await set('[data-field="h"]', "120");
+  await set('[data-field="w"]', "1.200");
+  await set('[data-field="h"]', "1.200");
   await set('[data-field="price"]', "100");
   await set('[data-field="extraDescription"]', "Montaje interno reservado");
   await set('[data-field="extraAmount"]', "50");
@@ -213,8 +213,8 @@ module.exports = async function checkQuotes(page, context, root) {
   await page.locator("#quote-pdf").click();
   assert.match(await page.locator("#quote-print").textContent(), /121,00/);
   await page.locator("#quote-quick").click();
-  await set("#quick-w", "100");
-  await set("#quick-h", "100");
+  await set("#quick-w", "1.000");
+  await set("#quick-h", "1.000");
   await page.locator('[data-field="doubleGlazing"]').check();
   await page.locator('[data-field="faceOne"]').selectOption("reuglass-3-1");
   assert.match(await page.locator(".quick-double").textContent(), /35,98/);

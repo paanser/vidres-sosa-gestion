@@ -3736,3 +3736,18 @@ body:not(.authenticated) > #quote-print {
     font-weight: bold;
   }
 }
+
+/* Lectura de las medidas sin sustituir los campos mientras se escribe. */
+#content input[data-measure],
+input[data-measure] {
+  min-height: 44px;
+  font-size: 16px;
+}
+.measure-feedback {
+  display: block;
+  min-height: 1.5em;
+  font-size: 0.875rem;
+}
+.measure-error {
+  color: #b42318;
+}

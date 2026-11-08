@@ -13,8 +13,11 @@
   ];
   function updateArea(row) {
     const value = (key) =>
-      Number(row.querySelector(`[data-new-measure="${key}"]`).value);
-    row.querySelector("output").textContent =
+      key === "cantidad"
+        ? Number(row.querySelector(`[data-new-measure="${key}"]`).value)
+        : VSMeasureInput.read(row.querySelector(`[data-new-measure="${key}"]`))
+            .cm || 0;
+    row.querySelector(":scope > output").textContent =
       ((value("ancho") * value("alto") * value("cantidad")) / 10000).toFixed(
         4,
       ) + " m² reales";
@@ -24,8 +27,8 @@
     row.className = "new-measure-piece";
     row.innerHTML = `<legend>Pieza ${++sequence}</legend>
       <div class="measure-fields">
-        <label>Ancho (cm)<input data-new-measure="ancho" type="number" inputmode="decimal" min="0.1" step="0.01" required></label>
-        <label>Alto (cm)<input data-new-measure="alto" type="number" inputmode="decimal" min="0.1" step="0.01" required></label>
+        <label>Ancho (${VSMeasureInput.unit()})<input data-measure data-new-measure="ancho" type="text" inputmode="decimal" required></label>
+        <label>Alto (${VSMeasureInput.unit()})<input data-measure data-new-measure="alto" type="text" inputmode="decimal" required></label>
         <label>Cantidad<input data-new-measure="cantidad" type="number" inputmode="numeric" min="1" step="1" value="1" required></label>
         <label>Espesor (mm)<input data-new-measure="espesor" type="number" inputmode="decimal" min="0" step="0.1"></label>
       </div>
@@ -33,6 +36,7 @@
       <label>Observaciones de la pieza<textarea data-new-measure="observaciones" rows="2" maxlength="500"></textarea></label>
       <div class="new-measure-sketch"></div><output aria-live="polite">0.0000 m² reales</output>
       <button type="button" data-new-measure-remove>Quitar pieza</button>`;
+    VSMeasureInput.init(row);
     window.vidresSketch.mount(
       row.querySelector(".new-measure-sketch"),
       undefined,
@@ -49,7 +53,7 @@
               )
             )
               return;
-            input.value = value;
+            VSMeasureInput.set(input, value);
             updateArea(row);
           };
           setMeasure("ancho", ancho);
@@ -112,6 +116,8 @@
       }
     },
     read(jobId) {
+      if (!VSMeasureInput.validate(list))
+        throw Error("Revisa las medidas de las piezas.");
       return [...list.querySelectorAll("fieldset")].map((row) => ({
         id: "M-" + crypto.randomUUID(),
         trabajo: jobId,
@@ -121,7 +127,11 @@
         ...Object.fromEntries(
           fields.map((key) => [
             key,
-            row.querySelector(`[data-new-measure="${key}"]`).value.trim(),
+            ["ancho", "alto"].includes(key)
+              ? VSMeasureInput.read(
+                  row.querySelector(`[data-new-measure="${key}"]`),
+                ).cm
+              : row.querySelector(`[data-new-measure="${key}"]`).value.trim(),
           ]),
         ),
       }));

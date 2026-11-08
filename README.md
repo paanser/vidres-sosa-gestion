@@ -61,3 +61,26 @@ El flujo de GitHub Actions valida pruebas y formato, y publica solo una lista ex
 - [Dictado e IA](docs/CONFIGURAR-IA.md).
 - [Validación y pruebas pendientes](docs/FASES.md).
 - [Evolución pendiente](docs/PENDIENTE.md).
+
+## Presupuestos de aluminio con dibujo
+
+En Presupuestos, «Añadir aluminio con dibujo» permite introducir una descripción
+libre, el coste de fábrica por toda la línea (sin IVA) y un incremento porcentual
+propio del aluminio. Para fijar directamente el precio de venta se puede usar
+incremento cero. El margen general del vidrio no modifica el aluminio.
+
+Se puede adjuntar un recorte JPG, PNG o WebP de hasta 8 MB. Se debe subir solo
+el dibujo que se quiera mostrar al cliente: el programa no elimina precios ni
+datos de fábrica de la imagen. Se comprime a JPEG y se guarda en el registro
+privado del presupuesto, incluidas sus copias de seguridad y duplicados. Se
+admiten hasta 60.000 caracteres por dibujo y 350.000 por presupuesto; si se
+supera el límite hay que recortar más o dividir el presupuesto. No hay lectura
+automática de PDF ni editor de recortes en esta versión.
+
+El PDF del cliente muestra el dibujo, la descripción y la venta sin costes ni
+incrementos internos. La copia interna incluye costes y margen añadido. Los
+vidrios se añaden con las líneas habituales y sus medidas de corte; no se deducen
+las medidas del vidrio a partir de las cotas exteriores del dibujo.
+
+Este cambio requiere actualizar primero el Worker, que valida el nuevo tipo de
+línea, y después la interfaz mediante el flujo habitual del repositorio.

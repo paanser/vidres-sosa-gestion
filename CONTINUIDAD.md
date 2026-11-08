@@ -142,3 +142,21 @@ CHROMIUM_PATH=/usr/bin/chromium npm run test:browser` (en una sola línea).
 - Orden de publicación: ejecutar primero `cloudflare.yml` desde la rama de la
   PR para admitir metros en el servidor; después integrar la PR y comprobar
   el despliegue de Pages. Se actualiza también la versión local de recursos.
+
+## Aluminio con dibujo · 8 de noviembre de 2026
+
+- Petición: empezar la plantilla con dibujo recortado de fábrica, descripción e
+  importe libre, costes e incremento de aluminio y vidrio calculado aparte.
+- Implementado `kind: aluminum` con descripción, coste por línea, incremento
+  propio y dibujo JPEG reducido guardado en el registro privado del presupuesto.
+  Se conserva en guardado, reapertura, duplicado y copias; no usa URLs públicas.
+- PDF cliente: dibujo, descripción y venta; interno: costes y margen añadido.
+  Mensaje de WhatsApp: descripción y venta. Los vidrios siguen usando sus líneas
+  y su incremento actual sin modificar presupuestos antiguos.
+- Sin OCR, generación de dibujos ni recortador: se sube el dibujo ya recortado.
+  Admite JPG/PNG/WebP hasta 8 MB; límite almacenado por dibujo 60.000 caracteres,
+  conjunto 350.000 por presupuesto, para respetar el tamaño del registro.
+- Validación: npm test, navegador completo con Worker/SQLite simulados y datos
+  ficticios, Prettier, revisión de secretos y git diff --check correctos.
+  Navegador confirma subida, guardado, recarga, duplicado y PDF cliente/interno.
+- Cambios locales sin publicar. Requieren desplegar Worker antes de interfaz.

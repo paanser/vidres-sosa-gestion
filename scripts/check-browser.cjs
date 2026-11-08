@@ -212,6 +212,7 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
   await require("./check-meters-browser.cjs")(page, context, root);
   await require("./check-quotes-browser.cjs")(page, context, root);
   await require("./check-quote-document-browser.cjs")(page, context, root);
+  await require("./check-aluminum-browser.cjs")(page);
 
   await page.evaluate(async () => {
     await VSStorage.write(VSStorage.keys.clientes, [

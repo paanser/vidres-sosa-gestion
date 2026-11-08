@@ -2732,13 +2732,14 @@ nav button[data-page="criticos"].active {
   align-items: flex-start;
   gap: 0.65rem;
 }
-.quick-note-check input {
-  width: 1.4rem;
-  height: 1.4rem;
-}
 .quick-note-check span,
 .quick-note-check small {
   display: block;
+}
+.quick-note-options summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding: 0.65rem;
 }
 .quick-note-actions {
   display: flex;

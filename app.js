@@ -272,7 +272,7 @@ window.vidresAppReady = (async () => {
         active.filter((j) => !j.fecha).length,
         'data-job-focus="undated"',
       ],
-      ["Pendientes", pendingNotes.length],
+      ["Notas", pendingNotes.length],
       ["Por reclamar", followups.length],
     ];
     const preview = [...active]
@@ -355,7 +355,7 @@ window.vidresAppReady = (async () => {
         a.creada.localeCompare(b.creada),
     );
     return (
-      '<section class="panel quick-notes"><div class="simple-section-head"><h2>Pendientes</h2><button type="button" data-note-new>+ Nota rápida</button></div>' +
+      '<section class="panel quick-notes"><div class="simple-section-head"><h2>Notas</h2><button type="button" data-note-new>+ Nota rápida</button></div>' +
       (ordered.length
         ? '<div class="quick-note-list">' +
           ordered
@@ -363,22 +363,22 @@ window.vidresAppReady = (async () => {
               (n) =>
                 '<article class="quick-note ' +
                 (n.aviso && n.aviso < today ? "overdue" : "") +
-                '"><label class="quick-note-check"><input type="checkbox" data-note-done="' +
-                esc(n.id) +
-                '"><span><strong>' +
+                '"><div class="quick-note-check"><span><strong>' +
                 esc(n.texto) +
                 "</strong>" +
                 (n.cliente
                   ? "<small>Cliente: " + esc(n.cliente) + "</small>"
                   : "") +
                 (n.aviso ? "<small>Aviso: " + esc(n.aviso) + "</small>" : "") +
-                '</span></label><div class="quick-note-actions"><button type="button" data-note-convert="' +
+                '</span></div><details class="quick-note-options"><summary>Más opciones</summary><div class="quick-note-actions"><button type="button" data-note-done="' +
+                esc(n.id) +
+                '">Marcar como hecha</button><button type="button" data-note-convert="' +
                 esc(n.id) +
                 '">Convertir en parte</button><button type="button" data-note-edit="' +
                 esc(n.id) +
                 '">Editar</button><button type="button" data-note-delete="' +
                 esc(n.id) +
-                '">Eliminar</button></div></article>',
+                '">Eliminar</button></div></details></article>',
             )
             .join("") +
           "</div>"
@@ -425,11 +425,15 @@ window.vidresAppReady = (async () => {
   const clientNames = () =>
     [
       ...new Set(
-        [...jobs.map((j) => j.cliente), ...clients.map((c) => c.nombre)].filter(
-          Boolean,
-        ),
+        [...clients.map((c) => c.nombre), ...jobs.map((j) => j.cliente)]
+          .map((name) => String(name || "").trim())
+          .filter(Boolean)
+          .map((name, _, names) =>
+            names.find((n) => normName(n) === normName(name)),
+          ),
       ),
     ].sort((a, b) => a.localeCompare(b, "es"));
+  window.vidresClientNames = clientNames;
   const phoneClean = (p) => String(p || "").replace(/[^+0-9]/g, "");
   function clientsHtml() {
     const list = clientNames();

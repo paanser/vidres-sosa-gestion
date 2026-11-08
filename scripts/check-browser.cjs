@@ -260,6 +260,67 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
   }));
   assert.equal(saved.job.direccion, "Calle Medidas 20");
   assert.equal(saved.client.direccion, "Calle Fiscal 10");
+  await page.evaluate(() => window.vidresNavigate("inicio"));
+  assert.equal(await page.locator(".quick-notes h2").textContent(), "Notas");
+  await page.locator("[data-note-new]").click();
+  assert.equal(
+    await page
+      .locator('#quick-note-clients option[value="Cliente registrado"]')
+      .count(),
+    1,
+  );
+  await page
+    .locator("#quick-note-form [name=texto]")
+    .fill("Nota que debe conservarse");
+  await page
+    .locator("#quick-note-form [name=cliente]")
+    .fill("Cliente registrado");
+  await page.locator("#quick-note-form [type=submit]").click();
+  const note = page
+    .locator(".quick-note")
+    .filter({ hasText: "Nota que debe conservarse" });
+  await note.locator("strong").click();
+  assert.equal(await note.count(), 1);
+  assert.equal(await note.locator("input[type=checkbox]").count(), 0);
+  await note.locator("summary").click();
+  assert.equal(await note.locator("[data-note-delete]").isVisible(), true);
+  assert.equal(
+    await page.evaluate(
+      () =>
+        VSStorage.read("vidres-notas-v1", []).find(
+          (n) => n.texto === "Nota que debe conservarse",
+        ).hecha,
+    ),
+    false,
+  );
+  await page.reload();
+  await page.locator(".quick-notes").waitFor();
+  assert.equal(
+    await page.getByText("Nota que debe conservarse", { exact: true }).count(),
+    1,
+  );
+  await page.evaluate(() => window.vidresNavigate("presupuestos"));
+  assert.equal(
+    await page
+      .locator('#quote-clients option[value="Cliente registrado"]')
+      .count(),
+    1,
+  );
+  await page.locator("#quote-client").fill("Cliente registrado");
+  await page.locator("#quote-client").dispatchEvent("change");
+  await page.locator("#quote-quick").click();
+  await page.locator("#quick-client").waitFor();
+  assert.equal(
+    await page
+      .locator('#quick-quote-clients option[value="Cliente registrado"]')
+      .count(),
+    1,
+  );
+  await page.locator("#quick-close").click();
+  await page.evaluate(() => window.vidresNavigate("inicio"));
+  console.log(
+    "PASS notas sin borrado al tocar, Más opciones y clientes en todos los formularios",
+  );
   await page.evaluate((id) => vidresOpenJobEditor(id), saved.job.id);
   assert.equal(
     await page.locator("#form [name=direccion]").inputValue(),

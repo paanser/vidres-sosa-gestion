@@ -333,6 +333,7 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
             tab.labelFits &&
             tab.iconAbove,
         ),
+        `Menú móvil a ${width}px: ${JSON.stringify(tabs)}`,
       );
     }
     const bounds = await page.locator(".header-actions").boundingBox();

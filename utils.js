@@ -22,6 +22,10 @@
       currency: "EUR",
     });
   const round6 = (cm) => Math.ceil((num(cm) - 1e-9) / 6) * 6;
+  const isCompanyLogo = (value) =>
+    typeof value === "string" &&
+    value.length <= 9500 &&
+    /^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/.test(value);
   // Valida el valor introducido en una cota: no vacío, no cero, no negativo,
   // un único separador decimal y hasta dos decimales.
   const parseDimension = (text) => {
@@ -61,6 +65,7 @@
     round6,
     parseDimension,
     dimensionToCm,
+    isCompanyLogo,
   };
   if (typeof module !== "undefined") module.exports = api;
   else root.VSUtils = api;

@@ -204,6 +204,7 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
     "PASS guardado: desconexión, fallo, espera, confirmación y conflicto del servidor",
   );
   await require("./check-quotes-browser.cjs")(page, context, root);
+  await require("./check-quote-document-browser.cjs")(page, context, root);
 
   await page.evaluate(async () => {
     await VSStorage.write(VSStorage.keys.clientes, [
@@ -335,6 +336,11 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
     .locator("#quick-note-form [name=cliente]")
     .fill("Cliente registrado");
   await page.locator("#quick-note-form [type=submit]").click();
+  await page.waitForFunction(() =>
+    VSStorage.read("vidres-notas-v1", []).some(
+      (n) => n.texto === "Nota que debe conservarse",
+    ),
+  );
   const note = page
     .locator(".quick-note")
     .filter({ hasText: "Nota que debe conservarse" });

@@ -15,6 +15,77 @@
   const details = (q) => VSCalculations.quoteDetails(q);
   const sum = (q) => details(q).totals;
   const statuses = ["Borrador", "Enviado", "Aceptado", "Rechazado"];
+  const pdfFields = [
+    ["dimensions", "Medidas"],
+    ["quantity", "Unidades"],
+    ["area", "m² y superficie total"],
+    ["unitPrice", "Precio por m²"],
+    ["observations", "Observaciones"],
+    ["conditions", "Condiciones"],
+    ["validity", "Fecha de validez"],
+  ];
+  const pdfOptions = (q) => ({
+    dimensions: true,
+    quantity: true,
+    area: true,
+    unitPrice: false,
+    observations: true,
+    conditions: true,
+    validity: true,
+    ...q.pdfOptions,
+  });
+  const clientCard = (q) =>
+    VSStorage.read("vidres-clientes-v1", []).find(
+      (c) =>
+        String(c.nombre).trim().toLocaleLowerCase("es") ===
+        q.client.trim().toLocaleLowerCase("es"),
+    );
+  function clientData(q) {
+    const c = clientCard(q);
+    return q.clientSource === "quote" || !c
+      ? q.clientData || {}
+      : {
+          taxId: c.nif || c.cif || "",
+          phone: c.telefono || "",
+          address: c.direccion || "",
+          email: c.email || "",
+        };
+  }
+  function customerFields() {
+    const data = clientData(draft),
+      fromCard = draft.clientSource !== "quote" && clientCard(draft);
+    return `<details class="quote-customer"><summary>Datos del cliente${fromCard ? " · de su ficha" : " · de este presupuesto"}</summary><p class="muted">${fromCard ? "Estos datos se obtienen de la ficha del cliente. Puedes modificarlos en Clientes." : "Se guardan con el presupuesto, sin necesidad de crear una ficha."}</p><div class="quote-fields">${[
+      ["taxId", "CIF/NIF", 100],
+      ["phone", "Teléfono", 100],
+      ["address", "Dirección", 500],
+      ["email", "Correo", 200],
+    ]
+      .map(
+        ([key, label, max]) =>
+          `<label>${label}<input data-quote-client="${key}" maxlength="${max}" value="${esc(data[key] || "")}" ${fromCard ? "readonly" : ""}></label>`,
+      )
+      .join("")}</div></details>`;
+  }
+  function documentFields() {
+    const options = pdfOptions(draft);
+    return `<fieldset class="quote-document-options"><legend>Datos visibles en el PDF para cliente</legend><p>Marca los datos que quieres mostrar. Ocultarlos no cambia el cálculo ni el total. El precio por m² incluye los conceptos integrados en el vidrio.</p><div class="quote-document-checks">${pdfFields.map(([key, label]) => `<label><input type="checkbox" data-pdf-option="${key}" ${options[key] ? "checked" : ""}>${label}</label>`).join("")}</div><label>Observaciones del presupuesto<textarea id="quote-observations" maxlength="3000" rows="3">${esc(draft.observations || "")}</textarea></label></fieldset>`;
+  }
+  function readDocumentFields() {
+    draft.pdfOptions = pdfOptions(draft);
+    document.querySelectorAll("[data-pdf-option]").forEach((el) => {
+      draft.pdfOptions[el.dataset.pdfOption] = el.checked;
+    });
+    if (draft.clientSource === "quote" || !clientCard(draft)) {
+      draft.clientData = {};
+      document
+        .querySelectorAll("[data-quote-client]:not([readonly])")
+        .forEach((el) => {
+          draft.clientData[el.dataset.quoteClient] = el.value.trim();
+        });
+    }
+    const observations = document.querySelector("#quote-observations");
+    if (observations) draft.observations = observations.value.trim();
+  }
   const localToday = () => new Date().toLocaleDateString("en-CA");
   function addDays(date, days) {
     const value = new Date(date + "T12:00:00");
@@ -119,7 +190,7 @@
     document.querySelector("#content").innerHTML =
       `<div class="quote-toolbar"><button type="button" class="quick-quote-button" id="quote-quick">⚡ Presupuesto rápido</button><button type="button" class="primary" id="quote-new">+ Nuevo presupuesto</button><button type="button" id="quote-settings">Ajustes de tarifas</button></div>
  <section class="panel quote-editor"><h2>Presupuesto de vidrio · ${esc(draft.id || "Sin guardar")}</h2><div class="quote-fields"><label>Cliente<input id="quote-client" list="quote-clients" maxlength="100" value="${esc(draft.client)}"></label><datalist id="quote-clients">${(window.vidresClientNames?.() || []).map((name) => `<option value="${esc(name)}"></option>`).join("")}</datalist><label>Parte relacionado<select id="quote-job"><option value="">Sin vincular</option>${jobs.map((j) => `<option value="${esc(j.id)}" ${draft.job === j.id ? "selected" : ""}>${esc(j.id + " · " + j.cliente)}</option>`).join("")}</select></label><label>Estado<select id="quote-status">${statuses.map((s) => `<option ${s === (draft.status || "Borrador") ? "selected" : ""}>${s}</option>`).join("")}</select></label></div>
- <div class="quote-margin"><label>Margen (%)<input id="quote-margin" type="number" min="0" step="0.01" value="${esc(pricing(draft).margin || "")}"></label><p>Incremento sobre el precio del vidrio: 100 € con 20 % → 120 €. Mano de obra, cantos, recargos y conceptos adicionales sin margen. Antes del IVA; solo visible en la copia interna.</p>${pricing(draft).marginScope !== "glass" && num(pricing(draft).margin) ? "<p>Presupuesto anterior: conserva el cálculo guardado. Al editar se aplicará el incremento solo al vidrio.</p>" : ""}</div><div id="quote-lines">${draft.lines.map(row).join("")}</div><button type="button" id="quote-add">+ Añadir otro vidrio</button><button type="button" id="quote-add-concept">+ Añadir concepto libre</button><div class="quote-total"><div class="quote-total-breakdown">Coste interno: <strong>${money(breakdown.cost)}</strong><br>Margen añadido: <strong>${money(breakdown.margin)}</strong><br>Base imponible de venta: <strong>${money(total.base)}</strong><br>IVA (${esc(pricing(draft).vat ?? 21)} %): <strong>${money(total.iva)}</strong><br>Total con IVA: <strong class="quote-grand-total">${money(total.total)}</strong></div></div><div class="quote-toolbar"><button type="button" class="primary" id="quote-save">Guardar presupuesto</button><button type="button" id="quote-whatsapp">Enviar por WhatsApp</button><button type="button" id="quote-pdf">PDF para cliente</button><button type="button" id="quote-pdf-internal">PDF interno · Vidres Sosa</button></div></section>
+ ${customerFields()}<div class="quote-margin"><label>Margen (%)<input id="quote-margin" type="number" min="0" step="0.01" value="${esc(pricing(draft).margin || "")}"></label><p>Incremento sobre el precio del vidrio: 100 € con 20 % → 120 €. Mano de obra, cantos, recargos y conceptos adicionales sin margen. Antes del IVA; solo visible en la copia interna.</p>${pricing(draft).marginScope !== "glass" && num(pricing(draft).margin) ? "<p>Presupuesto anterior: conserva el cálculo guardado. Al editar se aplicará el incremento solo al vidrio.</p>" : ""}</div><div id="quote-lines">${draft.lines.map(row).join("")}</div><button type="button" id="quote-add">+ Añadir otro vidrio</button><button type="button" id="quote-add-concept">+ Añadir concepto libre</button><div class="quote-total"><div class="quote-total-breakdown">Coste interno: <strong>${money(breakdown.cost)}</strong><br>Margen añadido: <strong>${money(breakdown.margin)}</strong><br>Base imponible de venta: <strong>${money(total.base)}</strong><br>IVA (${esc(pricing(draft).vat ?? 21)} %): <strong>${money(total.iva)}</strong><br>Total con IVA: <strong class="quote-grand-total">${money(total.total)}</strong></div></div>${documentFields()}<div class="quote-toolbar"><button type="button" class="primary" id="quote-save">Guardar presupuesto</button><button type="button" id="quote-whatsapp">Enviar por WhatsApp</button><button type="button" id="quote-pdf">PDF para cliente</button><button type="button" id="quote-pdf-internal">PDF interno · Vidres Sosa</button></div></section>
  <section class="panel"><h2>Presupuestos guardados</h2>${list.length ? list.map((q) => `<article class="quote-saved"><span>${esc(q.id)} · ${esc(q.client)} · ${esc(q.status || "Borrador")} · Total: ${money(sum(q).total)}</span><div><button type="button" data-load="${esc(q.id)}">Abrir</button><button type="button" data-whatsapp="${esc(q.id)}">WhatsApp</button><button type="button" data-duplicate="${esc(q.id)}">Duplicar</button><button type="button" data-delete-quote="${esc(q.id)}">Eliminar</button></div></article>`).join("") : "<p>No hay presupuestos guardados.</p>"}</section>`;
   }
   function quickSync() {
@@ -145,7 +216,7 @@
             )
             .join("")}</select></label>
         </div>
-        <section class="quick-double">${doubleFields(line)}</section>
+        ${customerFields()}<section class="quick-double">${doubleFields(line)}</section>
         <fieldset class="quote-edges"><legend>Cantos a pulir</legend>${[
           ["top", "Superior"],
           ["bottom", "Inferior"],
@@ -158,7 +229,7 @@
           )
           .join("")}</fieldset>
         <div id="quick-result" class="quote-result quick-result">${quickResultHtml(result, total)}</div>
-        <div class="quote-toolbar"><button type="button" id="quick-copy">Copiar mensaje</button><button type="button" id="quick-whatsapp">Enviar por WhatsApp</button><button type="button" class="primary" id="quick-save">Guardar como presupuesto</button></div>
+        ${documentFields()}<div class="quote-toolbar"><button type="button" id="quote-pdf">PDF para cliente</button><button type="button" id="quick-copy">Copiar mensaje</button><button type="button" id="quick-whatsapp">Enviar por WhatsApp</button><button type="button" class="primary" id="quick-save">Guardar como presupuesto</button></div>
       </section>`;
   }
   function quickResultHtml(result, total) {
@@ -191,6 +262,7 @@
       ...document.querySelectorAll("[data-quick-edge]:checked"),
     ].map((input) => input.dataset.quickEdge);
     draft.lines = [line];
+    readDocumentFields();
   }
   function updateQuickResult() {
     readQuickForm();
@@ -340,6 +412,7 @@
       draft.pricing.marginMode = "cost";
       draft.pricing.marginScope = "glass";
     }
+    readDocumentFields();
   }
   function valid(print = false) {
     const nonNegative = (value) => {
@@ -450,17 +523,13 @@
     }
   }
   function printQuote(internal = false) {
-    fromForm();
+    if (quickMode) readQuickForm();
+    else fromForm();
     if (!valid(true)) return;
     const c = config(),
       company = c.company || {},
       job = window.vidresGetJobs?.().find((j) => j.id === draft.job),
-      client =
-        VSStorage.read("vidres-clientes-v1", []).find(
-          (x) =>
-            String(x.nombre).trim().toLocaleLowerCase("es") ===
-            draft.client.trim().toLocaleLowerCase("es"),
-        ) || {};
+      client = clientData(draft);
     let host = document.querySelector("#quote-print");
     if (!host) {
       host = document.createElement("section");
@@ -480,7 +549,80 @@
         return `<tr><td>${label}</td><td>${money(a.glassSale)}</td></tr>${a.separate && a.extraCost ? `<tr><td>${esc(l.extraDescription || "Otros conceptos")}</td><td>${money(a.extraSale)}</td></tr>` : ""}`;
       })
       .join("");
-    host.innerHTML = `<h1>${esc(company.name || "Vidres Sosa")} · ${internal ? "Presupuesto interno · No entregar al cliente" : "Presupuesto para cliente"}</h1><p>${[company.taxId, company.address, company.phone, company.email].filter(Boolean).map(esc).join("<br>")}</p><p>Referencia: ${esc(draft.id || "Borrador sin referencia")}<br>Fecha: ${esc(draft.date)}<br>Cliente: ${esc(draft.client)}<br>${esc(client.telefono || "")}<br>${esc(client.direccion || job?.direccion || "")}</p><table><thead><tr><th>Concepto</th>${internal ? "<th>Coste</th><th>Margen añadido</th>" : ""}<th>Importe sin IVA</th></tr></thead><tbody>${rows}</tbody></table>${internal ? `<p>Coste interno: ${money(breakdown.cost)}<br>Margen sobre ${pricing(draft).marginScope === "glass" ? "precio del vidrio" : pricing(draft).marginMode === "sale" ? "venta sin IVA" : "coste"} (${esc(pricing(draft).margin || 0)} %): ${money(breakdown.margin)}</p>` : ""}<p>Base: ${money(t.base)}<br>IVA (${esc(pricing(draft).vat ?? 21)} %): ${money(t.iva)}<br><strong>Total: ${money(t.total)}</strong></p><p>${esc(company.conditions || "").replace(/\n/g, "<br>")}</p><p>Validez: ${esc(company.validity || 30)} días desde la fecha del presupuesto.</p>${["name", "taxId", "address", "phone", "email"].every((k) => company[k]?.trim()) ? "" : "<p>Versión de prueba: completar los datos fiscales antes de entregar.</p>"}`;
+    const options = pdfOptions(draft),
+      number = (n, digits = 2) =>
+        Number(n).toLocaleString("es-ES", {
+          maximumFractionDigits: digits,
+          minimumFractionDigits: digits,
+        }),
+      dateLabel = (date) =>
+        /^\d{4}-\d{2}-\d{2}$/.test(date || "")
+          ? date.split("-").reverse().join("/")
+          : date || "",
+      columns = [
+        ["dimensions", "Medidas mm · alto × ancho"],
+        ["quantity", "Und."],
+        ["area", "m²"],
+        ["unitPrice", "Precio €/m²"],
+      ].filter(([key]) => options[key]),
+      emptyCells = columns.map(() => "<td></td>").join(""),
+      customerRows = draft.lines
+        .map((line, i) => {
+          const a = breakdown.lines[i];
+          if (line.kind === "concept")
+            return `<tr><td>${esc(line.description)}</td>${emptyCells}<td>${money(a.sale)}</td></tr>`;
+          const values = {
+            dimensions: `${number(a.h * 10, 1)} × ${number(a.w * 10, 1)}`,
+            quantity: a.qty,
+            area: number(a.area * a.qty, 4),
+            unitPrice: money(a.glassSale / (a.area * a.qty)),
+          };
+          return `<tr><td>${esc(glassName(line) || "Vidrio")}</td>${columns.map(([key]) => `<td>${esc(values[key])}</td>`).join("")}<td>${money(a.glassSale)}</td></tr>${a.separate && a.extraCost ? `<tr class="quote-doc-extra"><td>${esc(line.extraDescription || "Otros conceptos")}</td>${emptyCells}<td>${money(a.extraSale)}</td></tr>` : ""}`;
+        })
+        .join(""),
+      companyName = company.name || "Vidres Sosa",
+      logo = VSUtils.isCompanyLogo(company.logo)
+        ? `<img class="quote-doc-logo" src="${esc(company.logo)}" alt="${esc(companyName)}">`
+        : `<div class="quote-doc-wordmark"><span>${esc(companyName.toLocaleLowerCase("es") === "vidres sosa" ? "Vidres" : companyName)}</span>${companyName.toLocaleLowerCase("es") === "vidres sosa" ? "<strong>Sosa</strong>" : ""}</div>`,
+      lines = (text) => esc(text || "").replace(/\n/g, "<br>"),
+      showValidity = internal || options.validity;
+    host.innerHTML = `<header class="quote-doc-header"><div>${logo}<div class="quote-doc-company"><strong>${esc(companyName)}</strong>${company.taxId ? `<br>CIF/NIF: ${esc(company.taxId)}` : ""}${[
+      company.address,
+      company.phone,
+      company.email,
+    ]
+      .filter(Boolean)
+      .map((v) => `<br>${lines(v)}`)
+      .join(
+        "",
+      )}</div></div><div><h1>PRESUPUESTO</h1><p class="quote-doc-reference">Nº ${esc(draft.id || "Borrador sin referencia")}</p>${internal ? '<p class="quote-doc-internal">Presupuesto interno · No entregar al cliente</p>' : ""}<section class="quote-doc-client"><h2>CLIENTE</h2><strong>${esc(draft.client || "Sin cliente")}</strong>${client.taxId ? `<br>CIF/NIF: ${esc(client.taxId)}` : ""}${[
+      client.address || job?.direccion,
+      client.phone,
+      client.email,
+    ]
+      .filter(Boolean)
+      .map((v) => `<br>${lines(v)}`)
+      .join(
+        "",
+      )}</section></div></header><div class="quote-doc-dates"><p><strong>Fecha oferta:</strong> ${esc(dateLabel(draft.date))}</p>${showValidity ? `<p><strong>Fecha validez:</strong> ${esc(dateLabel(addDays(draft.date, Number(company.validity) || 30)))}</p>` : ""}${draft.job ? `<p><strong>Parte relacionado:</strong> ${esc(draft.job)}</p>` : ""}</div><table class="quote-doc-items"><thead><tr><th>Concepto</th>${internal ? "<th>Coste</th><th>Margen añadido</th>" : columns.map(([, label]) => `<th>${label}</th>`).join("")}<th>Importe sin IVA</th></tr></thead><tbody>${internal ? rows : customerRows}</tbody></table>${(internal || options.observations) && draft.observations ? `<section class="quote-doc-notes"><h2>OBSERVACIONES</h2><p>${lines(draft.observations)}</p></section>` : ""}${(internal || options.conditions) && company.conditions ? `<section class="quote-doc-notes"><h2>CONDICIONES</h2><p>${lines(company.conditions)}</p></section>` : ""}${internal ? `<p>Coste interno: ${money(breakdown.cost)}<br>Margen sobre ${pricing(draft).marginScope === "glass" ? "precio del vidrio" : pricing(draft).marginMode === "sale" ? "venta sin IVA" : "coste"} (${esc(pricing(draft).margin || 0)} %): ${money(breakdown.margin)}</p>` : ""}<footer class="quote-doc-footer"><div class="quote-doc-summary">${internal || options.quantity ? `<span>Total unidades: ${breakdown.lines.reduce((n, a, i) => n + (draft.lines[i].kind === "concept" ? 0 : a.qty), 0)}</span>` : ""}${
+      internal || options.area
+        ? `<span>Total m²: ${number(
+            breakdown.lines.reduce(
+              (n, a, i) =>
+                n + (draft.lines[i].kind === "concept" ? 0 : a.area * a.qty),
+              0,
+            ),
+            4,
+          )}</span>`
+        : ""
+    }</div><table class="quote-doc-totals"><thead><tr><th>Base imponible</th><th>IVA ${esc(pricing(draft).vat ?? 21)} %</th><th>TOTAL PRESUPUESTO</th></tr></thead><tbody><tr><td>${money(t.base)}</td><td>${money(t.iva)}</td><td><strong>${money(t.total)}</strong></td></tr></tbody></table>${showValidity ? `<p>Validez: ${esc(company.validity || 30)} días desde la fecha del presupuesto.</p>` : ""}</footer>`;
+    const images = [...host.querySelectorAll("img")];
+    if (images.length) {
+      Promise.all(images.map((img) => img.decode().catch(() => {}))).then(() =>
+        window.print(),
+      );
+      return;
+    }
     window.print();
   }
   window.addEventListener("vidres-data-restored", () => {
@@ -500,6 +642,7 @@
       } else if (b.id === "quote-quick") {
         if (discard()) {
           draft = fresh();
+          draft.clientSource = "quote";
           quickMode = true;
           sync();
         }
@@ -575,9 +718,18 @@
     }
   };
   window.vidresQuoteChange = (e) => {
+    if (
+      e.target.matches(
+        "[data-pdf-option], [data-quote-client], #quote-observations",
+      )
+    ) {
+      readDocumentFields();
+      return;
+    }
     if (quickMode) {
       updateQuickResult();
-      if (e.target.closest(".quick-double")) sync();
+      if (e.target.closest(".quick-double") || e.target.id === "quick-client")
+        sync();
       return;
     }
     fromForm();

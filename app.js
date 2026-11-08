@@ -518,6 +518,9 @@ window.vidresAppReady = (async () => {
     dialog.querySelector('[name="nombre"]').value = name;
     dialog.querySelector('[name="telefono"]').value = existing.telefono || "";
     dialog.querySelector('[name="direccion"]').value = existing.direccion || "";
+    dialog.querySelector('[name="nif"]').value =
+      existing.nif || existing.cif || "";
+    dialog.querySelector('[name="email"]').value = existing.email || "";
     dialog.showModal();
   }
   function measurementArea(m) {
@@ -1400,6 +1403,8 @@ window.vidresAppReady = (async () => {
         nombre,
         telefono: String(data.get("telefono") || "").trim(),
         direccion: String(data.get("direccion") || "").trim(),
+        nif: String(data.get("nif") || "").trim(),
+        email: String(data.get("email") || "").trim(),
       };
       const i = clients.findIndex(
         (c) => normName(c.nombre) === normName(nombre),

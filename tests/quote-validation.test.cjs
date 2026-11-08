@@ -54,3 +54,48 @@ test("servidor: admite presupuestos antiguos, conceptos libres y margen sin rela
   ])
     assert.throws(() => validate({ ...q, lines: [line] }));
 });
+
+test("servidor: conserva datos del cliente, presentación del PDF y logo, y rechaza valores inválidos", async () => {
+  const { checked, KEYS } = await import("../worker/data.js");
+  const q = {
+    id: "P-DOCUMENTO",
+    client: "Cliente rápido",
+    clientSource: "quote",
+    clientData: {
+      taxId: "NIF ejemplo",
+      phone: "600000000",
+      address: "Dirección",
+      email: "cliente@example.com",
+    },
+    pdfOptions: { area: false, unitPrice: false, conditions: true },
+    observations: "Montaje incluido",
+    lines: [{ kind: "concept", description: "Trabajo", amount: 100 }],
+  };
+  const validate = (quote) => checked({ [KEYS.presupuestos]: [quote] });
+  assert.deepEqual(validate(q)[KEYS.presupuestos][0], q);
+  for (const patch of [
+    { clientSource: "otro" },
+    { clientData: [] },
+    { clientData: { address: "x".repeat(501) } },
+    { clientData: { taxId: 10 } },
+    { pdfOptions: [] },
+    { pdfOptions: { area: "false" } },
+    { pdfOptions: { unknown: true } },
+    { observations: "x".repeat(3001) },
+  ])
+    assert.throws(() => validate({ ...q, ...patch }));
+  const logo = "data:image/png;base64,aGVsbG8=";
+  const config = { company: { name: "Vidres Sosa", logo } };
+  assert.deepEqual(
+    checked({ [KEYS.configuracion]: config })[KEYS.configuracion],
+    config,
+  );
+  for (const logo of [
+    "https://example.com/logo.png",
+    "data:image/svg+xml;base64,PHN2Zz4=",
+    "data:image/png;base64," + "A".repeat(9500),
+  ])
+    assert.throws(() =>
+      checked({ [KEYS.configuracion]: { company: { logo } } }),
+    );
+});

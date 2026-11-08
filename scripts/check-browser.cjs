@@ -209,12 +209,35 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
     await VSStorage.write(VSStorage.keys.clientes, [
       {
         nombre: "Cliente registrado",
-        telefono: "",
+        telefono: "+34 612 345 678",
         direccion: "Calle Fiscal 10",
       },
     ]);
     vidresReloadData();
   });
+  await page.evaluate(() => window.vidresNavigate("clientes"));
+  for (const query of [
+    "registrado",
+    "fiscal 10",
+    "CLIENTE",
+    "612345678",
+    "612-345-678",
+    "no-coincide",
+  ]) {
+    await page.locator("#client-search").fill(query);
+    assert.equal(
+      await page.locator(".client-card:visible").count(),
+      query === "no-coincide" ? 0 : 1,
+    );
+    assert.equal(await page.locator("#client-search").inputValue(), query);
+  }
+  await page.locator("#client-search").fill("");
+  assert.equal(await page.locator(".client-card:visible").count(), 1);
+  assert.equal(await page.locator("#client-no-results").isVisible(), false);
+  await page.evaluate(() => window.vidresNavigate("inicio"));
+  console.log(
+    "PASS buscador de clientes por nombre, dirección y sin resultados",
+  );
   await page.locator("#add").click();
   assert.equal(await page.locator("#form [name=duracion]").isVisible(), false);
   assert.equal(

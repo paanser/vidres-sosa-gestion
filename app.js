@@ -435,11 +435,18 @@ window.vidresAppReady = (async () => {
     ].sort((a, b) => a.localeCompare(b, "es"));
   window.vidresClientNames = clientNames;
   const phoneClean = (p) => String(p || "").replace(/[^+0-9]/g, "");
+  const clientSearchText = (value) =>
+    String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLocaleLowerCase("es");
   function clientsHtml() {
     const list = clientNames();
     return panel(
       "Clientes",
-      '<p class="muted">Fichas compartidas: teléfono y dirección vinculados al historial de trabajos.</p>' +
+      '<p class="muted">Fichas compartidas: teléfono y dirección vinculados al historial de trabajos.</p><label for="client-search">Buscar clientes</label><input id="client-search" type="search" placeholder="Nombre, dirección, teléfono…" aria-controls="client-results" autocomplete="off"><p id="client-count" class="muted" role="status">' +
+        list.length +
+        ' cliente(s)</p><div id="client-results">' +
         (!list.length
           ? '<div class="empty-state">Todavía no hay clientes. Crea un trabajo para empezar.</div>'
           : list
@@ -453,7 +460,26 @@ window.vidresAppReady = (async () => {
                   );
                 const tel = phoneClean(c.telefono);
                 return (
-                  '<article class="client-card"><div class="client-heading"><div><h3>' +
+                  '<article class="client-card" data-client-search="' +
+                  esc(
+                    clientSearchText(
+                      [
+                        name,
+                        c.direccion,
+                        c.telefono,
+                        c.email,
+                        ...items.flatMap((j) => [
+                          j.direccion,
+                          j.telefono,
+                          j.descripcion,
+                          j.id,
+                        ]),
+                      ].join(" "),
+                    ),
+                  ) +
+                  '" data-client-phone="' +
+                  esc(String(c.telefono || "").replace(/\D/g, "")) +
+                  '"><div class="client-heading"><div><h3>' +
                   esc(name) +
                   '</h3><span class="muted">' +
                   items.length +
@@ -481,7 +507,8 @@ window.vidresAppReady = (async () => {
                   "</details></article>"
                 );
               })
-              .join("")),
+              .join("")) +
+        '</div><p id="client-no-results" class="empty-state" hidden>No hay clientes que coincidan con la búsqueda.</p>',
     );
   }
   function clientEditor(name) {
@@ -1332,7 +1359,24 @@ window.vidresAppReady = (async () => {
     else if (page === "presupuestos") window.vidresQuoteChange?.(e);
   });
   $("#content").addEventListener("input", (e) => {
-    if (page === "consultor") window.vidresToolsInput?.(e);
+    if (page === "clientes" && e.target.id === "client-search") {
+      const terms = clientSearchText(e.target.value)
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+      const phone = e.target.value.replace(/\D/g, "");
+      const phoneQuery = phone && /^[+\d\s().-]+$/.test(e.target.value.trim());
+      let count = 0;
+      document.querySelectorAll("[data-client-search]").forEach((card) => {
+        const match =
+          terms.every((term) => card.dataset.clientSearch.includes(term)) ||
+          (phoneQuery && card.dataset.clientPhone.includes(phone));
+        card.hidden = !match;
+        if (match) count++;
+      });
+      $("#client-count").textContent = count + " cliente(s) encontrado(s)";
+      $("#client-no-results").hidden = count > 0 || !terms.length;
+    } else if (page === "consultor") window.vidresToolsInput?.(e);
     else if (page === "presupuestos") window.vidresQuoteInput?.(e);
   });
   document.querySelector("#client-form").addEventListener(

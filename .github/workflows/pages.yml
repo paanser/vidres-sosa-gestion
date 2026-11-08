@@ -44,7 +44,8 @@ jobs:
       - name: Preparar archivos públicos
         run: |
           mkdir public
-          cp index.html styles.css manifest.json version.json loader.js auth.js users.js migration.js utils.js storage.js calculations.js files.js backup.js tariffs.js tools.js quotes.js sketch.js job-measures.js app.js ai-config.js voice.js enhancements.js expediente.js pwa.js sw.js public/
+          cp index.html styles.css manifest.json version.json loader.js auth.js users.js migration.js utils.js storage.js calculations.js files.js backup.js tariffs.js tools.js quote-pdf.js quotes.js sketch.js job-measures.js app.js ai-config.js voice.js enhancements.js expediente.js pwa.js sw.js public/
+          cp -R vendor public/vendor
           cp -R icons public/icons
           cp -R documents public/documents
       - name: Empaquetar web

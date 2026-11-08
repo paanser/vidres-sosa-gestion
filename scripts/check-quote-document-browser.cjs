@@ -4,6 +4,22 @@ const path = require("node:path");
 
 // Usa exclusivamente el Worker simulado de check-browser.cjs.
 module.exports = async function checkQuoteDocument(page, context, root) {
+  const downloadPDF = async (filename) => {
+    const [download] = await Promise.all([
+      page.waitForEvent("download"),
+      page.locator("#quote-pdf-result a[download]").click(),
+    ]);
+    await download.saveAs(path.join(root, "test-results", filename));
+    const bytes = await fs.readFile(await download.path());
+    assert.equal(bytes.subarray(0, 5).toString(), "%PDF-");
+    if (filename === "presupuesto-multipagina.pdf") {
+      const count = /\/Count (\d+)/.exec(bytes.toString("latin1"));
+      assert.ok(
+        Number(count?.[1]) > 1,
+        "El PDF descargado debe contener varias páginas",
+      );
+    }
+  };
   const original = await page.evaluate(() => ({
     config: VSStorage.read("vs-config-v1", {}),
     clients: VSStorage.read("vidres-clientes-v1", []),
@@ -87,11 +103,7 @@ module.exports = async function checkQuoteDocument(page, context, root) {
   assert.ok(printed.includes(total));
   assert.doesNotMatch(printed, /Coste reservado|Margen|Recargo energético/);
   await fs.mkdir(path.join(root, "test-results"), { recursive: true });
-  await page.pdf({
-    path: path.join(root, "test-results", "presupuesto-cliente-ejemplo.pdf"),
-    printBackground: true,
-    preferCSSPageSize: true,
-  });
+  await downloadPDF("presupuesto-cliente-ejemplo.pdf");
 
   for (const key of [
     "dimensions",
@@ -115,25 +127,13 @@ module.exports = async function checkQuoteDocument(page, context, root) {
     2,
   );
   assert.equal(await page.locator(".quote-grand-total").textContent(), total);
-  await page.pdf({
-    path: path.join(
-      root,
-      "test-results",
-      "presupuesto-cliente-sin-desglose.pdf",
-    ),
-    printBackground: true,
-    preferCSSPageSize: true,
-  });
+  await downloadPDF("presupuesto-cliente-sin-desglose.pdf");
   await page.locator("#quote-pdf-internal").click();
   printed = await page.locator("#quote-print").textContent();
   assert.match(printed, /m²|Coste reservado de montaje/);
   assert.match(printed, /No entregar al cliente/);
   assert.match(printed, /OBSERVACIONES|CONDICIONES/);
-  await page.pdf({
-    path: path.join(root, "test-results", "presupuesto-interno-ejemplo.pdf"),
-    printBackground: true,
-    preferCSSPageSize: true,
-  });
+  await downloadPDF("presupuesto-interno-ejemplo.pdf");
   await page.locator("#quote-save").click();
   await page.waitForFunction(() =>
     VSStorage.read("vs-quote-prototype-v1", []).some(
@@ -258,9 +258,9 @@ module.exports = async function checkQuoteDocument(page, context, root) {
   await page.locator("#title").filter({ hasText: "Inicio" }).waitFor();
   await page.evaluate((id) => vidresQuoteOpenSaved(id), id);
   await page.evaluate(() => {
-    window.print = () => {
+    window.addEventListener("vidres-pdf-ready", () => {
       window.logoPrinted = true;
-    };
+    });
   });
   await page.locator("#quote-pdf").click();
   await page.waitForFunction(() => window.logoPrinted);
@@ -291,11 +291,7 @@ module.exports = async function checkQuoteDocument(page, context, root) {
     vidresQuoteOpenSaved(id);
   }, id);
   await page.locator("#quote-pdf").click();
-  await page.pdf({
-    path: path.join(root, "test-results", "presupuesto-multipagina.pdf"),
-    printBackground: true,
-    preferCSSPageSize: true,
-  });
+  await downloadPDF("presupuesto-multipagina.pdf");
   for (const width of [390, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
     assert.ok(

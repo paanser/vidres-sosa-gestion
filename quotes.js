@@ -68,7 +68,7 @@
   }
   function documentFields() {
     const options = pdfOptions(draft);
-    return `<fieldset class="quote-document-options"><legend>Datos visibles en el PDF para cliente</legend><p>Marca los datos que quieres mostrar. Ocultarlos no cambia el cálculo ni el total. El precio por m² incluye los conceptos integrados en el vidrio.</p><div class="quote-document-checks">${pdfFields.map(([key, label]) => `<label><input type="checkbox" data-pdf-option="${key}" ${options[key] ? "checked" : ""}>${label}</label>`).join("")}</div><label>Observaciones del presupuesto<textarea id="quote-observations" maxlength="3000" rows="3">${esc(draft.observations || "")}</textarea></label></fieldset>`;
+    return `<details class="quote-document-options"><summary>Datos visibles en el PDF para cliente</summary><div class="quote-document-body"><p>Marca los datos que quieres mostrar. Ocultarlos no cambia el cálculo ni el total. El precio por m² incluye los conceptos integrados en el vidrio.</p><div class="quote-document-checks">${pdfFields.map(([key, label]) => `<label><input type="checkbox" data-pdf-option="${key}" ${options[key] ? "checked" : ""}>${label}</label>`).join("")}</div><label>Observaciones del presupuesto<textarea id="quote-observations" maxlength="3000" rows="3">${esc(draft.observations || "")}</textarea></label></div></details>`;
   }
   function readDocumentFields() {
     draft.pdfOptions = pdfOptions(draft);

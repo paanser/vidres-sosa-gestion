@@ -284,17 +284,7 @@
             .join("")}</select></label>
         </div>
         ${customerFields()}<section class="quick-double">${doubleFields(line)}</section>
-        <fieldset class="quote-edges"><legend>Cantos a pulir</legend>${[
-          ["top", "Superior"],
-          ["bottom", "Inferior"],
-          ["left", "Izquierdo"],
-          ["right", "Derecho"],
-        ]
-          .map(
-            ([value, label]) =>
-              `<label><input type="checkbox" data-quick-edge="${value}" ${(line.sides || []).includes(value) ? "checked" : ""}>${label}</label>`,
-          )
-          .join("")}</fieldset>
+        ${edgeFields(line, true)}
         <div id="quick-result" class="quote-result quick-result">${quickResultHtml(result, total)}</div>
         ${documentFields()}<div class="quote-toolbar"><button type="button" id="quote-pdf">PDF para cliente</button><button type="button" id="quick-copy">Copiar mensaje</button><button type="button" id="quick-whatsapp">Enviar por WhatsApp</button><button type="button" class="primary" id="quick-save">Guardar como presupuesto</button></div>
       </section>`;
@@ -412,6 +402,19 @@
       area.remove();
     }
   }
+  function edgeFields(line, quick = false) {
+    return `<fieldset class="quote-edge-panel"><legend>Canto pulido</legend><div class="quote-edge-controls">${quick ? "" : `<label class="quote-edge-price">Precio (€/ml)<input type="number" min="0" step="0.01" data-field="edgePrice" value="${esc(line.edgePrice)}"></label>`}<div class="quote-edge-options">${[
+      ["top", "Superior"],
+      ["bottom", "Inferior"],
+      ["left", "Izquierdo"],
+      ["right", "Derecho"],
+    ]
+      .map(
+        ([value, label]) =>
+          `<label><input type="checkbox" ${quick ? "data-quick-edge" : "data-edge"}="${value}" ${(line.sides || []).includes(value) ? "checked" : ""}>${label}</label>`,
+      )
+      .join("")}</div></div></fieldset>`;
+  }
   function row(l, i) {
     if (l.kind === "concept")
       return `<div class="quote-line quote-concept" data-line="${i}"><div class="quote-line-head"><strong>Concepto libre</strong><button type="button" data-remove="${i}">Eliminar</button></div><div class="quote-fields"><label>Descripción libre<textarea data-field="description" maxlength="300" rows="2" placeholder="Ej.: montaje, reparación, transporte…">${esc(l.description || "")}</textarea></label><label>Importe de coste (€ sin IVA)<input type="number" min="0" step="0.01" data-field="amount" value="${esc(l.amount ?? "")}"></label></div><p>Importe por todo el concepto, sin medidas ni tarifa. Sin margen; se presenta por separado al cliente.</p></div>`;
@@ -434,22 +437,10 @@
       )
       .join(
         "",
-      )}</select></label><label>Tipo de vidrio<input data-field="glass" ${l.doubleGlazing ? "readonly" : ""} value="${esc(glassName(l))}"></label><label>Precio vidrio (€/m², editable sin tarifa)<input type="number" min="0" step="0.01" data-field="price" ${l.doubleGlazing ? "readonly" : ""} value="${esc(l.price)}"></label><label>Precio canto (€/ml)<input type="number" min="0" step="0.01" data-field="edgePrice" value="${esc(l.edgePrice)}"></label></div><div class="quote-edges">${[
-      ["top", "Superior"],
-      ["bottom", "Inferior"],
-      ["left", "Izquierdo"],
-      ["right", "Derecho"],
-    ]
-      .map(
-        ([v, label]) =>
-          `<label><input type="checkbox" data-edge="${v}" ${(l.sides || []).includes(v) ? "checked" : ""}>${label}</label>`,
-      )
-      .join(
-        "",
-      )}</div><div class="quote-fields quote-extras"><label>Descripción del concepto adicional<input data-field="extraDescription" maxlength="160" placeholder="Ej.: montaje, transporte, herrajes" value="${esc(l.extraDescription || "")}"></label><label>Coste adicional (€ por toda esta línea)<input type="number" min="0" step="0.01" data-field="extraAmount" value="${esc(l.extraAmount ?? "")}"></label><label>Presentación al cliente<select data-field="extraMode"><option value="included" ${l.extraMode !== "separate" ? "selected" : ""}>Integrado en el precio del vidrio</option><option value="separate" ${l.extraMode === "separate" ? "selected" : ""}>Como concepto separado</option></select></label></div><div class="quote-result">${lineResult(c)}</div></div>`;
+      )}</select></label><label>Tipo de vidrio<input data-field="glass" ${l.doubleGlazing ? "readonly" : ""} value="${esc(glassName(l))}"></label><label>Precio vidrio (€/m², editable sin tarifa)<input type="number" min="0" step="0.01" data-field="price" ${l.doubleGlazing ? "readonly" : ""} value="${esc(l.price)}"></label></div>${edgeFields(l)}<div class="quote-fields quote-extras"><label>Descripción del concepto adicional<input data-field="extraDescription" maxlength="160" placeholder="Ej.: montaje, transporte, herrajes" value="${esc(l.extraDescription || "")}"></label><label>Coste adicional (€ por toda esta línea)<input type="number" min="0" step="0.01" data-field="extraAmount" value="${esc(l.extraAmount ?? "")}"></label><label>Presentación al cliente<select data-field="extraMode"><option value="included" ${l.extraMode !== "separate" ? "selected" : ""}>Integrado en el precio del vidrio</option><option value="separate" ${l.extraMode === "separate" ? "selected" : ""}>Como concepto separado</option></select></label></div><div class="quote-result">${lineResult(c)}</div></div>`;
   }
   function lineResult(c) {
-    return `Real: ${measures(c.w, c.h)} · ${c.real.toFixed(4)} m²<br>Aplicada: ${measures(c.aw, c.ah)} · ${c.area.toFixed(4)} m²<br>Canto por pieza: ${c.ml.toFixed(2)} ml · Unidades: ${c.qty} · Coste de vidrio y cantos: ${money(c.total)}${c.energy ? "<br>Recargo energético incluido: " + money(c.energy) : ""}`;
+    return `<div class="quote-line-metrics"><span>Real: ${measures(c.w, c.h)} · ${c.real.toFixed(4)} m²</span><span>Aplicada: ${measures(c.aw, c.ah)} · ${c.area.toFixed(4)} m²</span><span>Canto por pieza: ${c.ml.toFixed(2)} ml · Unidades: ${c.qty}</span><span>Coste de vidrio y cantos: ${money(c.total)}</span>${c.energy ? "<span>Recargo energético incluido: " + money(c.energy) + "</span>" : ""}</div>`;
   }
   function totalResult(breakdown) {
     const total = breakdown.totals;

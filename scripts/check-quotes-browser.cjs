@@ -26,6 +26,22 @@ module.exports = async function checkQuotes(page, context, root) {
   );
   await set('[data-field="w"]', "1.000");
   await set('[data-field="h"]', "1.000");
+  const initialEdgePrice = await page
+    .locator('[data-field="edgePrice"]')
+    .inputValue();
+  await set('[data-field="edgePrice"]', "10");
+  await set('[data-field="qty"]', "2");
+  await page.locator('[data-edge="top"]').check();
+  await page.locator('[data-edge="left"]').check();
+  assert.match(
+    await page.locator(".quote-result").textContent(),
+    /Canto por pieza: 2.00 ml · Unidades: 2/,
+  );
+  assert.match(await page.locator(".quote-result").textContent(), /74,79/);
+  await page.locator('[data-edge="top"]').uncheck();
+  await page.locator('[data-edge="left"]').uncheck();
+  await set('[data-field="edgePrice"]', initialEdgePrice);
+  await set('[data-field="qty"]', "1");
   await page.locator("#quote-pdf").click();
   assert.match(await page.locator("#quote-print").textContent(), /Float 4/);
   assert.doesNotMatch(
@@ -189,6 +205,22 @@ module.exports = async function checkQuotes(page, context, root) {
       const box = await page.locator(selector).boundingBox();
       assert.ok(box.width > 30 && box.x >= 0 && box.x + box.width <= width + 1);
     }
+    const edges = page.locator(".quote-edge-panel");
+    const edgeBox = await edges.boundingBox();
+    assert.ok(
+      edgeBox.height < 210,
+      `Cantos demasiado altos a ${width} px: ${edgeBox.height}`,
+    );
+    const controls = await edges.locator(".quote-edge-options label").all();
+    for (const control of controls) {
+      const box = await control.boundingBox();
+      assert.ok(
+        box.height >= 44 && box.x >= 0 && box.x + box.width <= width + 1,
+      );
+    }
+    await edges.screenshot({
+      path: path.join(root, "test-results", `canto-pulido-${width}.png`),
+    });
     await page.screenshot({
       path: path.join(root, "test-results", `presupuesto-${width}.png`),
       fullPage: true,

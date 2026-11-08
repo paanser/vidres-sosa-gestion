@@ -106,6 +106,8 @@ export function validateValues(values) {
     strings(j, {
       descripcion: 180,
       direccion: 180,
+      poblacion: 100,
+      telefono: 30,
       responsable: 80,
       fecha: 10,
       hora: 5,

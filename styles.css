@@ -3524,3 +3524,169 @@ body:not(.authenticated) > #quote-print {
     font-size: calc(18px * var(--vs-text-scale));
   }
 }
+
+/* Presentación del presupuesto: las opciones solo afectan al documento del cliente. */
+.quote-customer {
+  margin: 16px 0;
+}
+.quote-document-options {
+  margin: 20px 0;
+  padding: 16px;
+  border: 1px solid #b9cfc4;
+  border-radius: 10px;
+}
+.quote-document-options legend {
+  font-weight: 700;
+}
+.quote-document-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 22px;
+  margin: 16px 0;
+}
+.quote-document-checks label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.quote-document-checks input {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  margin: 0;
+}
+.company-logo-preview {
+  max-width: 240px;
+  max-height: 90px;
+  object-fit: contain;
+  margin: 12px 0;
+}
+@media print {
+  :root,
+  body {
+    background: #fff;
+  }
+  body > #quote-print {
+    color: #111;
+    font:
+      11px Arial,
+      sans-serif;
+  }
+  #quote-print .quote-doc-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12mm;
+    margin-bottom: 7mm;
+    padding: 0;
+    border: 0;
+    align-items: start;
+    break-inside: avoid;
+  }
+  #quote-print .quote-doc-wordmark {
+    color: #15523e;
+    display: flex;
+    flex-direction: column;
+    font-size: 26px;
+    line-height: 1;
+    margin-bottom: 6mm;
+    padding-left: 4mm;
+    border-left: 2mm solid #15523e;
+  }
+  #quote-print .quote-doc-wordmark strong {
+    font-size: 48px;
+    letter-spacing: -2px;
+  }
+  #quote-print .quote-doc-wordmark span {
+    color: #c62e35;
+  }
+  #quote-print .quote-doc-logo {
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: 75mm;
+    max-height: 28mm;
+    margin-bottom: 5mm;
+  }
+  #quote-print .quote-doc-company,
+  #quote-print .quote-doc-client {
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+  #quote-print h1 {
+    font-size: 23px;
+    margin: 0 0 2mm;
+    color: #111;
+  }
+  #quote-print h2 {
+    font-size: 10px;
+    margin: 0 0 2mm;
+  }
+  #quote-print .quote-doc-reference {
+    font-size: 14px;
+    margin: 0 0 4mm;
+  }
+  #quote-print .quote-doc-client {
+    padding: 4mm;
+    border: 1px solid #222;
+    min-height: 25mm;
+  }
+  #quote-print .quote-doc-dates {
+    margin-bottom: 5mm;
+  }
+  #quote-print .quote-doc-dates p {
+    margin: 1.5mm 0;
+  }
+  #quote-print table {
+    font-size: 10px;
+    table-layout: auto;
+  }
+  #quote-print th {
+    color: #111;
+    border: 1px solid #222;
+    background: #f0f3f1;
+    padding: 2.5mm 2mm;
+  }
+  #quote-print td {
+    padding: 3mm 2mm;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+  }
+  #quote-print .quote-doc-items td:first-child {
+    width: 40%;
+    white-space: pre-wrap;
+  }
+  #quote-print thead {
+    display: table-header-group;
+  }
+  #quote-print .quote-doc-extra td {
+    padding-top: 0;
+  }
+  #quote-print .quote-doc-notes {
+    padding-top: 4mm;
+  }
+  #quote-print .quote-doc-notes p {
+    line-height: 1.5;
+  }
+  #quote-print .quote-doc-footer {
+    color: #111;
+    margin-top: 12mm;
+    break-inside: avoid;
+  }
+  #quote-print .quote-doc-summary {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 3mm;
+  }
+  #quote-print .quote-doc-totals td {
+    border: 1px solid #222;
+    font-size: 13px;
+  }
+  #quote-print .quote-doc-totals th,
+  #quote-print .quote-doc-totals td {
+    text-align: center;
+    width: 33.33%;
+  }
+  #quote-print .quote-doc-internal {
+    font-weight: bold;
+  }
+}

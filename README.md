@@ -15,6 +15,22 @@ Aplicación en español para partes, clientes, mediciones/croquis, presupuestos,
 
 ## Datos compartidos
 
+El PDF de cliente usa una cabecera con la marca Vidres Sosa, datos de empresa,
+recuadro del cliente, tabla de conceptos y resumen de base, IVA y total. En
+Ajustes → Configuración general se editan los datos de empresa, condiciones y
+validez, y se puede cargar un logo PNG, JPG, WebP o GIF de hasta 2 MB. En GIF se usa el primer fotograma. La imagen se
+reduce para guardarla con la configuración; sin imagen se muestra la marca de texto.
+
+Los presupuestos toman CIF/NIF, teléfono, dirección y correo de la ficha del
+cliente. En el presupuesto rápido se introducen en «Datos del cliente» y se
+conservan con ese presupuesto, aunque después exista una ficha con el mismo nombre.
+Al final del editor, «Datos visibles en el PDF para cliente» permite ocultar
+medidas, unidades, m² (incluido el total), precio por m², observaciones,
+condiciones y validez. El precio por m² está oculto por defecto e incluye los
+conceptos integrados cuando se muestra. Estas opciones se guardan y duplican
+sin modificar el cálculo ni la copia interna. El PDF se obtiene con el diálogo
+de impresión del navegador, seleccionando guardar como PDF.
+
 D1 guarda los registros de negocio, usuarios, hashes de sesiones, numeración y controles de seguridad. D1 guarda también fotos y documentos por bloques sin acceso público. El navegador conserva los datos descargados en memoria; en localStorage solo se escriben el token de sesión, preferencias visuales, fecha de copia y el contador informativo local de IA.
 
 Los datos anteriores de localStorage/IndexedDB **se conservan sin modificarlos**. El administrador puede revisarlos e importarlos desde Ajustes. La importación muestra diferencias, descarga una copia previa y verifica los archivos antes de confirmar una transacción. También admite las copias JSON anteriores.

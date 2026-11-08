@@ -3903,3 +3903,27 @@ input[data-measure] {
   max-width: 65mm;
   max-height: 55mm;
 }
+
+.quote-pdf-result {
+  margin-top: 18px;
+  padding: 16px;
+  border: 2px solid var(--vs-green);
+  border-radius: 12px;
+  background: #f0f7f3;
+  color: #173f2e;
+  overflow-wrap: anywhere;
+}
+.quote-pdf-result a,
+.quote-pdf-result button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 14px;
+  margin: 4px;
+  border-radius: 8px;
+  background: #15523e;
+  color: white;
+  text-decoration: none;
+  font-weight: bold;
+}

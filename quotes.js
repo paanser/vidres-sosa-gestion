@@ -698,6 +698,9 @@
       })
       .join("");
     const options = pdfOptions(draft),
+      hasGlass = draft.lines.some(
+        (line) => !["concept", "aluminum"].includes(line.kind),
+      ),
       number = (n, digits = 2) =>
         Number(n).toLocaleString("es-ES", {
           maximumFractionDigits: digits,
@@ -712,7 +715,7 @@
         ["quantity", "Und."],
         ["area", "m²"],
         ["unitPrice", "Precio €/m²"],
-      ].filter(([key]) => options[key]),
+      ].filter(([key]) => hasGlass && options[key]),
       emptyCells = columns.map(() => "<td></td>").join(""),
       customerRows = draft.lines
         .map((line, i) => {
@@ -752,8 +755,8 @@
       .map((v) => `<br>${lines(v)}`)
       .join(
         "",
-      )}</section></div></header><div class="quote-doc-dates"><p><strong>Fecha oferta:</strong> ${esc(dateLabel(draft.date))}</p>${showValidity ? `<p><strong>Fecha validez:</strong> ${esc(dateLabel(addDays(draft.date, Number(company.validity) || 30)))}</p>` : ""}${draft.job ? `<p><strong>Parte relacionado:</strong> ${esc(draft.job)}</p>` : ""}</div><table class="quote-doc-items"><thead><tr><th>Concepto</th>${internal ? "<th>Coste</th><th>Margen añadido</th>" : columns.map(([, label]) => `<th>${label}</th>`).join("")}<th>Importe sin IVA</th></tr></thead><tbody>${internal ? rows : customerRows}</tbody></table>${(internal || options.observations) && draft.observations ? `<section class="quote-doc-notes"><h2>OBSERVACIONES</h2><p>${lines(draft.observations)}</p></section>` : ""}${(internal || options.conditions) && company.conditions ? `<section class="quote-doc-notes"><h2>CONDICIONES</h2><p>${lines(company.conditions)}</p></section>` : ""}${internal ? `<p>Coste interno: ${money(breakdown.cost)}<br>${draft.lines.some((l) => l.kind === "aluminum") ? "El aluminio aplica su incremento propio por línea. " : ""}Margen sobre ${pricing(draft).marginScope === "glass" ? "precio del vidrio" : pricing(draft).marginMode === "sale" ? "venta sin IVA" : "coste"} (${esc(pricing(draft).margin || 0)} %): ${money(breakdown.margin)}</p>` : ""}<footer class="quote-doc-footer"><div class="quote-doc-summary">${internal || options.quantity ? `<span>Total unidades: ${breakdown.lines.reduce((n, a, i) => n + (["concept", "aluminum"].includes(draft.lines[i].kind) ? 0 : a.qty), 0)}</span>` : ""}${
-      internal || options.area
+      )}</section></div></header><div class="quote-doc-dates"><p><strong>Fecha oferta:</strong> ${esc(dateLabel(draft.date))}</p>${showValidity ? `<p><strong>Fecha validez:</strong> ${esc(dateLabel(addDays(draft.date, Number(company.validity) || 30)))}</p>` : ""}${draft.job ? `<p><strong>Parte relacionado:</strong> ${esc(draft.job)}</p>` : ""}</div><table class="quote-doc-items"><thead><tr><th>Concepto</th>${internal ? "<th>Coste</th><th>Margen añadido</th>" : columns.map(([, label]) => `<th>${label}</th>`).join("")}<th>Importe sin IVA</th></tr></thead><tbody>${internal ? rows : customerRows}</tbody></table>${(internal || options.observations) && draft.observations ? `<section class="quote-doc-notes"><h2>OBSERVACIONES</h2><p>${lines(draft.observations)}</p></section>` : ""}${(internal || options.conditions) && company.conditions ? `<section class="quote-doc-notes"><h2>CONDICIONES</h2><p>${lines(company.conditions)}</p></section>` : ""}${internal ? `<p>Coste interno: ${money(breakdown.cost)}<br>${draft.lines.some((l) => l.kind === "aluminum") ? "El aluminio aplica su incremento propio por línea. " : ""}Margen sobre ${pricing(draft).marginScope === "glass" ? "precio del vidrio" : pricing(draft).marginMode === "sale" ? "venta sin IVA" : "coste"} (${esc(pricing(draft).margin || 0)} %): ${money(breakdown.margin)}</p>` : ""}<footer class="quote-doc-footer"><div class="quote-doc-summary">${hasGlass && (internal || options.quantity) ? `<span>Total unidades: ${breakdown.lines.reduce((n, a, i) => n + (["concept", "aluminum"].includes(draft.lines[i].kind) ? 0 : a.qty), 0)}</span>` : ""}${
+      hasGlass && (internal || options.area)
         ? `<span>Total m²: ${number(
             breakdown.lines.reduce(
               (n, a, i) =>
@@ -767,14 +770,18 @@
           )}</span>`
         : ""
     }</div><table class="quote-doc-totals"><thead><tr><th>Base imponible</th><th>IVA ${esc(pricing(draft).vat ?? 21)} %</th><th>TOTAL PRESUPUESTO</th></tr></thead><tbody><tr><td>${money(t.base)}</td><td>${money(t.iva)}</td><td><strong>${money(t.total)}</strong></td></tr></tbody></table>${showValidity ? `<p>Validez: ${esc(company.validity || 30)} días desde la fecha del presupuesto.</p>` : ""}</footer>`;
-    const images = [...host.querySelectorAll("img")];
-    if (images.length) {
-      Promise.all(images.map((img) => img.decode().catch(() => {}))).then(() =>
-        window.print(),
+    try {
+      const reference = String(draft.id || "borrador").replace(
+        /[^a-zA-Z0-9_-]/g,
+        "_",
       );
-      return;
+      VSQuotePDF.show(
+        host,
+        `Presupuesto-${reference}-${internal ? "interno" : "cliente"}.pdf`,
+      );
+    } catch (error) {
+      alert("No se pudo preparar el PDF. " + error.message);
     }
-    window.print();
   }
   window.addEventListener("vidres-data-restored", () => {
     draft = null;

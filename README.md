@@ -28,8 +28,9 @@ Al final del editor, «Datos visibles en el PDF para cliente» permite ocultar
 medidas, unidades, m² (incluido el total), precio por m², observaciones,
 condiciones y validez. El precio por m² está oculto por defecto e incluye los
 conceptos integrados cuando se muestra. Estas opciones se guardan y duplican
-sin modificar el cálculo ni la copia interna. El PDF se obtiene con el diálogo
-de impresión del navegador, seleccionando guardar como PDF.
+sin modificar el cálculo ni la copia interna. El botón PDF genera un archivo PDF en el dispositivo y muestra las opciones
+Abrir PDF y Guardar PDF. En dispositivos que comparten archivos también aparece
+Compartir PDF. No depende del diálogo de impresión del navegador.
 
 D1 guarda los registros de negocio, usuarios, hashes de sesiones, numeración y controles de seguridad. D1 guarda también fotos y documentos por bloques sin acceso público. El navegador conserva los datos descargados en memoria; en localStorage solo se escriben el token de sesión, preferencias visuales, fecha de copia y el contador informativo local de IA.
 
@@ -84,3 +85,9 @@ las medidas del vidrio a partir de las cotas exteriores del dibujo.
 
 Este cambio requiere actualizar primero el Worker, que valida el nuevo tipo de
 línea, y después la interfaz mediante el flujo habitual del repositorio.
+
+La generación PDF usa jsPDF y AutoTable, incluidos en `vendor/` con sus licencias.
+Se cargan desde el mismo sitio, sin CDN ni envío de documentos a terceros.
+El documento conserva los campos seleccionados para cliente, dibujos y logo; la
+copia interna incluye los costes. Al editar los datos se retiran los enlaces
+al PDF anterior para evitar enviar un documento desactualizado.

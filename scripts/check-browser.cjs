@@ -32,7 +32,9 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
         ) || "index.html";
       if (
         rel.includes("..") ||
-        (rel.includes("/") && !rel.startsWith("icons/"))
+        (rel.includes("/") &&
+          !rel.startsWith("icons/") &&
+          !rel.startsWith("vendor/"))
       )
         return route.fulfill({ status: 404, body: "" });
       let data;

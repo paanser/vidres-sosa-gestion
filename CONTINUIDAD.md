@@ -171,3 +171,18 @@ CHROMIUM_PATH=/usr/bin/chromium npm run test:browser` (en una sola línea).
   evitando atribuir cualquier fallo a un precio no positivo.
 - Regresión de navegador: conceptos solos, aluminio 560 € + 100 % (1355,20 €
   con IVA), vidrio vacío, vidrio parcial y descripción ausente.
+
+## Descarga PDF real en móvil · 8 de noviembre de 2026
+
+- El botón dependía de `window.print()`; con imágenes se llamaba además después
+  de una promesa. No había respuesta visible si el navegador no abría impresión.
+- Se sustituye por generación local de un archivo PDF con jsPDF 4.2.1 y
+  AutoTable 5.0.9. Los archivos y licencias se distribuyen en vendor/,
+  incluidos en loader, Service Worker y artefacto de Pages.
+- Se muestra PDF preparado con Abrir PDF, Guardar PDF y Compartir PDF cuando
+  el navegador admite compartir archivos. El documento interno se identifica.
+- Conserva los datos elegidos para cliente y dibujos, logo, notas, condiciones,
+  totales, varias páginas y numeración. Se invalidan enlaces al editar datos.
+- Verificación de navegador: descarga con cabecera PDF, dibujo embebido, texto
+  e importe en el archivo real y compartir un File application/pdf.
+- No cambia el backend ni datos del usuario; publicación de interfaz únicamente.

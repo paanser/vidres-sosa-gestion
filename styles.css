@@ -2533,10 +2533,45 @@ nav button[data-page="criticos"].active {
   color: #15523e;
   min-height: 32px;
 }
-#nav #add {
-  font-weight: 750;
+.layout > main > header {
+  flex-direction: row;
+  align-items: flex-start;
+}
+.layout > main > header > div:first-child {
+  min-width: 0;
+}
+.header-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+  margin-left: auto;
+}
+.header-actions button {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 10px;
+  border: 1px solid #c7dace;
+  border-radius: 12px;
   color: #15523e;
   background: #eaf4ef;
+}
+.header-actions button:hover {
+  background: #d9ebdf;
+}
+.header-actions button:focus-visible {
+  outline: 3px solid #15523e;
+  outline-offset: 3px;
+}
+.header-actions svg {
+  width: 26px;
+  height: 26px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 @media (max-width: 600px) {
   .simple-work-search {
@@ -2754,6 +2789,14 @@ nav button[data-page="criticos"].active {
 #quick-note-form textarea {
   min-height: 9rem;
   font-size: 1.1rem;
+  line-height: 1.8rem;
+  background: repeating-linear-gradient(
+    to bottom,
+    #fffdf5 0,
+    #fffdf5 calc(1.8rem - 1px),
+    #e2dfce calc(1.8rem - 1px),
+    #e2dfce 1.8rem
+  );
 }
 @media (max-width: 700px) {
   .quick-note {

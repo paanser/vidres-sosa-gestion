@@ -77,6 +77,7 @@
         a,
         b,
         valor,
+        unit: ["m", "cm", "mm"].includes(d.unit) ? d.unit : legacyUnit(),
         eje: ejeOf({ a, b }),
       });
     }
@@ -177,13 +178,106 @@
     if (dy > dx * 2) return "v";
     return "d";
   }
-  const unitName = () => {
+  const unitName = () => VSMeasureInput.unit();
+  // Las cotas antiguas no llevaban unidad: antes solo existían cm y mm.
+  function legacyUnit() {
     try {
-      return VSStorage.read("vs-config-v1", {}).unit === "mm" ? "mm" : "cm";
+      const c = VSStorage.read("vs-config-v1", {});
+      return (c.legacyDimensionUnit || c.unit) === "mm" ? "mm" : "cm";
     } catch {
       return "cm";
     }
-  };
+  }
+  function draw(ctx, stroke) {
+    ctx.save();
+    ctx.globalCompositeOperation =
+      stroke.tool === "eraser" ? "destination-out" : "source-over";
+    ctx.strokeStyle = ctx.fillStyle = stroke.color;
+    ctx.lineWidth = stroke.width || (stroke.tool === "eraser" ? 24 : 3);
+    ctx.lineCap = ctx.lineJoin = "round";
+    const [first, ...rest] = stroke.points;
+    if (!first) {
+      ctx.restore();
+      return;
+    }
+    if (!rest.length) {
+      ctx.beginPath();
+      ctx.arc(first[0], first[1], ctx.lineWidth / 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      return;
+    }
+    ctx.beginPath();
+    ctx.moveTo(...first);
+    for (const p of rest) ctx.lineTo(...p);
+    ctx.stroke();
+    ctx.restore();
+  }
+  function drawDim(ctx, d, selected = false) {
+    ctx.save();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = selected ? "#b42318" : "#315c42";
+    ctx.setLineDash([6, 5]);
+    ctx.beginPath();
+    ctx.moveTo(d.a[0], d.a[1]);
+    ctx.lineTo(d.b[0], d.b[1]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    const dx = d.b[0] - d.a[0],
+      dy = d.b[1] - d.a[1],
+      len = Math.hypot(dx, dy) || 1,
+      ux = dx / len,
+      uy = dy / len,
+      px = -uy,
+      py = ux;
+    for (const p of [d.a, d.b]) {
+      ctx.beginPath();
+      ctx.moveTo(p[0] - px * 8, p[1] - py * 8);
+      ctx.lineTo(p[0] + px * 8, p[1] + py * 8);
+      ctx.stroke();
+    }
+    for (const p of [d.a, d.b]) {
+      ctx.beginPath();
+      ctx.arc(p[0], p[1], 3, 0, Math.PI * 2);
+      ctx.fillStyle = ctx.strokeStyle;
+      ctx.fill();
+    }
+    const label =
+        VSUtils.formatMeters(
+          VSUtils.dimensionToCm(d.valor, d.unit || legacyUnit()),
+        ) + " m",
+      mx = (d.a[0] + d.b[0]) / 2,
+      my = (d.a[1] + d.b[1]) / 2;
+    ctx.font =
+      "bold 15px system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
+    const w = ctx.measureText(label).width,
+      pad = 4,
+      ty = my - 14;
+    ctx.fillStyle = "rgba(255,255,255,0.94)";
+    ctx.fillRect(mx - w / 2 - pad, ty - 10, w + pad * 2, 20);
+    ctx.fillStyle = "#17251e";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(label, mx, ty);
+    ctx.restore();
+    if (selected) {
+      ctx.save();
+      ctx.fillStyle = "#b42318";
+      for (const p of [d.a, d.b]) ctx.fillRect(p[0] - 6, p[1] - 6, 12, 12);
+      ctx.restore();
+    }
+  }
+  function preview(value) {
+    const state = clean(value),
+      canvas = document.createElement("canvas");
+    canvas.width = 1000;
+    canvas.height = state.pageHeight;
+    const ctx = canvas.getContext("2d");
+    state.strokes.forEach((stroke) => draw(ctx, stroke));
+    state.dims.forEach((dim) => drawDim(ctx, dim));
+    drawWatermark(ctx, canvas.width, canvas.height);
+    return canvas.toDataURL("image/png");
+  }
   function mount(host, initial, options = {}) {
     instances.get(host)?.destroy();
     host.replaceChildren();
@@ -241,6 +335,7 @@
       <p class="sketch-keypad-title">Valor de la cota</p>
       <output class="sketch-keypad-value" aria-live="polite">0</output>
       <p class="sketch-keypad-unit">Unidad: <span data-keypad-unit>cm</span></p>
+      <p class="measure-feedback" data-keypad-feedback aria-live="polite"></p>
       <div class="sketch-keypad-grid" role="group" aria-label="Teclado numérico">
         <button type="button" data-kp="7">7</button>
         <button type="button" data-kp="8">8</button>
@@ -445,83 +540,6 @@
     if (state.strokes.length || state.notes || state.dims.length)
       details.querySelector("summary").textContent =
         "✎ Dibujar medidas · Con anotaciones";
-    function draw(stroke) {
-      ctx.save();
-      ctx.globalCompositeOperation =
-        stroke.tool === "eraser" ? "destination-out" : "source-over";
-      ctx.strokeStyle = ctx.fillStyle = stroke.color;
-      ctx.lineWidth = stroke.width || (stroke.tool === "eraser" ? 24 : 3);
-      ctx.lineCap = ctx.lineJoin = "round";
-      const [first, ...rest] = stroke.points;
-      if (!first) {
-        ctx.restore();
-        return;
-      }
-      if (!rest.length) {
-        ctx.beginPath();
-        ctx.arc(first[0], first[1], ctx.lineWidth / 2, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-        return;
-      }
-      ctx.beginPath();
-      ctx.moveTo(...first);
-      for (const p of rest) ctx.lineTo(...p);
-      ctx.stroke();
-      ctx.restore();
-    }
-    function drawDim(d) {
-      const selected = d.id === selectedDim;
-      ctx.save();
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = selected ? "#b42318" : "#315c42";
-      ctx.setLineDash([6, 5]);
-      ctx.beginPath();
-      ctx.moveTo(d.a[0], d.a[1]);
-      ctx.lineTo(d.b[0], d.b[1]);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      const dx = d.b[0] - d.a[0],
-        dy = d.b[1] - d.a[1],
-        len = Math.hypot(dx, dy) || 1,
-        ux = dx / len,
-        uy = dy / len,
-        px = -uy,
-        py = ux;
-      for (const p of [d.a, d.b]) {
-        ctx.beginPath();
-        ctx.moveTo(p[0] - px * 8, p[1] - py * 8);
-        ctx.lineTo(p[0] + px * 8, p[1] + py * 8);
-        ctx.stroke();
-      }
-      for (const p of [d.a, d.b]) {
-        ctx.beginPath();
-        ctx.arc(p[0], p[1], 3, 0, Math.PI * 2);
-        ctx.fillStyle = ctx.strokeStyle;
-        ctx.fill();
-      }
-      const label = d.valor + " " + unitName(),
-        mx = (d.a[0] + d.b[0]) / 2,
-        my = (d.a[1] + d.b[1]) / 2;
-      ctx.font =
-        "bold 15px system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
-      const w = ctx.measureText(label).width,
-        pad = 4,
-        ty = my - 14;
-      ctx.fillStyle = "rgba(255,255,255,0.94)";
-      ctx.fillRect(mx - w / 2 - pad, ty - 10, w + pad * 2, 20);
-      ctx.fillStyle = "#17251e";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(label, mx, ty);
-      ctx.restore();
-      if (selected) {
-        ctx.save();
-        ctx.fillStyle = "#b42318";
-        for (const p of [d.a, d.b]) ctx.fillRect(p[0] - 6, p[1] - 6, 12, 12);
-        ctx.restore();
-      }
-    }
     const snapshot = () => ({
       strokes: structuredClone(state.strokes),
       dims: structuredClone(state.dims),
@@ -534,7 +552,7 @@
     function redraw() {
       if (canvas.height !== state.pageHeight) canvas.height = state.pageHeight;
       ctx.clearRect(0, 0, 1000, state.pageHeight);
-      state.strokes.forEach(draw);
+      state.strokes.forEach((stroke) => draw(ctx, stroke));
       if (cotaMode && cotaStart && previewEnd) {
         ctx.save();
         ctx.strokeStyle = "#b42318";
@@ -551,7 +569,7 @@
         ctx.fill();
         ctx.restore();
       }
-      state.dims.forEach(drawDim);
+      state.dims.forEach((dim) => drawDim(ctx, dim, dim.id === selectedDim));
       drawWatermark(ctx, canvas.width, canvas.height);
       editor.querySelector("[data-sketch-undo]").disabled = !history.length;
       editor.querySelector("[data-sketch-clear]").disabled =
@@ -626,13 +644,13 @@
         );
         return;
       }
-      const unit = unitName(),
-        toCm = (d) => VSUtils.dimensionToCm(d.valor, unit),
+      const toCm = (d) =>
+          VSUtils.dimensionToCm(d.valor, d.unit || legacyUnit()),
         hVal = horizontal.length ? toCm(horizontal[0]) : null,
         vVal = vertical.length ? toCm(vertical[0]) : null;
       const parts = [];
-      if (hVal != null) parts.push("ancho = " + hVal + " cm");
-      if (vVal != null) parts.push("alto = " + vVal + " cm");
+      if (hVal != null) parts.push("ancho = " + VSUtils.formatMeasure(hVal));
+      if (vVal != null) parts.push("alto = " + VSUtils.formatMeasure(vVal));
       if (
         !confirm(
           "¿Copiar las cotas a las medidas de la pieza? " +
@@ -645,6 +663,21 @@
       message.textContent =
         "Cotas aplicadas a las medidas. Revisa los campos antes de guardar.";
     }
+    function keypadResult() {
+      const r =
+        unitName() === "m"
+          ? VSUtils.parseMeters(keypad._value)
+          : VSUtils.parseDimension(keypad._value);
+      const feedback = keypad.querySelector("[data-keypad-feedback]");
+      feedback.textContent = r.ok
+        ? "= " +
+          VSUtils.formatMeasure(
+            VSUtils.dimensionToCm(keypad._value, unitName()),
+          )
+        : r.error;
+      feedback.classList.toggle("measure-error", !r.ok);
+      return r;
+    }
     function openKeypad(initialValue, onAccept) {
       keypad.querySelector(".sketch-keypad-value").textContent =
         initialValue || "0";
@@ -654,6 +687,7 @@
       keypad.querySelector("[data-keypad-unit]").textContent = unitName();
       keypad._value = String(initialValue || "");
       keypad._onAccept = onAccept;
+      keypadResult();
       keypad.showModal();
       requestAnimationFrame(() =>
         keypad.querySelector("[data-kp-accept]").focus(),
@@ -673,19 +707,13 @@
         keypad.close();
         return;
       } else if (b.hasAttribute("data-kp-accept")) {
-        const res = VSUtils.parseDimension(keypad._value);
+        const res = keypadResult();
         if (!res.ok) {
           alert(res.error);
           return;
         }
-        const cm = VSUtils.dimensionToCm(res.value, unitName());
-        if (
-          cm > 1000 &&
-          !confirm(
-            "La medida equivale a más de 1000 cm. ¿Confirmar este valor?",
-          )
-        )
-          return;
+        const cm = VSUtils.dimensionToCm(keypad._value, unitName());
+        if (cm > 600 && !confirm(`¿Seguro? ${cm / 100} m`)) return;
         const onAccept = keypad._onAccept,
           valor = keypad._value;
         keypad._value = "";
@@ -696,6 +724,7 @@
       const out = keypad.querySelector(".sketch-keypad-value");
       out.textContent = keypad._value || "0";
       out.classList.toggle("empty", !keypad._value);
+      keypadResult();
     });
     canvas.addEventListener("pointerdown", (e) => {
       if (saving || pointer !== null || !e.isPrimary || e.button !== 0) return;
@@ -725,6 +754,7 @@
               a,
               b,
               valor,
+              unit: unitName(),
               eje: ejeOf({ a, b }),
             });
             selectedDim = null;
@@ -882,12 +912,18 @@
       if (b.hasAttribute("data-dim-edit")) {
         const d = state.dims.find((x) => x.id === selectedDim);
         if (d)
-          openKeypad(d.valor, (valor) => {
-            remember();
-            d.valor = valor;
-            message.textContent = "Valor de la cota actualizado.";
-            redraw();
-          });
+          openKeypad(
+            VSMeasureInput.display(
+              VSUtils.dimensionToCm(d.valor, d.unit || legacyUnit()),
+            ),
+            (valor) => {
+              remember();
+              d.valor = valor;
+              d.unit = unitName();
+              message.textContent = "Valor de la cota actualizado.";
+              redraw();
+            },
+          );
         return;
       }
       if (b.hasAttribute("data-dim-delete")) {
@@ -1000,6 +1036,7 @@
   }
   window.vidresSketch = {
     mount,
+    preview,
     destroy: (host) => instances.get(host)?.destroy(),
     open: (host) => instances.get(host)?.open(),
     read: (host) => instances.get(host)?.read() || { strokes: [], notes: "" },

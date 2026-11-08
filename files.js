@@ -15,11 +15,15 @@
     const response = await VSAuth.request("/api/files/" + item.id);
     return response.blob();
   }
-  async function all(kind) {
+  async function all(kind, filter = {}) {
     await ready;
     return Promise.all(
       cache
-        .filter((x) => x.kind === kind)
+        .filter(
+          (x) =>
+            x.kind === kind &&
+            Object.entries(filter).every(([key, value]) => x[key] === value),
+        )
         .map(async (item) => ({ ...clean(item), blob: await getBlob(item) })),
     );
   }

@@ -203,6 +203,7 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
   console.log(
     "PASS guardado: desconexión, fallo, espera, confirmación y conflicto del servidor",
   );
+  await require("./check-meters-browser.cjs")(page, context, root);
   await require("./check-quotes-browser.cjs")(page, context, root);
   await require("./check-quote-document-browser.cjs")(page, context, root);
 
@@ -443,8 +444,8 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
   await page.locator("#form [name=cliente]").fill("Cliente de navegador");
   await page.locator("#form [name=descripcion]").fill("Prueba completa");
   await page.locator("#new-measure-add").click();
-  await page.locator("[data-new-measure=ancho]").fill("100");
-  await page.locator("[data-new-measure=alto]").fill("80");
+  await page.locator("[data-new-measure=ancho]").fill("1.000");
+  await page.locator("[data-new-measure=alto]").fill("0.800");
   await page
     .locator(".job-measure-photo")
     .first()
@@ -495,9 +496,29 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
     await page.evaluate(() => localStorage.getItem("vidres-sosa-demo-v01")),
     null,
   );
+  const measurementId = await page.evaluate(
+    () => VSStorage.measurements.get()[0].id,
+  );
+  await page.evaluate((id) => vidresOpenMeasurement(id), measurementId);
+  assert.equal(
+    await page.locator("#measure-form [name=ancho]").inputValue(),
+    "1.000",
+  );
+  await page.locator("#measure-form [name=ancho]").fill("1.234");
+  await page.locator("#measure-form [name=alto]").fill("0.830");
+  await page.locator("#measure-form [type=submit]").click();
+  await page.locator("#measure-editor").waitFor({ state: "hidden" });
+  assert.deepEqual(
+    await page.evaluate(() => {
+      const m = VSStorage.measurements.get()[0];
+      return [m.ancho, m.alto];
+    }),
+    [123.4, 83],
+  );
   console.log(
     "PASS parte, medición y foto en servidor, sin copia local de negocio",
   );
+  await require("./check-quote-measures-browser.cjs")(page, context, root);
   for (const focus of ["undated", "today", "late", ""]) {
     await page.locator('[data-page="trabajos"]').click();
     await page.locator("#search").fill("búsqueda-que-no-coincide");

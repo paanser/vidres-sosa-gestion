@@ -242,6 +242,7 @@
               [d.a, d.b].some((p) =>
                 p.some((n) => typeof n !== "number" || !Number.isFinite(n)),
               ) ||
+              (d.unit != null && !["m", "cm", "mm"].includes(d.unit)) ||
               typeof d.valor !== "string",
           ))
       )

@@ -262,6 +262,33 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
   assert.equal(saved.client.direccion, "Calle Fiscal 10");
   await page.evaluate(() => window.vidresNavigate("inicio"));
   assert.equal(await page.locator(".quick-notes h2").textContent(), "Notas");
+  assert.equal(
+    await page.locator("#nav #add, #nav #quick-note-add").count(),
+    0,
+  );
+  for (const width of [320, 390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    const bounds = await page.locator(".header-actions").boundingBox();
+    const titleBounds = await page.locator("#title").boundingBox();
+    assert.ok(bounds.x >= titleBounds.x + titleBounds.width);
+    assert.ok(bounds.x + bounds.width <= width);
+    assert.equal(
+      await page.locator("#add").getAttribute("aria-label"),
+      "Nuevo parte",
+    );
+    assert.equal(
+      await page.locator("#quick-note-add").getAttribute("aria-label"),
+      "Nueva nota",
+    );
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.locator("#quick-note-add").click();
+  assert.equal(await page.locator("#quick-note-dialog").isVisible(), true);
+  assert.equal(
+    await page.locator("#quick-note-title").textContent(),
+    "Nueva nota",
+  );
+  await page.locator("#quick-note-cancel").click();
   await page.locator("[data-note-new]").click();
   assert.equal(
     await page

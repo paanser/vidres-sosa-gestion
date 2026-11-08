@@ -320,7 +320,7 @@ window.vidresAppReady = (async () => {
             )
             .join("") +
           "</div>"
-        : '<p class="muted">No hay trabajos activos. Puedes crear un parte desde el menú.</p>') +
+        : '<p class="muted">No hay trabajos activos. Puedes crear un parte con el botón + de arriba.</p>') +
       "</section>" +
       pendingNotesHtml(pendingNotes, today) +
       followupsHtml(followups)
@@ -1565,7 +1565,7 @@ window.vidresAppReady = (async () => {
     quickNoteForm.elements.aviso.value = note?.aviso || "";
     $("#quick-note-title").textContent = note
       ? "Editar nota rápida"
-      : "Nota rápida";
+      : "Nueva nota";
     $("#quick-note-clients").innerHTML = clientNames()
       .map((name) => '<option value="' + esc(name) + '"></option>')
       .join("");

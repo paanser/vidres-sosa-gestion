@@ -104,8 +104,6 @@
         <div class="logo"><span>Vidres</span><strong>Sosa</strong></div>
         <nav id="nav" aria-label="Navegación principal">
           <button data-page="inicio" class="active">⌂ Inicio</button
-          ><button id="add">+ Nuevo parte</button
-          ><button id="quick-note-add">+ Nota rápida</button
           ><button data-page="trabajos">▤ Trabajos activos</button
           ><button data-page="presupuestos">€ Presupuestos</button
           ><button data-page="herramientas">▦ Herramientas</button
@@ -118,6 +116,30 @@
           <div>
             <p class="muted">VIDRES SOSA · GESTIÓN</p>
             <h1 id="title">Buenos días, equipo 👋</h1>
+          </div>
+          <div class="header-actions" role="group" aria-label="Crear">
+            <button
+              id="add"
+              type="button"
+              aria-label="Nuevo parte"
+              title="Nuevo parte"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+            </button>
+            <button
+              id="quick-note-add"
+              type="button"
+              aria-label="Nueva nota"
+              title="Nueva nota"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M14 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v7M7 2v4M11 2v4M15 2v4M7 10h8M7 14h4M18 15v6M15 18h6"
+                />
+              </svg>
+            </button>
           </div>
         </header>
         <p
@@ -319,7 +341,7 @@
     </dialog>
     <dialog id="quick-note-dialog" aria-labelledby="quick-note-title">
       <form id="quick-note-form">
-        <h2 id="quick-note-title">Nota rápida</h2>
+        <h2 id="quick-note-title">Nueva nota</h2>
         <input type="hidden" name="id" />
         <label
           >¿Qué necesitas recordar?<textarea

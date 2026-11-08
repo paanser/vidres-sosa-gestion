@@ -86,6 +86,70 @@ module.exports = async (page) => {
     await page.locator(".quote-editor .quote-aluminum-drawing").count(),
     0,
   );
+  // Regresión: conceptos solos y un vidrio vacío nunca deben exigir medidas.
+  await page.locator("#quote-new").click();
+  await page.locator("#quote-add-concept").click();
+  assert.equal(await page.locator('[data-field="w"]').count(), 0);
+  await page.locator("#quote-client").fill("Solo conceptos PDF");
+  await page.locator('[data-field="description"]').fill("Montaje sin vidrio");
+  await page.locator('[data-field="amount"]').fill("560");
+  await page.locator("#quote-add").click();
+  await page.evaluate(() => {
+    window.pdfWithoutGlassCount = 0;
+    window.print = () => window.pdfWithoutGlassCount++;
+  });
+  await page.locator("#quote-pdf").click();
+  await page.waitForFunction(() => window.pdfWithoutGlassCount === 1);
+  assert.equal(await page.locator('[data-field="w"]').count(), 0);
+  assert.match(
+    await page.locator("#quote-print").textContent(),
+    /Montaje sin vidrio/,
+  );
+  await page.locator("#quote-save").click();
+  await page.waitForFunction(() =>
+    VSStorage.read("vs-quote-prototype-v1", []).some(
+      (q) =>
+        q.client === "Solo conceptos PDF" &&
+        q.lines.length === 1 &&
+        q.lines[0].kind === "concept",
+    ),
+  );
+  await page.locator("#quote-new").click();
+  await page.locator("#quote-add-aluminum").click();
+  await page.locator("#quote-client").fill("Solo aluminio PDF");
+  await page.locator('[data-field="description"]').fill("Aluminio sin vidrio");
+  await page.locator('[data-field="amount"]').fill("560");
+  await page.locator('[data-field="aluminumMargin"]').fill("100");
+  await page.locator("#quote-add").click();
+  await page.locator("#quote-pdf").click();
+  await page.waitForFunction(() => window.pdfWithoutGlassCount === 2);
+  assert.match(await page.locator("#quote-print").textContent(), /1355,20/);
+  assert.equal(await page.locator('[data-field="w"]').count(), 0);
+  // Un vidrio parcialmente cumplimentado se conserva y se explica el fallo.
+  await page.locator("#quote-add").click();
+  await page.locator('[data-field="w"]').fill("1.000");
+  const alerts = [];
+  const capture = (dialog) => alerts.push(dialog.message());
+  page.on("dialog", capture);
+  await page.locator("#quote-pdf").click();
+  assert.equal(await page.evaluate(() => window.pdfWithoutGlassCount), 2);
+  assert.equal(await page.locator('[data-field="w"]').count(), 1);
+  assert.equal(
+    await page
+      .locator('[data-field="h"]')
+      .evaluate((input) => input.checkValidity()),
+    false,
+  );
+  await page.locator('[data-field="h"]').fill("1.000");
+  await page.locator("#quote-pdf").click();
+  assert.match(alerts.at(-1), /Línea 2:.*vidrio/);
+  await page.locator('[data-remove="1"]').click();
+  await page.locator('[data-field="description"]').fill("");
+  await page.locator("#quote-pdf").click();
+  assert.match(alerts.at(-1), /Línea 1:.*descripción/);
+  page.off("dialog", capture);
+  await page.locator('[data-remove="0"]').click();
+  assert.equal(await page.locator(".quote-line").count(), 0);
   await page.evaluate(() => window.vidresNavigate("inicio"));
   console.log(
     "PASS aluminio: dibujo, cálculo, guardado, recarga, duplicado y PDF cliente/interno",

@@ -160,3 +160,14 @@ CHROMIUM_PATH=/usr/bin/chromium npm run test:browser` (en una sola línea).
   ficticios, Prettier, revisión de secretos y git diff --check correctos.
   Navegador confirma subida, guardado, recarga, duplicado y PDF cliente/interno.
 - Cambios locales sin publicar. Requieren desplegar Worker antes de interfaz.
+
+## Corrección PDF sin vidrio · 8 de noviembre de 2026
+
+- Los conceptos libres eliminan la línea inicial de vidrio vacía igual que el aluminio.
+- Antes de guardar, enviar o imprimir se retiran solo los vidrios completamente
+  vacíos si existen otras líneas. Los parcialmente rellenados se conservan.
+- Se puede eliminar la última línea sin introducir obligatoriamente otro vidrio.
+- Los errores identifican el cliente que falta o la línea y el dato a completar,
+  evitando atribuir cualquier fallo a un precio no positivo.
+- Regresión de navegador: conceptos solos, aluminio 560 € + 100 % (1355,20 €
+  con IVA), vidrio vacío, vidrio parcial y descripción ausente.

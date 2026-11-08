@@ -494,9 +494,49 @@
     }
     readDocumentFields();
   }
+  function isEmptyGlass(line) {
+    const blank = (v) => v == null || String(v).trim() === "";
+    return (
+      !line.kind &&
+      [
+        "w",
+        "h",
+        "glass",
+        "tariff",
+        "price",
+        "edgePrice",
+        "extraDescription",
+        "extraAmount",
+      ].every((key) => blank(line[key])) &&
+      !line.doubleGlazing &&
+      !(line.sides || []).length &&
+      (blank(line.qty) || Number(line.qty) === 1)
+    );
+  }
+  function dropEmptyGlass() {
+    if (draft.lines.some((line) => !isEmptyGlass(line))) {
+      const lines = draft.lines.filter((line) => !isEmptyGlass(line));
+      if (lines.length !== draft.lines.length) {
+        draft.lines = lines;
+        return true;
+      }
+    }
+    return false;
+  }
   function valid(print = false) {
     if (uploadingDrawing) {
       alert("Espera a que termine de cargar el dibujo.");
+      return false;
+    }
+    if (!quickMode && dropEmptyGlass()) sync();
+    if (!draft.client.trim() && !quickMode) {
+      alert("Escribe el nombre del cliente para guardar o generar el PDF.");
+      return false;
+    }
+    if (!draft.lines.length) {
+      alert(
+        "Añade al menos una línea de aluminio, un concepto libre o un vidrio.",
+      );
       return false;
     }
     if (!VSMeasureInput.validate(document.querySelector("#content")))
@@ -522,11 +562,9 @@
       );
       return false;
     }
-    if (
-      (!draft.client.trim() && !quickMode) ||
-      !draft.lines.length ||
-      !draft.lines.every((l) =>
-        ["concept", "aluminum"].includes(l.kind)
+    const invalidIndex = draft.lines.findIndex(
+      (l) =>
+        !(["concept", "aluminum"].includes(l.kind)
           ? (l.kind !== "aluminum" ||
               (nonNegative(l.aluminumMargin) &&
                 num(l.aluminumMargin) <= 10000)) &&
@@ -541,12 +579,32 @@
             Number(String(l.price).replace(",", ".")) >= 0 &&
             Number(String(l.edgePrice || 0).replace(",", ".")) >= 0 &&
             Number.isFinite(calc(l).total) &&
-            ((!print && draft.status === "Borrador") || num(l.price) > 0),
-      )
-    ) {
-      alert(
-        "Revisa cliente, medidas, cantidades, descripciones e importes. Para enviar, aceptar o imprimir se requiere precio positivo.",
-      );
+            ((!print && draft.status === "Borrador") || num(l.price) > 0)),
+    );
+    if (invalidIndex !== -1) {
+      const line = draft.lines[invalidIndex];
+      const prefix = `Línea ${invalidIndex + 1}: `;
+      if (["concept", "aluminum"].includes(line.kind)) {
+        if (!line.description?.trim())
+          alert(prefix + "escribe la descripción para el cliente.");
+        else if (
+          line.kind === "aluminum" &&
+          (!nonNegative(line.aluminumMargin) ||
+            num(line.aluminumMargin) > 10000)
+        )
+          alert(
+            prefix + "revisa el incremento de aluminio (entre 0 y 10000 %).",
+          );
+        else
+          alert(
+            prefix +
+              "revisa el importe; para imprimir o enviar debe ser positivo.",
+          );
+      } else
+        alert(
+          prefix +
+            "completa las medidas, cantidad y precio del vidrio, o elimina esta línea si no corresponde.",
+        );
       return false;
     }
     return true;
@@ -780,21 +838,13 @@
         sync();
       } else if (b.id === "quote-add-aluminum") {
         fromForm();
-        if (
-          draft.lines.length === 1 &&
-          !draft.lines[0].kind &&
-          !draft.lines[0].w &&
-          !draft.lines[0].h &&
-          !draft.lines[0].glass &&
-          !draft.lines[0].price
-        )
-          draft.lines = [];
         draft.lines.push({
           kind: "aluminum",
           description: "",
           amount: "",
           aluminumMargin: 0,
         });
+        dropEmptyGlass();
         sync();
       } else if (b.hasAttribute("data-remove-drawing")) {
         fromForm();
@@ -803,11 +853,11 @@
       } else if (b.id === "quote-add-concept") {
         fromForm();
         draft.lines.push({ kind: "concept", description: "", amount: "" });
+        dropEmptyGlass();
         sync();
       } else if (b.dataset.remove !== undefined) {
         fromForm();
-        if (draft.lines.length > 1)
-          draft.lines.splice(Number(b.dataset.remove), 1);
+        draft.lines.splice(Number(b.dataset.remove), 1);
         sync();
       } else if (b.id === "quote-pdf") printQuote();
       else if (b.id === "quote-pdf-internal") printQuote(true);

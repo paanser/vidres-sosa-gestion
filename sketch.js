@@ -4,6 +4,28 @@
   const colors = ["#17251e", "#b42318", "#2457a7", "#15523e"];
   const limit = 5000;
   const maxDims = 60;
+  // Silueta vectorial del logo de Vidres Sosa, sin el fondo de la imagen.
+  const watermark = new Path2D(
+    "M155 0 L171 32 L87 233 C80 184 56 148 0 126 " +
+      "C35 115 65 128 93 154 Z " +
+      "M199 89 H299 L273 115 H191 C178 115 169 120 169 131 " +
+      "C169 143 180 148 194 148 H243 C277 148 298 163 298 191 " +
+      "C298 218 276 233 243 233 H137 L160 206 H244 " +
+      "C258 206 266 201 266 191 C266 181 257 174 243 174 H193 " +
+      "C159 174 137 160 137 134 C137 107 160 89 199 89 Z",
+  );
+  function drawWatermark(ctx, width, height) {
+    const scale = Math.min((width * 0.52) / 299, (height * 0.42) / 233);
+    ctx.save();
+    // Se compone detrás del dibujo después de aplicar la goma: no se borra.
+    ctx.globalCompositeOperation = "destination-over";
+    ctx.globalAlpha = 0.1;
+    ctx.fillStyle = "#808080";
+    ctx.translate((width - 299 * scale) / 2, (height - 233 * scale) / 2);
+    ctx.scale(scale, scale);
+    ctx.fill(watermark);
+    ctx.restore();
+  }
   function clean(value) {
     const pageHeight = Number.isFinite(value?.pageHeight)
       ? Math.max(400, Math.min(2400, Math.round(value.pageHeight)))
@@ -246,6 +268,7 @@
     const ctx = canvas.getContext("2d");
     state.strokes.forEach((stroke) => draw(ctx, stroke));
     state.dims.forEach((dim) => drawDim(ctx, dim));
+    drawWatermark(ctx, canvas.width, canvas.height);
     return canvas.toDataURL("image/png");
   }
   function mount(host, initial, options = {}) {
@@ -539,6 +562,7 @@
         ctx.restore();
       }
       state.dims.forEach((dim) => drawDim(ctx, dim, dim.id === selectedDim));
+      drawWatermark(ctx, canvas.width, canvas.height);
       editor.querySelector("[data-sketch-undo]").disabled = !history.length;
       editor.querySelector("[data-sketch-clear]").disabled =
         !state.strokes.length;

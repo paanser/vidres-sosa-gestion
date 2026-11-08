@@ -204,6 +204,7 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
     "PASS guardado: desconexión, fallo, espera, confirmación y conflicto del servidor",
   );
   await require("./check-quotes-browser.cjs")(page, context, root);
+  await require("./check-quote-document-browser.cjs")(page, context, root);
 
   await page.evaluate(async () => {
     await VSStorage.write(VSStorage.keys.clientes, [
@@ -263,6 +264,10 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
   );
   await page.locator("#form [name=cliente]").fill("Cliente registrado");
   assert.equal(
+    await page.locator("#form [name=telefono]").inputValue(),
+    "+34 612 345 678",
+  );
+  assert.equal(
     await page.locator("#form [name=direccion]").inputValue(),
     "Calle Fiscal 10",
   );
@@ -275,6 +280,8 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
   await page.locator("#client-address-choice").selectOption("other");
   assert.equal(await page.locator("#form [name=direccion]").inputValue(), "");
   await page.locator("#form [name=direccion]").fill("Calle Medidas 20");
+  await page.locator("#form [name=poblacion]").fill("  La Seu d’Urgell  ");
+  await page.locator("#form [name=telefono]").fill("  +34 611 222 333  ");
   await page.locator("#form button[type=submit]").click();
   await page.waitForFunction(() => !document.querySelector("#editor").open);
   const saved = await page.evaluate(() => ({
@@ -282,6 +289,9 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
     client: VSStorage.read(VSStorage.keys.clientes, [])[0],
   }));
   assert.equal(saved.job.direccion, "Calle Medidas 20");
+  assert.equal(saved.job.poblacion, "La Seu d’Urgell");
+  assert.equal(saved.job.telefono, "+34 611 222 333");
+  assert.equal(saved.client.telefono, "+34 612 345 678");
   assert.equal(saved.client.direccion, "Calle Fiscal 10");
   await page.evaluate(() => window.vidresNavigate("inicio"));
   assert.equal(await page.locator(".quick-notes h2").textContent(), "Notas");
@@ -326,6 +336,11 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
     .locator("#quick-note-form [name=cliente]")
     .fill("Cliente registrado");
   await page.locator("#quick-note-form [type=submit]").click();
+  await page.waitForFunction(() =>
+    VSStorage.read("vidres-notas-v1", []).some(
+      (n) => n.texto === "Nota que debe conservarse",
+    ),
+  );
   const note = page
     .locator(".quick-note")
     .filter({ hasText: "Nota que debe conservarse" });
@@ -373,11 +388,39 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
   );
   await page.evaluate((id) => vidresOpenJobEditor(id), saved.job.id);
   assert.equal(
+    await page.locator("#form [name=poblacion]").inputValue(),
+    "La Seu d’Urgell",
+  );
+  assert.equal(
+    await page.locator("#form [name=telefono]").inputValue(),
+    "+34 611 222 333",
+  );
+  await page.locator("#form [name=poblacion]").fill("Puigcerdà");
+  await page.locator("#form [name=telefono]").fill("+34 611 222 444");
+  await page.locator("#form button[type=submit]").click();
+  await page.waitForFunction(() => !document.querySelector("#editor").open);
+  await page.reload();
+  await page.waitForFunction(
+    () => typeof window.vidresOpenJobEditor === "function",
+  );
+  await page.evaluate(() => window.vidresAppReady);
+  await page.evaluate((id) => vidresOpenJobEditor(id), saved.job.id);
+  assert.equal(
+    await page.locator("#form [name=poblacion]").inputValue(),
+    "Puigcerdà",
+  );
+  assert.equal(
+    await page.locator("#form [name=telefono]").inputValue(),
+    "+34 611 222 444",
+  );
+  assert.equal(
     await page.locator("#form [name=direccion]").inputValue(),
     "Calle Medidas 20",
   );
   await page.locator("#cancel").click();
   await page.locator("#add").click();
+  assert.equal(await page.locator("#form [name=poblacion]").inputValue(), "");
+  assert.equal(await page.locator("#form [name=telefono]").inputValue(), "");
   await page.locator("#form [name=cliente]").fill("Cliente registrado");
   assert.equal(
     await page.locator("#form [name=direccion]").inputValue(),
@@ -393,7 +436,7 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
     vidresReloadData();
   }, saved.job.id);
   console.log(
-    "PASS nuevo parte: cliente registrado, dirección independiente, reapertura y campos visibles",
+    "PASS nuevo parte: población y teléfono independientes, edición, recarga y reapertura",
   );
 
   await page.locator("#add").click();

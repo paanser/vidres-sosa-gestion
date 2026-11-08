@@ -291,7 +291,15 @@
             "</option>",
         )
         .join("") +
-      '</select></label></div><details><summary>Datos de empresa y condiciones del presupuesto</summary><div class="quote-fields">' +
+      '</select></label></div><details open><summary>Datos de empresa, logo y condiciones del presupuesto</summary><p class="muted">Estos datos aparecen en la cabecera de los PDF. Sin imagen se utiliza la marca de texto Vidres Sosa.</p><label>Logo de Vidres Sosa<input id="cfg-logo-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></label><input type="hidden" data-company="logo" value="' +
+      esc(VSUtils.isCompanyLogo(company.logo) ? company.logo : "") +
+      '"><div id="cfg-logo-preview">' +
+      (VSUtils.isCompanyLogo(company.logo)
+        ? '<img class="company-logo-preview" alt="Logo de empresa" src="' +
+          esc(company.logo) +
+          '">'
+        : "<strong>Vidres Sosa</strong>") +
+      '</div><button type="button" id="cfg-logo-remove">Usar marca de texto</button><p id="cfg-logo-notice" role="status"></p><div class="quote-fields">' +
       [
         ["name", "Nombre"],
         ["taxId", "CIF/NIF"],
@@ -306,7 +314,7 @@
             '<input data-company="' +
             k +
             '" value="' +
-            esc(company[k] || "") +
+            esc(company[k] || (k === "name" ? "Vidres Sosa" : "")) +
             '"></label>',
         )
         .join("") +
@@ -370,6 +378,14 @@
   window.vidresToolsClick = async (e, navigate) => {
     const t = e.target.closest("button");
     if (!t) return false;
+    if (t.id === "cfg-logo-remove") {
+      document.querySelector('[data-company="logo"]').value = "";
+      document.querySelector("#cfg-logo-file").value = "";
+      document.querySelector("#cfg-logo-preview").textContent = "Vidres Sosa";
+      document.querySelector("#cfg-logo-notice").textContent =
+        "Pulsa Guardar configuración para aplicar el cambio.";
+      return true;
+    }
     if (t.dataset.toolGo) {
       navigate(t.dataset.toolGo);
       return true;
@@ -490,6 +506,51 @@
     }
   };
   window.vidresToolsChange = async (e) => {
+    if (e.target.id === "cfg-logo-file") {
+      const file = e.target.files?.[0],
+        notice = document.querySelector("#cfg-logo-notice");
+      if (!file) return;
+      let bitmap;
+      try {
+        if (
+          !["image/png", "image/jpeg", "image/webp", "image/gif"].includes(
+            file.type,
+          ) ||
+          file.size > 2000000
+        )
+          throw Error("Selecciona un PNG, JPG, WebP o GIF de hasta 2 MB.");
+        bitmap = await createImageBitmap(file);
+        const canvas = document.createElement("canvas"),
+          scale = Math.min(1, 480 / bitmap.width, 180 / bitmap.height);
+        canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+        canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+        canvas
+          .getContext("2d")
+          .drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+        let logo;
+        for (const quality of [0.9, 0.75, 0.55, 0.35]) {
+          logo = canvas.toDataURL("image/webp", quality);
+          if (VSUtils.isCompanyLogo(logo)) break;
+        }
+        if (!VSUtils.isCompanyLogo(logo))
+          throw Error(
+            "El logo tiene demasiado detalle. Selecciona una imagen más sencilla.",
+          );
+        document.querySelector('[data-company="logo"]').value = logo;
+        const image = document.createElement("img");
+        image.src = logo;
+        image.alt = "Logo de empresa";
+        image.className = "company-logo-preview";
+        document.querySelector("#cfg-logo-preview").replaceChildren(image);
+        notice.textContent =
+          "Logo preparado. Pulsa Guardar configuración para aplicarlo.";
+      } catch (error) {
+        notice.textContent = error.message;
+      } finally {
+        bitmap?.close();
+      }
+      return;
+    }
     if (e.target.id === "consult-filter") {
       selected = e.target.value;
       window.vidresToolsRender("consultor");

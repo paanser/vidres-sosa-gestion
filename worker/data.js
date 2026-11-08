@@ -81,7 +81,15 @@ export function validateValues(values) {
             phone: 100,
             email: 200,
             conditions: 5000,
+            logo: 9500,
           });
+        if (
+          value.company?.logo &&
+          !/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/.test(
+            value.company.logo,
+          )
+        )
+          fail(400, "Logo no válido");
       }
     } else {
       if (
@@ -106,6 +114,8 @@ export function validateValues(values) {
     strings(j, {
       descripcion: 180,
       direccion: 180,
+      poblacion: 100,
+      telefono: 30,
       responsable: 80,
       fecha: 10,
       hora: 5,
@@ -140,7 +150,13 @@ export function validateValues(values) {
         fail(400, "Control administrativo no válido");
   }
   for (const c of result[KEYS.clientes])
-    strings(c, { nombre: 100, telefono: 100, direccion: 500 });
+    strings(c, {
+      nombre: 100,
+      telefono: 100,
+      direccion: 500,
+      nif: 100,
+      email: 200,
+    });
   // Measurements are kept as a separate collection, including vector sketches.
   return result;
 }
@@ -200,7 +216,37 @@ export function checked(values) {
       status: 40,
       enviado: 40,
       seguimiento: 40,
+      observations: 3000,
     });
+    if (q.clientSource != null && q.clientSource !== "quote")
+      fail(400, "Origen de cliente no válido");
+    if (q.clientData != null) {
+      if (!object(q.clientData)) fail(400, "Datos de cliente no válidos");
+      strings(q.clientData, {
+        taxId: 100,
+        phone: 100,
+        address: 500,
+        email: 200,
+      });
+    }
+    if (q.pdfOptions != null) {
+      if (
+        !object(q.pdfOptions) ||
+        Object.entries(q.pdfOptions).some(
+          ([key, value]) =>
+            ![
+              "dimensions",
+              "quantity",
+              "area",
+              "unitPrice",
+              "observations",
+              "conditions",
+              "validity",
+            ].includes(key) || typeof value !== "boolean",
+        )
+      )
+        fail(400, "Opciones de PDF no válidas");
+    }
     if (q.job && !jobs.has(q.job)) fail(400, "Presupuesto sin trabajo");
     if (!Array.isArray(q.lines) || !q.lines.length || q.lines.length > 200)
       fail(400, "Líneas no válidas");

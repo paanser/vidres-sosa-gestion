@@ -228,6 +228,20 @@
           <label
             >Dirección de medidas<input name="direccion" maxlength="180"
           /></label>
+          <label
+            >Población<input
+              name="poblacion"
+              maxlength="100"
+              autocomplete="address-level2" /></label
+          ><label
+            >Teléfono<input
+              name="telefono"
+              type="tel"
+              inputmode="tel"
+              maxlength="30"
+              autocomplete="tel"
+              placeholder="+34 600 000 000"
+          /></label>
           <div class="location-actions">
             <button type="button" id="location-get">📍 Usar mi ubicación</button
             ><button type="button" id="location-map">🗺️ Abrir mapa</button>
@@ -380,6 +394,8 @@
             maxlength="30"
             placeholder="+34 600 000 000" /></label
         ><label>Dirección<input name="direccion" maxlength="180" /></label>
+        <label>CIF/NIF<input name="nif" maxlength="100" /></label>
+        <label>Correo<input name="email" type="email" maxlength="200" /></label>
         <div class="actions">
           <button type="button" data-dialog-close>Cancelar</button
           ><button class="primary" type="submit">Guardar ficha</button>

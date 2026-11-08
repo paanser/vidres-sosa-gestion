@@ -34,9 +34,10 @@ const strings = (v, fields) => {
   for (const [key, max] of Object.entries(fields))
     if (v[key] != null) text(v[key], max);
 };
-function tree(value, depth = 0) {
+function tree(value, depth = 0, field = "") {
   if (depth > 20) fail(400, "Datos demasiado anidados");
-  if (typeof value === "string") text(value, 10000);
+  if (typeof value === "string")
+    text(value, field === "drawing" ? 60000 : 10000);
   else if (typeof value === "number" && !Number.isFinite(value))
     fail(400, "Número no válido");
   else if (Array.isArray(value)) {
@@ -47,7 +48,7 @@ function tree(value, depth = 0) {
       text(key, 100, 1);
       if (["__proto__", "constructor", "prototype"].includes(key))
         fail(400, "Clave no permitida");
-      tree(v, depth + 1);
+      tree(v, depth + 1, key);
     }
 }
 export function validateValues(values) {
@@ -252,8 +253,30 @@ export function checked(values) {
     if (q.job && !jobs.has(q.job)) fail(400, "Presupuesto sin trabajo");
     if (!Array.isArray(q.lines) || !q.lines.length || q.lines.length > 200)
       fail(400, "Líneas no válidas");
+    if (
+      q.lines.reduce(
+        (n, l) => n + (typeof l?.drawing === "string" ? l.drawing.length : 0),
+        0,
+      ) > 350000
+    )
+      fail(413, "Demasiados dibujos: reduce el tamaño o divide el presupuesto");
     q.lines.forEach((l) => {
       if (!object(l)) fail(400, "Línea no válida");
+      if (l.kind === "aluminum") {
+        text(l.description, 3000, 1);
+        if (!l.description.trim()) fail(400, "Descripción no válida");
+        number(l.amount);
+        number(l.aluminumMargin ?? 0, 0, 10000);
+        if (
+          l.drawing != null &&
+          l.drawing !== "" &&
+          (typeof l.drawing !== "string" ||
+            l.drawing.length > 60000 ||
+            !/^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(l.drawing))
+        )
+          fail(400, "Dibujo no válido");
+        return;
+      }
       if (l.kind === "concept") {
         text(l.description, 300, 1);
         if (!l.description.trim()) fail(400, "Descripción no válida");

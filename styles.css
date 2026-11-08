@@ -3881,3 +3881,25 @@ input[data-measure] {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+.quote-aluminum-drawing {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  max-height: 240px;
+  object-fit: contain;
+  margin: 10px 0;
+  background: white;
+}
+.quote-aluminum-description {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.quote-aluminum-result {
+  font-weight: bold;
+  padding-top: 12px;
+}
+.quote-doc-items .quote-aluminum-drawing {
+  max-width: 65mm;
+  max-height: 55mm;
+}

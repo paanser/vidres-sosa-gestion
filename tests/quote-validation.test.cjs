@@ -99,3 +99,38 @@ test("servidor: conserva datos del cliente, presentación del PDF y logo, y rech
       checked({ [KEYS.configuracion]: { company: { logo } } }),
     );
 });
+
+test("servidor: aluminio y dibujo privado se conservan y validan", async () => {
+  const { checked, KEYS } = await import("../worker/data.js");
+  const line = {
+    kind: "aluminum",
+    description: "Puerta\nDos hojas",
+    amount: 800,
+    aluminumMargin: 25,
+    drawing: "data:image/jpeg;base64,/9j/",
+  };
+  const validate = (lines) =>
+    checked({
+      [KEYS.presupuestos]: [{ id: "P-ALU", client: "Prueba", lines }],
+    });
+  assert.deepEqual(validate([line])[KEYS.presupuestos][0].lines[0], line);
+  for (const patch of [
+    { amount: -1 },
+    { description: " " },
+    { aluminumMargin: -1 },
+    { aluminumMargin: 10001 },
+    { drawing: "https://example.com/x.jpg" },
+    { drawing: "data:image/svg+xml;base64,PHN2Zz4=" },
+    { drawing: "data:image/jpeg;base64," + "A".repeat(60000) },
+  ]) {
+    assert.throws(() => validate([{ ...line, ...patch }]));
+  }
+  assert.throws(() =>
+    validate(
+      Array.from({ length: 7 }, () => ({
+        ...line,
+        drawing: "data:image/jpeg;base64," + "A".repeat(59000),
+      })),
+    ),
+  );
+});

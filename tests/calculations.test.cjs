@@ -192,3 +192,32 @@ test("incremento solo sobre vidrio, sin margen en cantos, energía ni mano de ob
   q.pricing.margin = 100;
   assert.equal(quoteDetails(q).margin, 288);
 });
+
+test("aluminio: incremento propio, vidrio independiente e IVA sobre venta", () => {
+  const q = {
+    pricing: { margin: 10, marginScope: "glass", vat: 21 },
+    lines: [
+      {
+        kind: "aluminum",
+        description: "Puerta",
+        amount: 800,
+        aluminumMargin: 25,
+      },
+      { w: 100, h: 100, qty: 2, price: 50 },
+      { kind: "concept", description: "Montaje", amount: 100 },
+    ],
+  };
+  const a = quoteDetails(q);
+  assert.equal(a.lines[0].sale, 1000);
+  assert.equal(a.lines[0].margin, 200);
+  assert.equal(a.lines[1].sale, 114.44);
+  assert.equal(a.lines[2].sale, 100);
+  assert.equal(a.totals.base, 1214.44);
+  assert.equal(a.totals.total, 1469.47);
+  assert.equal(
+    quoteDetails({
+      lines: [{ kind: "aluminum", amount: 800, aluminumMargin: 0 }],
+    }).totals.base,
+    800,
+  );
+});

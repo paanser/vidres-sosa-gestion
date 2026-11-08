@@ -55,6 +55,11 @@
             : NaN
           : 1 + marginRate / 100,
       lines = quote.lines.map((line) => {
+        if (line.kind === "aluminum") {
+          const cost = round2(num(line.amount));
+          const sale = round2(cost * (1 + num(line.aluminumMargin) / 100));
+          return { ...calc({}, {}), cost, sale, margin: round2(sale - cost) };
+        }
         const dimensions = calc(line, config),
           glassCost = round2(
             line.kind === "concept" ? num(line.amount) : dimensions.total,
@@ -92,7 +97,9 @@
     // Sin opciones nuevas se conserva el redondeo de presupuestos anteriores.
     const legacy =
         !marginRate &&
-        !quote.lines.some((l) => num(l.extraAmount) || l.kind === "concept"),
+        !quote.lines.some(
+          (l) => num(l.extraAmount) || ["concept", "aluminum"].includes(l.kind),
+        ),
       base = legacy
         ? totals(quote.lines, config).base
         : round2(lines.reduce((n, l) => n + l.sale, 0)),

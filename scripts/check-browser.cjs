@@ -104,7 +104,7 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
   console.log("PASS login, cambio obligatorio y carga privada");
   assert.equal(await page.locator(".global-text-controls").count(), 0);
   assert.equal(await page.locator("[data-text-scale]").count(), 0);
-  await page.locator('#nav [data-page="ajustes"]').click();
+  await page.locator('.header-actions [data-page="ajustes"]').click();
   await page.locator('[data-text-scale="1"]').click();
   assert.equal(
     await page.evaluate(() =>
@@ -302,6 +302,33 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
   );
   for (const width of [320, 390, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 });
+    if (width <= 600) {
+      const tabs = await page.locator("#nav button").evaluateAll((buttons) =>
+        buttons.map((button) => {
+          const box = button.getBoundingClientRect();
+          const label = button.querySelector("span");
+          const icon = button.querySelector("svg").getBoundingClientRect();
+          return {
+            y: box.y,
+            right: box.right,
+            height: box.height,
+            labelFits: label.scrollWidth <= button.clientWidth,
+            iconAbove: icon.bottom <= label.getBoundingClientRect().top,
+          };
+        }),
+      );
+      assert.equal(tabs.length, 4);
+      assert.ok(
+        tabs.every(
+          (tab) =>
+            tab.y === tabs[0].y &&
+            tab.right <= width &&
+            tab.height >= 44 &&
+            tab.labelFits &&
+            tab.iconAbove,
+        ),
+      );
+    }
     const bounds = await page.locator(".header-actions").boundingBox();
     const titleBounds = await page.locator("#title").boundingBox();
     assert.ok(bounds.x >= titleBounds.x + titleBounds.width);

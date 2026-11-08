@@ -103,12 +103,32 @@
       <aside>
         <div class="logo"><span>Vidres</span><strong>Sosa</strong></div>
         <nav id="nav" aria-label="Navegación principal">
-          <button data-page="inicio" class="active">⌂ Inicio</button
-          ><button data-page="trabajos">▤ Trabajos activos</button
-          ><button data-page="presupuestos">€ Presupuestos</button
-          ><button data-page="herramientas">
-            <span aria-hidden="true">🛠️</span> Herramientas</button
-          ><button data-page="ajustes">⚙ Ajustes</button>
+          <button data-page="inicio" class="active">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m3 10 9-7 9 7v10H3Z M9 20v-7h6v7" />
+            </svg>
+            <span>Inicio</span>
+          </button>
+          <button data-page="trabajos">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 4h16v16H4Z M8 8h8 M8 12h8 M8 16h5" />
+            </svg>
+            <span>Trabajos</span>
+          </button>
+          <button data-page="presupuestos">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M18 5a7 7 0 1 0 0 14 M4 10h11 M4 14h9" />
+            </svg>
+            <span>Presupuestos</span>
+          </button>
+          <button data-page="herramientas">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M14 6a5 5 0 0 0-6 6L3 17a3 3 0 0 0 4 4l5-5a5 5 0 0 0 6-6l-3 3-4-4Z"
+              />
+            </svg>
+            <span>Herramientas</span>
+          </button>
         </nav>
         <small>Vidres Sosa · Versión de prueba</small>
       </aside>
@@ -118,7 +138,11 @@
             <p class="muted">VIDRES SOSA · GESTIÓN</p>
             <h1 id="title">Buenos días, equipo 👋</h1>
           </div>
-          <div class="header-actions" role="group" aria-label="Crear">
+          <div
+            class="header-actions"
+            role="group"
+            aria-label="Acciones y ajustes"
+          >
             <button
               id="add"
               type="button"
@@ -139,6 +163,19 @@
                 <path
                   d="M14 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v7M7 2v4M11 2v4M15 2v4M7 10h8M7 14h4M18 15v6M15 18h6"
                 />
+              </svg>
+            </button>
+            <button
+              type="button"
+              data-page="ajustes"
+              aria-label="Ajustes"
+              title="Ajustes"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="m9 3-.5 3-2 1.2L4 6l-2 4 2.5 2v2L2 16l2 4 2.5-1.2L9 20l.5 3h5l.5-3 2.5-1.2L20 20l2-4-2.5-2v-2L22 10l-2-4-2.5 1.2L15 6l-.5-3Z"
+                />
+                <circle cx="12" cy="13" r="3" />
               </svg>
             </button>
           </div>

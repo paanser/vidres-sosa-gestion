@@ -670,11 +670,13 @@ window.vidresAppReady = (async () => {
           : ["consultor", "clientes", "calendario", "mediciones"].includes(page)
             ? "herramientas"
             : page;
-    document.querySelectorAll("#nav [data-page]").forEach((b) => {
-      b.classList.toggle("active", b.dataset.page === mainPage);
-      if (b.dataset.page === mainPage) b.setAttribute("aria-current", "page");
-      else b.removeAttribute("aria-current");
-    });
+    document
+      .querySelectorAll("#nav [data-page], .header-actions [data-page]")
+      .forEach((b) => {
+        b.classList.toggle("active", b.dataset.page === mainPage);
+        if (b.dataset.page === mainPage) b.setAttribute("aria-current", "page");
+        else b.removeAttribute("aria-current");
+      });
     const names = {
       inicio: "Inicio",
       trabajos:

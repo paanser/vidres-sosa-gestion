@@ -3756,3 +3756,45 @@ input[data-measure] {
 .measure-error {
   color: #b42318;
 }
+
+/* Navegación: cuatro destinos y ajustes en la cabecera. */
+#nav button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+#nav svg {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.header-actions button.active {
+  color: #fff;
+  background: #15523e;
+}
+@media (max-width: 600px) {
+  #nav button {
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    white-space: nowrap;
+    font-size: clamp(10px, 2.9vw, 12px);
+    padding: 8px 2px;
+    min-height: 60px;
+  }
+  main {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+  .layout > main > header {
+    gap: 8px;
+  }
+  .layout > main > header > div:first-child {
+    flex: 1;
+    overflow-wrap: anywhere;
+  }
+}

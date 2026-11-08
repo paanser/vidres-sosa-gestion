@@ -110,10 +110,14 @@
         esc(j.descripcion) +
         "</p><h3>Dirección</h3><p>" +
         esc(j.direccion || "No indicada") +
+        "</p><h3>Población</h3><p>" +
+        esc(j.poblacion || "No indicada") +
         "</p>" +
-        (j.direccion
+        (j.direccion || j.poblacion
           ? '<a target="_blank" rel="noopener noreferrer" href="https://www.google.com/maps/search/?api=1&query=' +
-            encodeURIComponent(j.direccion) +
+            encodeURIComponent(
+              [j.direccion, j.poblacion].filter(Boolean).join(", "),
+            ) +
             '">Abrir en mapas</a>'
           : "") +
         '</section><section class="exp-section"><h3>Notas</h3><p>' +
@@ -151,14 +155,15 @@
             .trim()
             .toLocaleLowerCase("es"),
       );
-      if (client?.telefono) {
-        let tel = String(client.telefono).replace(/[^+0-9]/g, "");
+      const telefono = j.telefono || client?.telefono;
+      if (telefono) {
+        let tel = String(telefono).replace(/[^+0-9]/g, "");
         let wa = tel.replace(/^\+|^00/, "");
         if (/^\d{9}$/.test(wa)) wa = "34" + wa;
         body.insertAdjacentHTML(
           "beforeend",
           '<section class="exp-section"><h3>Contacto</h3><p>' +
-            esc(client.telefono) +
+            esc(telefono) +
             '</p><a href="tel:' +
             esc(tel) +
             '">Llamar</a> · <a target="_blank" rel="noopener noreferrer" href="https://wa.me/' +

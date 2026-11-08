@@ -726,6 +726,9 @@ window.vidresAppReady = (async () => {
             j.cliente,
             j.descripcion,
             j.direccion,
+            j.poblacion,
+            j.telefono,
+            String(j.telefono || "").replace(/\D/g, ""),
             j.responsable,
             j.notas,
             clients.find((c) => normName(c.nombre) === normName(j.cliente))
@@ -986,6 +989,8 @@ window.vidresAppReady = (async () => {
         "cliente",
         "descripcion",
         "direccion",
+        "poblacion",
+        "telefono",
         "fecha",
         "hora",
         "duracion",
@@ -1021,8 +1026,13 @@ window.vidresAppReady = (async () => {
     question.hidden = !client;
     choice.required = Boolean(client);
     choice.value = "";
-    if (client) form.elements.direccion.value = client.direccion || "";
-    else if (previous) form.elements.direccion.value = "";
+    if (client) {
+      form.elements.direccion.value = client.direccion || "";
+      form.elements.telefono.value = client.telefono || "";
+    } else if (previous) {
+      form.elements.direccion.value = "";
+      form.elements.telefono.value = "";
+    }
   }
   form.elements.cliente.addEventListener("input", syncClientAddress);
   form.elements.cliente.addEventListener("change", syncClientAddress);
@@ -1475,6 +1485,8 @@ window.vidresAppReady = (async () => {
             "cliente",
             "descripcion",
             "direccion",
+            "poblacion",
+            "telefono",
             "responsable",
             "fecha",
             "hora",

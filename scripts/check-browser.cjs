@@ -589,6 +589,28 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
     path: path.join(root, "test-results", "auth-mobile.png"),
     fullPage: true,
   });
+  for (const width of [390, 768, 1024, 1440, 1920]) {
+    await page.setViewportSize({ width, height: 1000 });
+    await page.locator('[data-page="inicio"]').click();
+    const sizes = await page.evaluate(() => ({
+      body: parseFloat(getComputedStyle(document.body).fontSize),
+      menu: parseFloat(
+        getComputedStyle(document.querySelector("#nav button")).fontSize,
+      ),
+      overflow: document.documentElement.scrollWidth > innerWidth,
+    }));
+    assert.equal(sizes.body, width >= 901 ? 18 : 15);
+    if (width >= 901) assert.equal(sizes.menu, 18);
+    assert.equal(sizes.overflow, false, `Desbordamiento a ${width}px`);
+    if (width === 1440)
+      await page.screenshot({
+        path: path.join(root, "test-results", "desktop-reading.png"),
+        fullPage: true,
+      });
+  }
+  console.log(
+    "PASS lectura y navegación sin desbordamiento a 390/768/1024/1440/1920 px",
+  );
   await browser.close();
 })().catch((e) => {
   console.error(e);

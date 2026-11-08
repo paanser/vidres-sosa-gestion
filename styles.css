@@ -1972,12 +1972,14 @@ textarea:focus {
 /* Escala de lectura configurable para ordenador y móvil */
 :root {
   --vs-text-scale: 1;
+  --vs-desktop-scale: 1;
+  --vs-reading-scale: calc(var(--vs-text-scale) * var(--vs-desktop-scale));
 }
 html {
-  font-size: calc(16px * var(--vs-text-scale));
+  font-size: calc(16px * var(--vs-reading-scale));
 }
 body {
-  font-size: calc(15px * var(--vs-text-scale));
+  font-size: calc(15px * var(--vs-reading-scale));
 }
 #content p,
 #content td,
@@ -1986,7 +1988,7 @@ body {
 .exp-body p,
 .exp-body span,
 .exp-body label {
-  font-size: calc(15px * var(--vs-text-scale));
+  font-size: calc(15px * var(--vs-reading-scale));
 }
 #content button,
 #content input,
@@ -1995,18 +1997,18 @@ body {
 .exp-shell button,
 .exp-shell input,
 .exp-shell select {
-  font-size: calc(15px * var(--vs-text-scale));
+  font-size: calc(15px * var(--vs-reading-scale));
 }
 #content h2,
 .exp-section h3 {
-  font-size: calc(21px * var(--vs-text-scale));
+  font-size: calc(21px * var(--vs-reading-scale));
 }
 #content h3,
 .exp-header h2 {
-  font-size: calc(19px * var(--vs-text-scale));
+  font-size: calc(19px * var(--vs-reading-scale));
 }
 .exp-tabs button {
-  font-size: calc(15px * var(--vs-text-scale));
+  font-size: calc(15px * var(--vs-reading-scale));
 }
 .exp-doc-list,
 .exp-quote-list {
@@ -2791,7 +2793,7 @@ nav button[data-page="criticos"].active {
 }
 #editor #formtitle {
   margin: 0;
-  font-size: calc(24px * var(--vs-text-scale));
+  font-size: calc(24px * var(--vs-reading-scale));
   color: #15523e;
 }
 .job-editor-body {
@@ -2812,13 +2814,13 @@ nav button[data-page="criticos"].active {
 }
 #editor label {
   min-width: 0;
-  font-size: calc(15px * var(--vs-text-scale));
+  font-size: calc(15px * var(--vs-reading-scale));
 }
 #editor input,
 #editor select,
 #editor textarea {
   min-height: 48px;
-  font-size: calc(16px * var(--vs-text-scale));
+  font-size: calc(16px * var(--vs-reading-scale));
   padding: 12px;
 }
 #editor #form > .actions {
@@ -2831,7 +2833,7 @@ nav button[data-page="criticos"].active {
 #editor #form > .actions button {
   min-height: 48px;
   min-width: 140px;
-  font-size: calc(16px * var(--vs-text-scale));
+  font-size: calc(16px * var(--vs-reading-scale));
   padding: 12px 20px;
 }
 @media (max-width: 700px) {
@@ -2844,7 +2846,7 @@ nav button[data-page="criticos"].active {
     padding: 16px;
   }
   #editor #formtitle {
-    font-size: calc(22px * var(--vs-text-scale));
+    font-size: calc(22px * var(--vs-reading-scale));
   }
   #editor #form > .actions {
     gap: 10px;
@@ -3427,5 +3429,55 @@ body:not(.authenticated) > #quote-print {
   }
   aside {
     padding-bottom: 10px;
+  }
+}
+
+/* Lectura en PC: escala común que conserva la preferencia de Ajustes. */
+@media screen and (min-width: 901px) {
+  :root {
+    --vs-desktop-scale: 1.2;
+  }
+  body {
+    line-height: 1.5;
+  }
+  aside {
+    width: 280px;
+  }
+  #nav button {
+    font-size: calc(18px * var(--vs-text-scale));
+    min-height: 56px;
+    white-space: normal;
+  }
+  h1 {
+    font-size: calc(32px * var(--vs-text-scale));
+  }
+  .muted,
+  footer,
+  aside small,
+  .pill,
+  .job-ref,
+  .job-meta span,
+  .cal-job,
+  .cal-number,
+  .tool-tiles small,
+  .save-status,
+  .quote-margin p,
+  .quote-margin-options label {
+    font-size: calc(16px * var(--vs-text-scale));
+  }
+  button,
+  input,
+  select,
+  textarea,
+  .auth-card input,
+  .auth-card button,
+  .users-panel input,
+  .users-panel select,
+  .users-panel button {
+    font-size: calc(18px * var(--vs-text-scale));
+  }
+  .auth-card label,
+  .plantilla-piece label {
+    font-size: calc(18px * var(--vs-text-scale));
   }
 }

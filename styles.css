@@ -3577,12 +3577,17 @@ body:not(.authenticated) > #quote-print {
 }
 .quote-document-options {
   margin: 20px 0;
-  padding: 16px;
   border: 1px solid #b9cfc4;
   border-radius: 10px;
 }
-.quote-document-options legend {
+.quote-document-options > summary {
+  padding: 16px;
   font-weight: 700;
+  color: #15523e;
+  cursor: pointer;
+}
+.quote-document-body {
+  padding: 0 16px 16px;
 }
 .quote-document-checks {
   display: flex;

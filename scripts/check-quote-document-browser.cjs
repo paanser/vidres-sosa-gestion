@@ -68,6 +68,7 @@ module.exports = async function checkQuoteDocument(page, context, root) {
   await set('[data-field="price"]', "100");
   await set('[data-field="extraAmount"]', "80");
   await set('[data-field="extraDescription"]', "Coste reservado de montaje");
+  await page.locator(".quote-document-options > summary").click();
   await set(
     "#quote-observations",
     "Ejemplo de presupuesto <texto>\nMontaje incluido.",
@@ -184,6 +185,7 @@ module.exports = async function checkQuoteDocument(page, context, root) {
   await set("#quick-w", "1.000");
   await set("#quick-h", "1.000");
   await page.locator("#quick-glass").selectOption("reuglass-2-0");
+  await page.locator(".quote-document-options > summary").click();
   await page.locator('[data-pdf-option="area"]').uncheck();
   await page.locator("#quote-pdf").click();
   printed = await page.locator("#quote-print").textContent();

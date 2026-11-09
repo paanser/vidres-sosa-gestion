@@ -186,3 +186,12 @@ CHROMIUM_PATH=/usr/bin/chromium npm run test:browser` (en una sola línea).
 - Verificación de navegador: descarga con cabecera PDF, dibujo embebido, texto
   e importe en el archivo real y compartir un File application/pdf.
 - No cambia el backend ni datos del usuario; publicación de interfaz únicamente.
+
+## Publicación · 9 de noviembre de 2026
+
+- SHA publicado: 28e3d05c28c20eee7eac9967f8ea595ec3f5be2f; PR #49 integrado con CI verde.
+- Red/5xx conserva sesión y datos visibles; revalidación cada 30 segundos.
+- Sesiones deslizantes de 30 días, renovación tras 24 h, migración 0003 y limpieza.
+- Números españoles y errores de campo; margen sobre venta inferior al 100 %.
+- Aluminio con desglose completo, PDF con m² facturables y año Europe/Madrid.
+- Worker antes de interfaz; Pages correcto y legacy cancelado; API 401 verificado; version.json público bloqueado por proxy.

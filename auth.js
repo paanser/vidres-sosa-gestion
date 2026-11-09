@@ -68,13 +68,14 @@
   // Observa escrituras reales; no guarda copias locales ni reintenta en silencio.
   let pendingWrites = 0,
     failedWrite = false,
-    lastWriteSaved = false;
+    lastWriteSaved = false,
+    connectionLost = false;
   function showSaveStatus() {
     const elements = document.querySelectorAll(
       "#save-status, [data-save-status]",
     );
     if (!elements.length) return;
-    const offline = window.navigator?.onLine === false;
+    const offline = connectionLost || window.navigator?.onLine === false;
     let state = "idle",
       text = "Sin cambios pendientes";
     if (offline) {
@@ -240,14 +241,16 @@
         location.reload();
       }
       user = r.user;
+      connectionLost = false;
+      showSaveStatus();
     } catch (e) {
-      if (e.status === 401) return;
-      hidePrivate();
-      screen.hidden = false;
-      login.hidden = true;
-      notify(
-        "No se puede verificar la sesión. Recupera la conexión y recarga.",
-      );
+      if (e.status === 401 || e.status === 403) {
+        if (e.status === 403) invalidate();
+        return;
+      }
+      connectionLost = true;
+      showSaveStatus();
+      notify("Sin conexión · reintentando en 30 s");
     }
   }
   document.addEventListener("visibilitychange", check);

@@ -705,3 +705,56 @@ test("active user directory exposes only id and name to authenticated workers", 
   for (const user of result.data.users)
     assert.deepEqual(Object.keys(user).sort(), ["id", "nombre"]);
 });
+
+test("sesión deslizante: inicialización, renovación tras 24 h, caducidad y limpieza", async () => {
+  const env = setup(),
+    session = await admin(env),
+    db = env.DB;
+  const hash = await security.digest(session.token);
+  const read = () =>
+    db
+      .prepare("SELECT last_used FROM sessions WHERE token_hash=?")
+      .bind(hash)
+      .first();
+  const first = (await read()).last_used;
+  assert.ok(Number.isFinite(Date.parse(first)));
+  await call(env, "/auth/me", "GET", undefined, session.token);
+  assert.equal((await read()).last_used, first);
+  const setAge = async (days) =>
+    db
+      .prepare("UPDATE sessions SET last_used=? WHERE token_hash=?")
+      .bind(new Date(Date.now() - days * 86400000).toISOString(), hash)
+      .run();
+  await setAge(2);
+  assert.equal(
+    (await call(env, "/auth/me", "GET", undefined, session.token)).status,
+    200,
+  );
+  assert.ok(Date.now() - Date.parse((await read()).last_used) < 10000);
+  await setAge(30);
+  assert.equal(
+    (await call(env, "/auth/me", "GET", undefined, session.token)).status,
+    401,
+  );
+  assert.equal(await read(), null);
+  const fresh = (
+      await call(env, "/auth/login", "POST", {
+        usuario: "pau",
+        password: "changed-fixture-123",
+      })
+    ).data,
+    freshHash = await security.digest(fresh.token);
+  await db
+    .prepare("UPDATE sessions SET last_used=? WHERE token_hash=?")
+    .bind(new Date(Date.now() - 31 * 86400000).toISOString(), freshHash)
+    .run();
+  env.FILES.list = async () => ({ objects: [], truncated: false });
+  await (await import("../worker/maintenance.js")).maintenance(env);
+  assert.equal(
+    await db
+      .prepare("SELECT token_hash FROM sessions WHERE token_hash=?")
+      .bind(freshHash)
+      .first(),
+    null,
+  );
+});

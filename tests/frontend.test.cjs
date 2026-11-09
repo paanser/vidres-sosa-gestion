@@ -314,7 +314,11 @@ test("formularios esperan al servidor y bloquean doble envío sin borrar entrada
   let resolve,
     calls = 0;
   const button = { disabled: false },
-    form = { dataset: {}, querySelectorAll: () => [button] },
+    form = {
+      dataset: {},
+      querySelectorAll: (selector) =>
+        selector === '[type="submit"]' ? [button] : [],
+    },
     event = { currentTarget: form, preventDefault() {} };
   const handler = ctx.window.VSForms.guard(async () => {
     calls++;
@@ -346,4 +350,38 @@ test("XSS escapado, CSP sin scripts inline y archivos privados fuera del artefac
   assert.match(css, /body:not\(\.authenticated\) > \.layout/);
   assert.match(flow, /path: public/);
   assert.doesNotMatch(flow, /cp.*\.dev\.vars/);
+});
+
+test("comprobar sesión conserva contenido y almacenamiento ante red o 5xx y reintenta", async () => {
+  const b = await backend(),
+    session = await admin(b),
+    local = store([["vidres-session-v1", session.token]]);
+  const a = authContext(b, local);
+  await a.ctx.VSAuth.ready;
+  let cleared = 0;
+  a.ctx.VSStorage = {
+    clear() {
+      cleared++;
+    },
+  };
+  for (const failure of ["network", 500, 503]) {
+    a.ctx.fetch = async () => {
+      if (failure === "network") throw Error("offline");
+      return new Response("{}", { status: failure });
+    };
+    await a.events.interval();
+    assert.equal(a.classes.has("authenticated"), true);
+    assert.equal(a.content.cleared, undefined);
+    assert.equal(cleared, 0);
+    assert.equal(local.getItem("vidres-session-v1"), session.token);
+    assert.match(a.message.textContent, /Sin conexión/);
+  }
+  a.ctx.fetch = (url, options) => b.request(new URL(url).pathname, options);
+  await a.events.interval();
+  assert.equal(a.classes.has("authenticated"), true);
+  for (const status of [401, 403]) {
+    a.ctx.fetch = async () => new Response("{}", { status });
+    await a.events.interval();
+    assert.equal(a.classes.has("authenticated"), false);
+  }
 });

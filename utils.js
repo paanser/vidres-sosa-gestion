@@ -13,8 +13,25 @@
         })[c],
     );
   const num = (v) => {
-    const n = Number(String(v ?? "").replace(",", "."));
+    const s = String(v ?? "");
+    const n = Number(
+      (s.includes(",") ? s.replace(/\./g, "") : s).replace(",", "."),
+    );
     return Number.isFinite(n) && n >= 0 ? n : 0;
+  };
+  const priceError = (value) => {
+    const s = String(value ?? "").trim();
+    if (!s) return "";
+    const normalized = (s.includes(",") ? s.replace(/\./g, "") : s).replace(
+      ",",
+      ".",
+    );
+    if (
+      !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(normalized) ||
+      !Number.isFinite(Number(normalized))
+    )
+      return "Escribe un número válido.";
+    return Number(normalized) < 0 ? "El importe no puede ser negativo." : "";
   };
   const money = (n) =>
     Number(n || 0).toLocaleString("es-ES", {
@@ -101,6 +118,7 @@
   const api = {
     esc,
     num,
+    priceError,
     money,
     round6,
     parseMeters,
@@ -117,11 +135,28 @@
 // Await server confirmation and prevent duplicate submits. Keep the form open on errors.
 if (typeof window !== "undefined") {
   window.VSForms = {
+    validateNumbers(root) {
+      for (const input of root.querySelectorAll(
+        'input[type="number"][min="0"], input[data-price-input]',
+      )) {
+        const error = input.validity?.badInput
+          ? "Escribe un número válido."
+          : window.VSUtils.priceError(input.value);
+        input.setCustomValidity(error);
+        input.setAttribute("aria-invalid", String(Boolean(error)));
+        if (error) {
+          input.reportValidity();
+          return false;
+        }
+      }
+      return true;
+    },
     guard(handler) {
       return async function (event) {
         event.preventDefault();
         const form = event.currentTarget;
-        if (form.dataset.saving) return;
+        if (form.dataset.saving || !window.VSForms.validateNumbers(form))
+          return;
         form.dataset.saving = "true";
         const buttons = [...form.querySelectorAll('[type="submit"]')];
         buttons.forEach((b) => (b.disabled = true));
@@ -247,4 +282,34 @@ if (typeof window !== "undefined") {
     update(input);
   }
   window.VSMeasureInput = { unit, display, read, update, init, validate, set };
+}
+
+// Los importes admiten separadores españoles y conservan los errores en el campo.
+if (typeof document !== "undefined") {
+  for (const name of ["input", "change"]) {
+    document.addEventListener(
+      name,
+      (event) => {
+        const input = event.target;
+        if (
+          !input.matches?.(
+            'input[data-price-input], input[type="number"][min="0"]',
+          )
+        )
+          return;
+        const error = input.validity?.badInput
+          ? "Escribe un número válido."
+          : VSUtils.priceError(input.value);
+        input.setCustomValidity(error);
+        input.setAttribute("aria-invalid", String(Boolean(error)));
+        if (error) {
+          if (name === "change") input.reportValidity();
+          event.stopImmediatePropagation();
+        } else if (name === "change" && input.value.trim()) {
+          input.value = String(VSUtils.num(input.value));
+        }
+      },
+      true,
+    );
+  }
 }

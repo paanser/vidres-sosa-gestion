@@ -196,7 +196,7 @@ export async function authRoute(req, db, auth, path, env) {
         db.prepare("DELETE FROM sessions WHERE user_id=?").bind(auth.user.id),
         db
           .prepare(
-            "INSERT INTO sessions SELECT ?,id,credential_version,? FROM users WHERE id=?",
+            "INSERT INTO sessions(token_hash,user_id,credential_version,created_at) SELECT ?,id,credential_version,? FROM users WHERE id=?",
           )
           .bind(await digest(token), new Date().toISOString(), auth.user.id),
         audit(db, auth, "password-change", auth.user.id),

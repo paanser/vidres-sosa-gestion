@@ -221,3 +221,19 @@ test("aluminio: incremento propio, vidrio independiente e IVA sobre venta", () =
     800,
   );
 });
+
+test("aluminio devuelve desglose completo sin alterar coste ni venta", () => {
+  const { quoteDetails } = require("../calculations.js");
+  const result = quoteDetails({
+    lines: [{ kind: "aluminum", amount: 560, aluminumMargin: 100 }],
+  });
+  const line = result.lines[0];
+  assert.equal(line.cost, 560);
+  assert.equal(line.sale, 1120);
+  assert.equal(line.glassCost, 0);
+  assert.equal(line.extraCost, 0);
+  assert.equal(line.glassSale, 1120);
+  assert.equal(line.extraSale, 0);
+  assert.equal(line.separate, false);
+  assert.equal(result.totals.total, 1355.2);
+});

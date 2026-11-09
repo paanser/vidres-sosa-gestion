@@ -196,6 +196,8 @@ input,
 select,
 textarea {
   font: inherit;
+  min-width: 0;
+  max-width: 100%;
   padding: 10px;
   border: 1px solid #d5dfd8;
   border-radius: 8px;
@@ -3926,4 +3928,14 @@ input[data-measure] {
   color: white;
   text-decoration: none;
   font-weight: bold;
+}
+
+/* iOS amplía los campos con menos de 16px y puede conservar ese zoom al salir.
+   Este mínimo prevalece sobre los tamaños de cada formulario y sobre A−. */
+@media screen and (max-width: 900px) {
+  input,
+  select,
+  textarea {
+    font-size: max(16px, 1rem) !important;
+  }
 }

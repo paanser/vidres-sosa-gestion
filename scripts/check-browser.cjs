@@ -6,6 +6,28 @@ const path = require("node:path");
 const assert = require("node:assert/strict");
 const root = path.resolve(__dirname, "..");
 const { setup } = require(root + "/tests/helpers/backend.cjs");
+async function checkMobileFields(page) {
+  const failures = await page
+    .locator("input, select, textarea")
+    .evaluateAll((fields) =>
+      fields
+        .filter((field) => field.getClientRects().length > 0)
+        .filter((field) => {
+          const bounds = field.getBoundingClientRect();
+          return (
+            parseFloat(getComputedStyle(field).fontSize) < 16 ||
+            bounds.left < -1 ||
+            bounds.right > innerWidth + 1
+          );
+        })
+        .map((field) => field.id || field.name || field.outerHTML),
+    );
+  assert.deepEqual(
+    failures,
+    [],
+    "Campos móviles legibles y dentro de pantalla",
+  );
+}
 (async () => {
   const worker = (await import(root + "/worker/worker.js")).default,
     env = setup(),
@@ -84,6 +106,7 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
   page.on("dialog", (d) => d.accept());
   await page.goto("https://paanser.github.io/vidres-sosa-gestion/");
   await page.locator("#login-form").waitFor();
+  await checkMobileFields(page);
   assert.equal(await page.locator(".layout").isVisible(), false);
   assert.deepEqual(requests, []);
   await page.locator("#login-form [name=usuario]").fill("pau");
@@ -227,6 +250,7 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
     vidresReloadData();
   });
   await page.evaluate(() => window.vidresNavigate("clientes"));
+  await checkMobileFields(page);
   for (const query of [
     "registrado",
     "fiscal 10",
@@ -250,6 +274,23 @@ const { setup } = require(root + "/tests/helpers/backend.cjs");
     "PASS buscador de clientes por nombre, dirección y sin resultados",
   );
   await page.locator("#add").click();
+  for (const width of [320, 390, 768]) {
+    await page.setViewportSize({ width, height: 844 });
+    for (const scale of [0.9, 1, 1.5]) {
+      await page.evaluate((value) => {
+        document.documentElement.style.setProperty("--vs-text-scale", value);
+      }, String(scale));
+      await checkMobileFields(page);
+      await page.locator("#form [name=descripcion]").fill("Texto de prueba");
+      await page.locator("#form [name=descripcion]").blur();
+      await checkMobileFields(page);
+    }
+  }
+  await page.evaluate(() => {
+    document.documentElement.style.setProperty("--vs-text-scale", "1");
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  console.log("PASS campos móviles sin texto pequeño ni recortes al escribir");
   assert.equal(await page.locator("#form [name=duracion]").isVisible(), false);
   assert.equal(
     await page.locator("#form [name=responsable]").inputValue(),

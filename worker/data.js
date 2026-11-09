@@ -735,7 +735,10 @@ export async function reserveQuoteNumber(req, db, auth) {
   if (!Number.isSafeInteger(body.revision) || body.revision < 0)
     fail(400, "Revisión no válida");
   const current = await state(db),
-    year = String(new Date().getUTCFullYear()),
+    year = new Intl.DateTimeFormat("en", {
+      timeZone: "Europe/Madrid",
+      year: "numeric",
+    }).format(new Date()),
     prefix = "P-" + year + "-";
   const sequence = { ...current.values[KEYS.numeracion] };
   const max = current.values[KEYS.presupuestos].reduce(

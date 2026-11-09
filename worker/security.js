@@ -159,10 +159,27 @@ export async function authenticate(req, db) {
   const hash = await digest(token);
   const user = await db
     .prepare(
-      "SELECT u.* FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token_hash=? AND u.active=1 AND s.credential_version=u.credential_version",
+      "SELECT u.*, s.last_used AS session_last_used FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token_hash=? AND u.active=1 AND s.credential_version=u.credential_version",
     )
     .bind(hash)
     .first();
   if (!user) fail(401, "Inicia sesión para continuar");
+  const now = Date.now(),
+    lastUsed = Date.parse(user.session_last_used);
+  if (!Number.isFinite(lastUsed) || now - lastUsed >= 30 * 86400000) {
+    await db
+      .prepare("DELETE FROM sessions WHERE token_hash=?")
+      .bind(hash)
+      .run();
+    fail(401, "La sesión ha caducado. Inicia sesión para continuar");
+  }
+  if (now - lastUsed > 86400000)
+    await db
+      .prepare(
+        "UPDATE sessions SET last_used=? WHERE token_hash=? AND last_used=?",
+      )
+      .bind(new Date(now).toISOString(), hash, user.session_last_used)
+      .run();
+  delete user.session_last_used;
   return { user, hash };
 }

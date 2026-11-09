@@ -6,6 +6,9 @@ export async function maintenance(env) {
     old = new Date(now - 7 * 86400000).toISOString();
   await db.batch([
     db
+      .prepare("DELETE FROM sessions WHERE last_used<=?")
+      .bind(new Date(now - 30 * 86400000).toISOString()),
+    db
       .prepare("DELETE FROM attempts WHERE window_start<? AND blocked_until<?")
       .bind(now - 86400000, now),
     db.prepare("DELETE FROM quotas WHERE expires_at<?").bind(now),

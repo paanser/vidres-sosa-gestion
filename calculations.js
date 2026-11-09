@@ -58,7 +58,17 @@
         if (line.kind === "aluminum") {
           const cost = round2(num(line.amount));
           const sale = round2(cost * (1 + num(line.aluminumMargin) / 100));
-          return { ...calc({}, {}), cost, sale, margin: round2(sale - cost) };
+          return {
+            ...calc({}, {}),
+            cost,
+            sale,
+            margin: round2(sale - cost),
+            glassCost: 0,
+            extraCost: 0,
+            glassSale: sale,
+            extraSale: 0,
+            separate: false,
+          };
         }
         const dimensions = calc(line, config),
           glassCost = round2(

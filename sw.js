@@ -1,7 +1,7 @@
 "use strict";
 const RELEASE = "__BUILD_VERSION__";
 const VERSION = RELEASE.startsWith("__")
-  ? "20261108-calendario-cantos-1"
+  ? "20261109-notas-cuadradas-hora-1"
   : RELEASE;
 const PREFIX = "vidres-sosa:" + self.registration.scope + ":",
   CACHE = PREFIX + VERSION;

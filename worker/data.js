@@ -333,7 +333,7 @@ export function checked(values) {
   }
   for (const n of out[KEYS.notas]) {
     text(n.texto, 1000, 1);
-    strings(n, { cliente: 100, aviso: 40, creada: 40, parte: 150 });
+    strings(n, { cliente: 100, aviso: 40, hora: 5, creada: 40, parte: 150 });
     if (typeof n.hecha !== "boolean") fail(400, "Nota no válida");
   }
   for (const p of out[KEYS.plantillas]) {

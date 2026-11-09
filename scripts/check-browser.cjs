@@ -443,6 +443,36 @@ async function checkMobileFields(page) {
     await page.getByText("Nota que debe conservarse", { exact: true }).count(),
     1,
   );
+  await note.locator("summary").click();
+  await note.locator("[data-note-edit]").click();
+  await page.locator("#quick-note-form [name=aviso]").fill("2026-12-20");
+  await page.locator("#quick-note-form [name=hora]").fill("14:30");
+  await page.locator("#quick-note-form [type=submit]").click();
+  await page.locator("#quick-note-dialog").waitFor({ state: "hidden" });
+  await page.locator("[data-note-new]").click();
+  await page
+    .locator("#quick-note-form [name=texto]")
+    .fill("Segunda nota sin fecha ni hora");
+  await page.locator("#quick-note-form [type=submit]").click();
+  await page.locator("#quick-note-dialog").waitFor({ state: "hidden" });
+  await page.reload();
+  await page.locator(".quick-notes").waitFor();
+  assert.match(await note.textContent(), /2026-12-20 · 14:30/);
+  for (const width of [390, 1280]) {
+    await page.setViewportSize({ width, height: 844 });
+    const boxes = await page.locator(".quick-note").evaluateAll((cards) =>
+      cards.slice(0, 2).map((card) => {
+        const r = card.getBoundingClientRect();
+        return { x: r.x, y: r.y, width: r.width, height: r.height };
+      }),
+    );
+    assert.equal(boxes.length, 2);
+    assert.ok(Math.abs(boxes[0].y - boxes[1].y) < 1);
+    assert.ok(boxes[1].x > boxes[0].x);
+    for (const box of boxes)
+      assert.ok(Math.abs(box.width - box.height) < 2, "Nota cuadrada");
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.evaluate(() => window.vidresNavigate("presupuestos"));
   assert.equal(
     await page

@@ -195,3 +195,13 @@ CHROMIUM_PATH=/usr/bin/chromium npm run test:browser` (en una sola línea).
 - Números españoles y errores de campo; margen sobre venta inferior al 100 %.
 - Aluminio con desglose completo, PDF con m² facturables y año Europe/Madrid.
 - Worker antes de interfaz; Pages correcto y legacy cancelado; API 401 verificado; version.json público bloqueado por proxy.
+
+## Notas cuadradas y hora opcional · 9 de noviembre de 2026
+
+- Dos tarjetas cuadradas por fila en móvil y escritorio, con desplazamiento
+  interno para textos largos y acciones desplegadas.
+- Fecha y hora de aviso independientes y opcionales. La hora se conserva al
+  guardar, editar y recargar; las notas antiguas siguen siendo compatibles.
+- Verificación: npm test correcto y navegador con guardado sin fecha/hora,
+  edición con fecha/hora, recarga y geometría de tarjetas a 390 y 1280 px.
+- Cambios locales pendientes de publicación; versión de recursos actualizada.

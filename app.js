@@ -369,7 +369,11 @@ window.vidresAppReady = (async () => {
                 (n.cliente
                   ? "<small>Cliente: " + esc(n.cliente) + "</small>"
                   : "") +
-                (n.aviso ? "<small>Aviso: " + esc(n.aviso) + "</small>" : "") +
+                (n.aviso || n.hora
+                  ? "<small>Aviso: " +
+                    esc([n.aviso, n.hora].filter(Boolean).join(" · ")) +
+                    "</small>"
+                  : "") +
                 '</span></div><details class="quick-note-options"><summary>Más opciones</summary><div class="quick-note-actions"><button type="button" data-note-done="' +
                 esc(n.id) +
                 '">Marcar como hecha</button><button type="button" data-note-convert="' +
@@ -1635,6 +1639,7 @@ window.vidresAppReady = (async () => {
     quickNoteForm.elements.texto.value = note?.texto || "";
     quickNoteForm.elements.cliente.value = note?.cliente || "";
     quickNoteForm.elements.aviso.value = note?.aviso || "";
+    quickNoteForm.elements.hora.value = note?.hora || "";
     $("#quick-note-title").textContent = note
       ? "Editar nota rápida"
       : "Nueva nota";
@@ -1661,6 +1666,7 @@ window.vidresAppReady = (async () => {
           texto: String(data.get("texto") || "").trim(),
           cliente: String(data.get("cliente") || "").trim(),
           aviso: String(data.get("aviso") || ""),
+          hora: String(data.get("hora") || ""),
           hecha: old?.hecha || false,
           creada: old?.creada || new Date().toISOString(),
           parte: old?.parte || "",

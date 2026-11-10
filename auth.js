@@ -59,7 +59,11 @@
     if (!response.ok) {
       const result = await response.json().catch(() => ({}));
       if (response.status === 401 && path !== "/auth/login") invalidate();
-      const e = new Error(result.error || "No se pudo completar la operación");
+      const e = new Error(
+        response.status === 429 && path === "/auth/login"
+          ? "Demasiados intentos de inicio de sesión. Espera 15 minutos antes de volver a intentarlo."
+          : result.error || "No se pudo completar la operación",
+      );
       e.status = response.status;
       throw e;
     }

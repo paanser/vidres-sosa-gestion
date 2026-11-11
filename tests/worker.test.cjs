@@ -66,6 +66,27 @@ const job = {
   estado: "Pendiente",
   fecha: "",
 };
+test("login acepta los cambios del disparador de sesión en el contador D1", async () => {
+  const env = setup();
+  const batch = env.DB.batch.bind(env.DB);
+  let sessionChanges;
+  env.DB.batch = async (statements) => {
+    const results = await batch(statements);
+    if (results[0]?.results?.[0]?.token_hash)
+      sessionChanges = results[0].meta.changes;
+    return results;
+  };
+  const r = await call(env, "/auth/login", "POST", {
+    usuario: "pau",
+    password: env.ADMIN_INITIAL_PASSWORD,
+  });
+  assert.equal(sessionChanges, 2);
+  assert.equal(r.status, 200, JSON.stringify(r.data));
+  assert.equal(
+    (await call(env, "/auth/me", "GET", undefined, r.data.token)).status,
+    200,
+  );
+});
 test("bootstrap secreto, cambio obligatorio y hashes sin credenciales en claro", async () => {
   const env = setup();
   let r = await call(env, "/auth/login", "POST", {

@@ -121,7 +121,7 @@ export async function login(req, db, env) {
   const results = await db.batch([
     db
       .prepare(
-        "INSERT INTO sessions(token_hash,user_id,credential_version,created_at) SELECT ?,id,credential_version,? FROM users WHERE id=? AND active=1 AND credential_version=? AND password_hash=?",
+        "INSERT INTO sessions(token_hash,user_id,credential_version,created_at) SELECT ?,id,credential_version,? FROM users WHERE id=? AND active=1 AND credential_version=? AND password_hash=? RETURNING token_hash",
       )
       .bind(
         hash,
@@ -138,7 +138,9 @@ export async function login(req, db, env) {
         .bind(key),
     ),
   ]);
-  if (results[0].meta.changes !== 1)
+  // D1 can include trigger writes in meta.changes. Verify the inserted session
+  // instead: sessions_last_used also updates the newly inserted row.
+  if (results[0].results?.[0]?.token_hash !== hash)
     fail(401, "Usuario o contraseña incorrectos");
   return { token, user: publicUser(user) };
 }

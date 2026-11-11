@@ -30,12 +30,15 @@ class D1 {
         return { results: db.prepare(sql).all(...this.args) };
       },
       async run() {
+        const before = db.prepare("SELECT total_changes() c").get().c;
         const stmt = db.prepare(sql);
         const results = stmt.columns().length ? stmt.all(...this.args) : [];
         if (!stmt.columns().length) stmt.run(...this.args);
         return {
           results,
-          meta: { changes: db.prepare("SELECT changes() c").get().c },
+          meta: {
+            changes: db.prepare("SELECT total_changes() c").get().c - before,
+          },
         };
       },
     };

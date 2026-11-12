@@ -106,6 +106,18 @@
     if (tab === "resumen") {
       body.innerHTML =
         detail +
+        '<section class="exp-section"><label for="exp-status">Nuevo estado</label><select id="exp-status">' +
+        [...document.querySelectorAll('#form [name="estado"] option')]
+          .map(
+            (option) =>
+              "<option" +
+              (option.value === j.estado ? " selected" : "") +
+              ">" +
+              esc(option.value) +
+              "</option>",
+          )
+          .join("") +
+        '</select><button type="button" data-exp-status-save>Cambiar estado</button><p data-exp-status-message role="status" aria-live="polite"></p></section>' +
         '<div class="exp-two"><section class="exp-section"><h3>Descripción del trabajo</h3><p>' +
         esc(j.descripcion) +
         "</p><h3>Dirección</h3><p>" +
@@ -464,7 +476,31 @@
   dialog.addEventListener("click", async (e) => {
     const b = e.target.closest("button");
     if (!b) return;
-    if (b.hasAttribute("data-exp-view-photos")) {
+    if (b.hasAttribute("data-exp-status-save")) {
+      const jobId = current;
+      const select = body.querySelector("#exp-status");
+      const message = body.querySelector("[data-exp-status-message]");
+      if (select.value === getJob()?.estado) {
+        message.textContent = "El expediente ya tiene este estado.";
+        return;
+      }
+      b.disabled = select.disabled = true;
+      message.textContent = "Guardando estado…";
+      try {
+        await window.vidresChangeJobStatus(jobId, select.value);
+        window.vidresReloadData();
+        if (current === jobId && dialog.open) {
+          await render();
+          body
+            .querySelector("[data-exp-status-message]")
+            ?.append("Estado guardado.");
+        }
+      } catch (error) {
+        message.textContent = "No se pudo guardar el estado: " + error.message;
+      } finally {
+        b.disabled = select.disabled = false;
+      }
+    } else if (b.hasAttribute("data-exp-view-photos")) {
       tab = "fotos";
       await render();
     } else if (b.dataset.expTab) {

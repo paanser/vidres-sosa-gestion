@@ -626,6 +626,30 @@ async function checkMobileFields(page) {
   console.log(
     "PASS parte, medición y foto en servidor, sin copia local de negocio",
   );
+  await page.locator('[data-page="trabajos"]').click();
+  await page.locator(".job-card [data-id]").first().click();
+  await page.locator("#exp-status").selectOption("Finalizado");
+  await page.locator("[data-exp-status-save]").click();
+  await page.getByText("Estado guardado.", { exact: true }).waitFor();
+  const closedJob = await page.evaluate(() => vidresGetJobs()[0]);
+  assert.equal(closedJob.estado, "Finalizado");
+  assert.ok(closedJob.finalizadoEn);
+  assert.equal(closedJob.historial.at(-1).a, "Finalizado");
+  await page.locator("[data-exp-status-save]").click();
+  assert.equal(
+    await page.evaluate(() => vidresGetJobs()[0].historial.length),
+    closedJob.historial.length,
+  );
+  await page.locator("#exp-status").selectOption("Pendiente");
+  await page.locator("[data-exp-status-save]").click();
+  await page.getByText("Estado guardado.", { exact: true }).waitFor();
+  assert.equal(
+    await page.evaluate(() => vidresGetJobs()[0].finalizadoEn),
+    null,
+  );
+  await checkMobileFields(page);
+  await page.locator("[data-exp-close]").click();
+  console.log("PASS cambio directo de estado, historial y reapertura");
   await require("./check-quote-measures-browser.cjs")(page, context, root);
   for (const focus of ["undated", "today", "late", ""]) {
     await page.locator('[data-page="trabajos"]').click();

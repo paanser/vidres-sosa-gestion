@@ -1062,11 +1062,19 @@ window.vidresAppReady = (async () => {
   });
   window.vidresOpenJobEditor = open;
   window.vidresChangeJobStatus = async (id, status) => {
+    if (![...form.elements.estado.options].some((o) => o.value === status))
+      throw new Error("Estado no válido");
+    const job = jobs.find((j) => j.id === id);
+    if (!job) throw new Error("Expediente no encontrado");
+    if (job.estado === status) return;
     const next = jobs.map((j) =>
       j.id === id
         ? {
             ...j,
             estado: status,
+            finalizadoEn:
+              status === "Finalizado" ? new Date().toISOString() : null,
+            archivadoEn: status === "Finalizado" ? j.archivadoEn || null : null,
             historial: [
               ...(j.historial || []),
               {

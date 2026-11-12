@@ -801,12 +801,70 @@ async function checkMobileFields(page) {
   // A new page shares only the browser's persisted token, not the in-memory app state.
   const p2 = await context.newPage();
   p2.on("pageerror", (e) => errors.push(e.message));
-  await p2.goto("https://paanser.github.io/vidres-sosa-gestion/");
-  await p2.locator("#title").filter({ hasText: "Inicio" }).waitFor();
+  const startupGate = () => {
+    let release, arrive;
+    return {
+      pending: new Promise((resolve) => (release = resolve)),
+      reached: new Promise((resolve) => (arrive = resolve)),
+      release: () => release(),
+      arrive: () => arrive(),
+    };
+  };
+  const startupGates = new Map(
+    ["/auth/me", "/api/state", "/api/files"].map((p) => [p, startupGate()]),
+  );
+  const lastModule = startupGate();
+  await p2.route(
+    "https://vidres-sosa-ia.pausosagomez.workers.dev/**",
+    async (route) => {
+      const hold = startupGates.get(new URL(route.request().url()).pathname);
+      if (hold) {
+        hold.arrive();
+        await hold.pending;
+      }
+      await route.fallback();
+    },
+  );
+  await p2.route("**/expediente.js*", async (route) => {
+    lastModule.arrive();
+    await lastModule.pending;
+    await route.fallback();
+  });
+  await p2.goto("https://paanser.github.io/vidres-sosa-gestion/", {
+    waitUntil: "domcontentloaded",
+  });
+  const checkLoading = async () => {
+    assert.equal(await p2.locator("#startup-screen").isVisible(), true);
+    assert.equal(await p2.locator("#auth-screen").isVisible(), false);
+    assert.equal(await p2.locator(".layout").isVisible(), false);
+  };
+  await startupGates.get("/auth/me").reached;
+  await lastModule.reached;
+  await checkLoading();
+  assert.equal(await p2.evaluate(() => typeof VSStorage), "undefined");
+  startupGates.get("/auth/me").release();
+  // Both requests must start before either response is released.
+  await Promise.all(
+    ["/api/state", "/api/files"].map((p) => startupGates.get(p).reached),
+  );
+  await checkLoading();
+  startupGates.get("/api/state").release();
+  await checkLoading();
+  startupGates.get("/api/files").release();
+  await p2
+    .locator("#title")
+    .filter({ hasText: "Inicio" })
+    .waitFor({ state: "attached" });
+  await checkLoading();
+  lastModule.release();
+  await p2.locator(".layout").waitFor({ state: "visible" });
+  assert.equal(await p2.locator("#startup-screen").isVisible(), false);
   assert.equal(await p2.locator("#auth-screen").isVisible(), false);
+  assert.equal(await p2.locator("#nav button[disabled]").count(), 0);
+  assert.ok(await p2.locator("#content").innerHTML());
   await p2.close();
   console.log(
-    "PASS sesión persistente y datos compartidos al abrir otra página",
+    "PASS sesión persistente: sin flash de login ni pantalla vacía, descargas anticipadas y datos en paralelo con red lenta",
   );
   await page
     .getByRole("button", { name: "Cerrar sesión", exact: true })

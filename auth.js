@@ -5,7 +5,10 @@
     screen = document.querySelector("#auth-screen"),
     login = document.querySelector("#login-form"),
     change = document.querySelector("#password-form"),
-    message = document.querySelector("#auth-message");
+    message = document.querySelector("#auth-message"),
+    startup = document.querySelector("#startup-screen"),
+    startupMessage = document.querySelector("#startup-message"),
+    retry = document.querySelector("#startup-retry");
   let token = "",
     user = null,
     resolveReady;
@@ -13,6 +16,17 @@
   const notify = (s) => {
     message.textContent = s;
   };
+  function showLogin() {
+    startup.hidden = true;
+    screen.hidden = false;
+  }
+  function showStartupError(error) {
+    startup.hidden = false;
+    screen.hidden = true;
+    startupMessage.textContent = error.message;
+    retry.hidden = false;
+  }
+  retry.addEventListener("click", () => location.reload());
   function remember(value) {
     localStorage.setItem(KEY, value);
     token = value;
@@ -143,6 +157,7 @@
   function enter(active) {
     user = active;
     if (user.cambioObligatorio) {
+      showLogin();
       login.hidden = true;
       change.hidden = false;
       notify(
@@ -152,11 +167,9 @@
       return;
     }
     screen.hidden = true;
+    startup.hidden = false;
+    startupMessage.textContent = "Cargando tus datos y preparando Inicio…";
     document.body.classList.add("authenticated");
-    document.querySelectorAll("body > .layout").forEach((el) => {
-      el.hidden = false;
-      el.inert = false;
-    });
     resolveReady(user);
   }
   document.querySelectorAll("[data-show-password]").forEach((button) =>
@@ -217,6 +230,15 @@
     ready,
     json,
     request,
+    showStartupError,
+    showApp() {
+      if (!user || user.cambioObligatorio) return;
+      document.querySelectorAll("body > .layout").forEach((el) => {
+        el.hidden = false;
+        el.inert = false;
+      });
+      startup.hidden = true;
+    },
     get user() {
       return user;
     },
@@ -263,12 +285,19 @@
     try {
       token = localStorage.getItem(KEY) || "";
       if (token) {
-        notify("Verificando sesión…");
+        startupMessage.textContent = "Verificando sesión…";
         const r = await json("/auth/me");
         enter(r.user);
-      } else notify("Introduce tu usuario y contraseña.");
+      } else {
+        showLogin();
+        notify("Introduce tu usuario y contraseña.");
+      }
     } catch (e) {
-      notify(e.message);
+      if (token) showStartupError(e);
+      else {
+        showLogin();
+        notify(e.message);
+      }
     }
   })();
 })();

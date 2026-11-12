@@ -628,6 +628,8 @@ async function checkMobileFields(page) {
   );
   await page.locator('[data-page="trabajos"]').click();
   await page.locator(".job-card [data-id]").first().click();
+  assert.equal(await page.locator("#exp-status").isVisible(), false);
+  await page.getByRole("button", { name: /Estado ▾/ }).click();
   await page.locator("#exp-status").selectOption("Finalizado");
   await page.locator("[data-exp-status-save]").click();
   await page.getByText("Estado guardado.", { exact: true }).waitFor();

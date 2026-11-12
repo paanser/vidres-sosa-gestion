@@ -88,11 +88,24 @@
       (m) => m.trabajo === current,
     );
     const detail =
-      '<div class="exp-details"><div><small>Estado</small><strong class="' +
+      '<div class="exp-details"><div><button type="button" class="exp-status-trigger" data-exp-status-open aria-expanded="false" aria-controls="exp-status-editor"><small>Estado ▾</small><strong class="' +
       (j.estado === "Crítico" ? "critical-heading" : "") +
       '">' +
       esc(j.estado) +
-      "</strong></div><div><small>Responsable</small><strong>" +
+      "</strong></button>" +
+      '<div id="exp-status-editor" hidden><label for="exp-status">Nuevo estado</label><select id="exp-status">' +
+      [...document.querySelectorAll('#form [name="estado"] option')]
+        .map(
+          (option) =>
+            "<option" +
+            (option.value === j.estado ? " selected" : "") +
+            ">" +
+            esc(option.value) +
+            "</option>",
+        )
+        .join("") +
+      '</select><button type="button" data-exp-status-save>Cambiar estado</button><p data-exp-status-message role="status" aria-live="polite"></p></div>' +
+      "</div><div><small>Responsable</small><strong>" +
       esc(j.responsable || "Sin asignar") +
       "</strong></div><div><small>Fecha prevista</small><strong>" +
       esc(
@@ -106,18 +119,6 @@
     if (tab === "resumen") {
       body.innerHTML =
         detail +
-        '<section class="exp-section"><label for="exp-status">Nuevo estado</label><select id="exp-status">' +
-        [...document.querySelectorAll('#form [name="estado"] option')]
-          .map(
-            (option) =>
-              "<option" +
-              (option.value === j.estado ? " selected" : "") +
-              ">" +
-              esc(option.value) +
-              "</option>",
-          )
-          .join("") +
-        '</select><button type="button" data-exp-status-save>Cambiar estado</button><p data-exp-status-message role="status" aria-live="polite"></p></section>' +
         '<div class="exp-two"><section class="exp-section"><h3>Descripción del trabajo</h3><p>' +
         esc(j.descripcion) +
         "</p><h3>Dirección</h3><p>" +
@@ -476,7 +477,12 @@
   dialog.addEventListener("click", async (e) => {
     const b = e.target.closest("button");
     if (!b) return;
-    if (b.hasAttribute("data-exp-status-save")) {
+    if (b.hasAttribute("data-exp-status-open")) {
+      const editor = body.querySelector("#exp-status-editor");
+      editor.hidden = !editor.hidden;
+      b.setAttribute("aria-expanded", String(!editor.hidden));
+      if (!editor.hidden) body.querySelector("#exp-status").focus();
+    } else if (b.hasAttribute("data-exp-status-save")) {
       const jobId = current;
       const select = body.querySelector("#exp-status");
       const message = body.querySelector("[data-exp-status-message]");
@@ -491,9 +497,12 @@
         window.vidresReloadData();
         if (current === jobId && dialog.open) {
           await render();
+          const message = body.querySelector("[data-exp-status-message]");
+          message.closest("#exp-status-editor").hidden = false;
           body
-            .querySelector("[data-exp-status-message]")
-            ?.append("Estado guardado.");
+            .querySelector("[data-exp-status-open]")
+            .setAttribute("aria-expanded", "true");
+          message.textContent = "Estado guardado.";
         }
       } catch (error) {
         message.textContent = "No se pudo guardar el estado: " + error.message;

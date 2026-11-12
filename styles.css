@@ -3947,3 +3947,19 @@ input[data-measure] {
     font-size: max(16px, 1rem) !important;
   }
 }
+
+.exp-status-trigger {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  color: inherit;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+#exp-status-editor select {
+  width: 100%;
+  min-width: 0;
+  margin: 8px 0;
+}

@@ -18,7 +18,28 @@
     <link id="app-style" rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <section id="auth-screen" class="auth-screen" aria-labelledby="auth-title">
+    <section
+      id="startup-screen"
+      class="auth-screen"
+      aria-labelledby="startup-title"
+    >
+      <div class="auth-card">
+        <p class="muted">VIDRES SOSA · GESTIÓN</p>
+        <h1 id="startup-title">Abriendo la aplicación…</h1>
+        <p id="startup-message" role="status" aria-live="polite">
+          Preparando acceso…
+        </p>
+        <button id="startup-retry" type="button" class="primary" hidden>
+          Reintentar
+        </button>
+      </div>
+    </section>
+    <section
+      id="auth-screen"
+      class="auth-screen"
+      aria-labelledby="auth-title"
+      hidden
+    >
       <div class="auth-card">
         <p class="muted">VIDRES SOSA · GESTIÓN</p>
         <h1 id="auth-title">Iniciar sesión</h1>

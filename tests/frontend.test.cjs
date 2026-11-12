@@ -98,7 +98,11 @@ function authContext(b, local) {
         this.cleared = true;
       },
     },
-    screen = { hidden: false },
+    screen = { hidden: true },
+    startup = { hidden: false },
+    startupMessage = { textContent: "" },
+    retry = { hidden: true, addEventListener() {} },
+    layout = { hidden: true, inert: true },
     message = { textContent: "" };
   for (const form of [login, change]) {
     form.listeners = {};
@@ -119,6 +123,9 @@ function authContext(b, local) {
     "#auth-message": message,
     "#auth-logout": logout,
     "#content": content,
+    "#startup-screen": startup,
+    "#startup-message": startupMessage,
+    "#startup-retry": retry,
   };
   const doc = {
     body: {
@@ -129,7 +136,7 @@ function authContext(b, local) {
     },
     hidden: false,
     querySelector: (s) => elements[s],
-    querySelectorAll: () => [],
+    querySelectorAll: (s) => (s === "body > .layout" ? [layout] : []),
     addEventListener: (e, fn) => (events[e] = fn),
   };
   const ctx = {
@@ -158,6 +165,10 @@ function authContext(b, local) {
     login,
     change,
     screen,
+    startup,
+    startupMessage,
+    retry,
+    layout,
     message,
     classes,
     events,
@@ -189,17 +200,46 @@ test("login bloquea la aplicación, obliga al cambio y recupera la sesión persi
   a.change.listeners.submit({ preventDefault() {} });
   await a.ctx.VSAuth.ready;
   assert.equal(a.screen.hidden, true);
+  assert.equal(a.startup.hidden, false);
+  assert.equal(a.layout.hidden, true);
+  assert.equal(a.layout.inert, true);
+  a.ctx.VSAuth.showApp();
+  assert.equal(a.startup.hidden, true);
+  assert.equal(a.layout.hidden, false);
+  assert.equal(a.layout.inert, false);
   assert.equal(a.classes.has("authenticated"), true);
   assert.notEqual(local.getItem("vidres-session-v1"), first);
   const reload = authContext(b, local);
+  assert.equal(reload.screen.hidden, true);
+  assert.equal(reload.startup.hidden, false);
   await reload.ctx.VSAuth.ready;
   assert.equal(reload.screen.hidden, true);
+  assert.equal(reload.layout.hidden, true);
   assert.equal(reload.ctx.VSAuth.user.nombre, "Pau");
   await reload.ctx.VSAuth.logout();
   assert.equal(local.getItem("vidres-session-v1"), null);
   assert.equal(reload.reloads, 1);
   assert.equal(reload.classes.has("authenticated"), false);
   assert.equal(reload.content.cleared, true);
+});
+test("fallo de red al recuperar la sesión ofrece reintentar sin mostrar login ni datos", async () => {
+  const local = store([["vidres-session-v1", "session-fixture"]]);
+  const page = authContext(
+    {
+      request: async () => {
+        throw Error("offline");
+      },
+    },
+    local,
+  );
+  await until(() => !page.retry.hidden);
+  assert.equal(page.screen.hidden, true);
+  assert.equal(page.startup.hidden, false);
+  assert.equal(page.layout.hidden, true);
+  assert.equal(local.getItem("vidres-session-v1"), "session-fixture");
+  assert.match(page.startupMessage.textContent, /No se puede conectar/);
+  page.ctx.VSAuth.showApp();
+  assert.equal(page.layout.hidden, true);
 });
 test("revocación detectada en frontend borra token y pantalla privada", async () => {
   const b = await backend(),

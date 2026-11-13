@@ -178,6 +178,6 @@ no incluye importes. No requiere cambios en el Worker.
 
 ### Inicio personal por usuario
 
-En **Inicio → Personalizar inicio**, cada usuario puede elegir el panel o el calendario y mostrar u ocultar el resumen, los próximos trabajos, las notas y los presupuestos por reclamar. Es posible ocultar todos los bloques y restablecer la configuración inicial.
+Desde el **icono de personalización en la esquina inferior derecha de Inicio**, que abre las opciones en una ventana oculta por defecto, cada usuario puede elegir el panel o el calendario y mostrar u ocultar el resumen, los próximos trabajos, las notas y los presupuestos por reclamar. Es posible ocultar todos los bloques y restablecer la configuración inicial.
 
 Las preferencias se guardan en la cuenta mediante `/api/preferences/home`, separadas de los datos compartidos y de sus copias de seguridad. Se recuperan al iniciar o recargar la aplicación en cualquier dispositivo. Para publicar este cambio, aplicar primero la migración D1 `0004_home_preferences.sql` y desplegar el backend antes del frontend (el flujo de despliegue existente aplica las migraciones).

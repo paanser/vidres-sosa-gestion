@@ -126,7 +126,18 @@ async function checkMobileFields(page) {
     .locator("#nav button[disabled]")
     .first()
     .waitFor({ state: "detached" });
-  await page.locator("#home-customize summary").click();
+  assert.equal(await page.locator("#home-customize").isVisible(), false);
+  const personalizeIcon = await page
+    .locator("[data-home-customize]")
+    .boundingBox();
+  assert.ok(personalizeIcon.y > 630, "Icono en la parte inferior de Inicio");
+  await page.locator("[data-home-customize]").click();
+  await page.locator("[data-home-close]").click();
+  assert.equal(await page.locator("#home-customize").isVisible(), false);
+  await page.locator("[data-home-customize]").click();
+  await page.keyboard.press("Escape");
+  assert.equal(await page.locator("#home-customize").isVisible(), false);
+  await page.locator("[data-home-customize]").click();
   await page.locator('[name="blocks"][value="jobs"]').uncheck();
   await page.locator('#home-preferences-form button[type="submit"]').click();
   await page.getByText("Preferencias guardadas en tu cuenta.").waitFor();
@@ -135,7 +146,7 @@ async function checkMobileFields(page) {
     0,
   );
   await page.reload();
-  await page.locator("#home-customize summary").click();
+  await page.locator("[data-home-customize]").click();
   assert.equal(
     await page.locator('[name="blocks"][value="jobs"]').isChecked(),
     false,
@@ -143,7 +154,7 @@ async function checkMobileFields(page) {
   await page.locator("#home-preferences-form select").selectOption("calendar");
   await page.locator('#home-preferences-form button[type="submit"]').click();
   await page.locator(".cal-grid").waitFor();
-  await page.locator("#home-customize summary").click();
+  await page.locator("[data-home-customize]").click();
   await page.locator("[data-home-reset]").click();
   await page.getByRole("heading", { name: "Próximos trabajos" }).waitFor();
   console.log(

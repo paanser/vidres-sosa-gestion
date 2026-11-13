@@ -25,10 +25,12 @@ window.vidresAppReady = (async () => {
   let homeNotice = "";
   function homeSettingsHtml() {
     return (
-      '<section class="panel home-personalization"><div class="simple-section-head"><div><h2>Hola, ' +
-      esc(VSAuth.user.nombre) +
-      '</h2><p class="muted">Tu inicio, a tu manera.</p></div></div>' +
-      '<details id="home-customize"><summary>Personalizar inicio</summary><form id="home-preferences-form">' +
+      '<div class="home-customize-footer"><button type="button" class="home-customize-trigger" data-home-customize aria-label="Personalizar inicio" title="Personalizar inicio" aria-haspopup="dialog" aria-controls="home-customize">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h5m4 0h7M4 17h9m4 0h3"/><circle cx="11" cy="7" r="2"/><circle cx="15" cy="17" r="2"/></svg></button></div>' +
+      '<p role="status">' +
+      esc(homeNotice) +
+      "</p>" +
+      '<dialog id="home-customize" class="home-personalization" aria-labelledby="home-customize-title"><div class="simple-section-head"><h2 id="home-customize-title">Personalizar inicio</h2><button type="button" data-home-close aria-label="Cerrar personalización">×</button></div><form id="home-preferences-form">' +
       "<p>Elige qué quieres ver. Se guardará solo en tu cuenta, también para otros dispositivos.</p>" +
       '<label>Vista principal<select name="view"><option value="dashboard"' +
       (homeView === "dashboard" ? " selected" : "") +
@@ -49,9 +51,7 @@ window.vidresAppReady = (async () => {
         )
         .join("") +
       '</fieldset><div class="home-preferences-actions"><button type="submit">Guardar preferencias</button><button type="button" data-home-reset>Restablecer</button></div>' +
-      '<p role="status" id="home-save-status"></p></form></details><p role="status">' +
-      esc(homeNotice) +
-      "</p></section>"
+      '<p role="status" id="home-save-status"></p></form></dialog>'
     );
   }
   let shownMonth = new Date();
@@ -770,8 +770,8 @@ window.vidresAppReady = (async () => {
         (VSBackup.overdue()
           ? '<p role="status" class="backup-reminder">Hace más de 14 días que no exportas una copia. <button type="button" data-go="ajustes-copias">Hacer copia</button></p>'
           : "") +
-        homeSettingsHtml() +
-        (homeView === "calendar" ? calendarHtml() : dashboardHtml());
+        (homeView === "calendar" ? calendarHtml() : dashboardHtml()) +
+        homeSettingsHtml();
     } else if (page === "trabajos") {
       const q =
         !/\d{4}-\d{2}|\d{2}\/\d{2}/.test(search) && /^[+\d\s()-]+$/.test(search)
@@ -1493,7 +1493,7 @@ window.vidresAppReady = (async () => {
       homeView = homePreferences.view;
       homeNotice = "Preferencias guardadas en tu cuenta.";
       render();
-      $("#home-customize summary")?.focus();
+      $("[data-home-customize]")?.focus();
     } catch (error) {
       form.querySelector('[role="status"]').textContent =
         "No se pudo guardar: " + error.message;
@@ -1503,6 +1503,14 @@ window.vidresAppReady = (async () => {
     }
   });
   $("#content").addEventListener("click", async (e) => {
+    if (e.target.closest("[data-home-customize]")) {
+      $("#home-customize").showModal();
+      return;
+    }
+    if (e.target.closest("[data-home-close]")) {
+      $("#home-customize").close();
+      return;
+    }
     const archiveButton = e.target.closest(
       "[data-job-archive], [data-job-unarchive]",
     );

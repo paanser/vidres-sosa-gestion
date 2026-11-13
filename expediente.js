@@ -11,7 +11,14 @@
     revision = 0;
   let sheetUrl = null;
   const sheetResult = dialog.querySelector("#exp-sheet-result");
+  const sheetDialog = dialog.querySelector("#exp-sheet-dialog");
+  sheetDialog.addEventListener("click", (event) => event.stopPropagation());
+  sheetDialog.addEventListener("close", (event) => {
+    event.stopPropagation();
+    clearSheet();
+  });
   function clearSheet() {
+    if (sheetDialog.open) sheetDialog.close();
     if (sheetUrl) URL.revokeObjectURL(sheetUrl);
     sheetUrl = null;
     sheetResult.replaceChildren();
@@ -20,6 +27,7 @@
   function showSheet() {
     clearSheet();
     sheetResult.hidden = false;
+    sheetDialog.showModal();
     try {
       const job = getJob();
       if (!job) throw Error("El expediente ya no existe.");

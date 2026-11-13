@@ -1,6 +1,6 @@
 "use strict";
 const RELEASE = "__BUILD_VERSION__";
-const VERSION = RELEASE.startsWith("__") ? "20261113-hoja-visita-2" : RELEASE;
+const VERSION = RELEASE.startsWith("__") ? "20261113-hoja-visita-4" : RELEASE;
 const PREFIX = "vidres-sosa:" + self.registration.scope + ":",
   CACHE = PREFIX + VERSION;
 const ASSETS = [

@@ -326,3 +326,21 @@ CHROMIUM_PATH=/usr/bin/chromium npm run test:browser` (en una sola línea).
   apertura y descarga, separado de editar y eliminar.
 - Verificación: 68 pruebas unitarias y comprobación de navegador con descarga
   del PDF y acceso a 390, 768 y 1440 px.
+
+## Acceso compacto a hoja de visita · 13 de noviembre de 2026
+
+- A petición del usuario, el acceso es un icono de documento junto a «Editar
+  trabajo», con nombre accesible y tooltip «Hoja de visita PDF».
+- Se elimina el bloque introductorio separado; las acciones del PDF aparecen
+  al pulsar el icono. Se actualiza la versión de caché PWA.
+- Validación: 69 pruebas unitarias y comprobación de generación, descarga y
+  acceso al PDF a 390, 768 y 1440 px en navegador.
+
+## Hoja de visita sin separar los menús · 13 de noviembre de 2026
+
+- Las opciones del PDF se abren en un diálogo superpuesto desde el icono,
+  sin insertar un bloque entre la cabecera y las pestañas del expediente.
+- Cierre con botón o Escape, conservando abierto el expediente y liberando
+  la URL del PDF. Versión PWA actualizada.
+- Verificación: 69 pruebas unitarias y navegador: generación y descarga,
+  pestañas sin desplazamiento, cierre y Escape, y acceso a 390/768/1440 px.

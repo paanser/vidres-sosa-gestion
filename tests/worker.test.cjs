@@ -779,3 +779,59 @@ test("sesión deslizante: inicialización, renovación tras 24 h, caducidad y li
     null,
   );
 });
+
+test("inicio personal: preferencias aisladas por cuenta, persistencia y validación", async () => {
+  const env = setup(),
+    a = await admin(env);
+  const path = "/api/preferences/home";
+  assert.equal((await call(env, path)).status, 401);
+  assert.equal(
+    (await call(env, path, "GET", undefined, a.token)).data.home,
+    null,
+  );
+  await call(
+    env,
+    "/admin/users",
+    "POST",
+    {
+      nombre: "Otro usuario",
+      usuario: "otro",
+      password: "employee-fixture",
+      rol: "empleado",
+    },
+    a.token,
+  );
+  const e = (
+    await call(env, "/auth/login", "POST", {
+      usuario: "otro",
+      password: "employee-fixture",
+    })
+  ).data;
+  const home = { view: "calendar", blocks: ["notes"] };
+  assert.equal((await call(env, path, "PUT", home, a.token)).status, 200);
+  assert.deepEqual(
+    (await call(env, path, "GET", undefined, a.token)).data.home,
+    home,
+  );
+  assert.equal(
+    (await call(env, path, "GET", undefined, e.token)).data.home,
+    null,
+  );
+  const emptyHome = { view: "dashboard", blocks: [] };
+  assert.equal((await call(env, path, "PUT", emptyHome, e.token)).status, 200);
+  assert.deepEqual(
+    (await call(env, path, "GET", undefined, e.token)).data.home,
+    emptyHome,
+  );
+  for (const invalid of [
+    { view: "bad", blocks: [] },
+    { view: "dashboard", blocks: ["bad"] },
+    { view: "dashboard", blocks: ["notes", "notes"] },
+  ]) {
+    assert.equal((await call(env, path, "PUT", invalid, a.token)).status, 400);
+  }
+  assert.deepEqual(
+    (await call(env, path, "GET", undefined, a.token)).data.home,
+    home,
+  );
+});

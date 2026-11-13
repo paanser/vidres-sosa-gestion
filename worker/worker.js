@@ -65,6 +65,38 @@ export default {
         const r = await importsRoute(req, db, auth, path);
         if (r) return json(r);
       }
+      if (path === "/api/preferences/home") {
+        if (req.method === "GET") {
+          const row = await db
+            .prepare("SELECT data FROM user_home_preferences WHERE user_id=?")
+            .bind(auth.user.id)
+            .first();
+          return json({ home: row ? JSON.parse(row.data) : null });
+        }
+        if (req.method === "PUT") {
+          const body = await readJSON(req);
+          const allowed = ["summary", "jobs", "notes", "followups"];
+          if (
+            !body ||
+            !["dashboard", "calendar"].includes(body.view) ||
+            !Array.isArray(body.blocks) ||
+            body.blocks.length > allowed.length ||
+            body.blocks.some((key) => !allowed.includes(key)) ||
+            new Set(body.blocks).size !== body.blocks.length
+          )
+            fail(400, "Preferencias de inicio no válidas");
+          const home = { view: body.view, blocks: body.blocks };
+          await atomic(db, auth, [
+            db
+              .prepare(
+                "INSERT INTO user_home_preferences(user_id,data) VALUES(?,?) ON CONFLICT(user_id) DO UPDATE SET data=excluded.data",
+              )
+              .bind(auth.user.id, JSON.stringify(home)),
+          ]);
+          return json({ home });
+        }
+        fail(405, "Método no permitido");
+      }
       if (path === "/api/users" && req.method === "GET") {
         const { results } = await db
           .prepare(

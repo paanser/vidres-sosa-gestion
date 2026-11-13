@@ -1,3 +1,4 @@
+import { validateOperations } from "./operations.js";
 import {
   fail,
   readJSON,
@@ -112,6 +113,7 @@ export function validateValues(values) {
   const jobs = new Set(result[KEYS.trabajos].map((j) => j.id));
   for (const j of result[KEYS.trabajos]) {
     text(j.cliente, 100, 1);
+    validateOperations(j);
     strings(j, {
       descripcion: 180,
       direccion: 180,

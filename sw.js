@@ -1,7 +1,7 @@
 "use strict";
 const RELEASE = "__BUILD_VERSION__";
 const VERSION = RELEASE.startsWith("__")
-  ? "20261113-deslizar-actualizar-1"
+  ? "20261113-gestion-integral-1"
   : RELEASE;
 const PREFIX = "vidres-sosa:" + self.registration.scope + ":",
   CACHE = PREFIX + VERSION;
@@ -32,6 +32,8 @@ const ASSETS = [
   "voice.js",
   "enhancements.js",
   "expediente.js",
+  "operations-model.js",
+  "operations.js",
   "pwa.js",
   "manifest.json",
   "icons/icon-192.png",

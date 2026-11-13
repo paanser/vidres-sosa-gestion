@@ -103,6 +103,13 @@
       return result;
     },
     runMutation: enqueue,
+    acceptMutation(state) {
+      if (state.revision !== revision + 1) {
+        dirtyConflict = true;
+        throw Error("Revisión inesperada. Recarga los datos.");
+      }
+      accept(state);
+    },
     advanceRevision(next) {
       if (next !== revision + 1) {
         dirtyConflict = true;

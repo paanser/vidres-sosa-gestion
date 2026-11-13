@@ -351,7 +351,14 @@
             <label
               >Hora prevista (opcional)<input name="hora" type="time"
             /></label>
-            <input name="duracion" type="hidden" />
+            <label
+              >Duración prevista (minutos)<input
+                name="duracion"
+                type="number"
+                min="1"
+                max="1440"
+                step="1"
+            /></label>
             <label
               >Notas<textarea name="notas" rows="3" maxlength="1000"></textarea>
             </label>

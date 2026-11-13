@@ -861,6 +861,7 @@ window.vidresAppReady = (async () => {
       );
     }
     $("#content").innerHTML = html;
+    window.VSOperations?.decorate(page);
     const advanced = $(".advanced-work-filters");
     if (advanced && Object.values(filters).some(Boolean)) advanced.open = true;
     const scope = $("#job-scope");

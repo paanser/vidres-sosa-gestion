@@ -1,3 +1,4 @@
+const selectBySearch = require("./search-select-browser.cjs");
 const assert = require("node:assert/strict");
 const path = require("node:path");
 
@@ -8,7 +9,12 @@ module.exports = async function checkQuoteMeasures(page, context, root) {
       config = VSStorage.read(VSStorage.keys.configuracion, {}),
       quotes = VSStorage.read(VSStorage.keys.presupuestos, []),
       first = jobs[0],
-      second = { ...first, id: "VS-REFERENCIA-2", cliente: "Otro parte" };
+      second = {
+        ...first,
+        id: "VS-REFERENCIA-2",
+        cliente: "Rocío de prueba",
+        direccion: "Carrer de la Plata, 255",
+      };
     await VSStorage.patchValues({
       [VSStorage.keys.configuracion]: { ...config, unit: "cm" },
       [VSStorage.keys.trabajos]: [...jobs, second],
@@ -157,7 +163,7 @@ module.exports = async function checkQuoteMeasures(page, context, root) {
     await page.locator("#quote-measures").textContent(),
     /1000 × 800 mm/,
   );
-  await page.locator("#quote-job").selectOption(fixture.second);
+  await selectBySearch(page, "#quote-job", fixture.second, "rocio plata");
   await page.locator("#quote-measures > summary").click();
   await page.locator('[data-quote-paper] img[alt="otro-parte.jpg"]').waitFor();
   assert.equal(await page.locator(".quote-measure-grid article").count(), 0);
@@ -166,7 +172,7 @@ module.exports = async function checkQuoteMeasures(page, context, root) {
     /Revisar hueco/,
   );
   assert.equal(await page.locator('[data-field="price"]').inputValue(), "100");
-  await page.locator("#quote-job").selectOption("");
+  await selectBySearch(page, "#quote-job", "");
   assert.equal(await page.locator("#quote-measures").count(), 0);
 
   // Un fallo de descarga se puede reintentar sin salir del presupuesto.
@@ -178,7 +184,7 @@ module.exports = async function checkQuoteMeasures(page, context, root) {
     });
   const photoUrl = `**/api/files/${fixture.paper}`;
   await context.route(photoUrl, failPhoto);
-  await page.locator("#quote-job").selectOption(fixture.first);
+  await selectBySearch(page, "#quote-job", fixture.first);
   await page.locator("#quote-measures > summary").click();
   await page.locator("#quote-measures-retry").waitFor();
   await context.unroute(photoUrl, failPhoto);
@@ -186,7 +192,7 @@ module.exports = async function checkQuoteMeasures(page, context, root) {
   await page.locator("[data-quote-paper] img").waitFor();
 
   // Si cambia el parte durante la descarga, la foto anterior no se muestra.
-  await page.locator("#quote-job").selectOption("");
+  await selectBySearch(page, "#quote-job", "");
   let releasePhoto;
   const gate = new Promise((resolve) => {
       releasePhoto = resolve;
@@ -196,14 +202,14 @@ module.exports = async function checkQuoteMeasures(page, context, root) {
       await route.fallback();
     };
   await context.route(photoUrl, delayedPhoto);
-  await page.locator("#quote-job").selectOption(fixture.first);
+  await selectBySearch(page, "#quote-job", fixture.first);
   const started = page.waitForRequest(
     (request) =>
       new URL(request.url()).pathname === `/api/files/${fixture.paper}`,
   );
   await page.locator("#quote-measures > summary").click();
   await started;
-  await page.locator("#quote-job").selectOption(fixture.second);
+  await selectBySearch(page, "#quote-job", fixture.second, "rocio plata");
   await page.locator("#quote-measures > summary").click();
   await page.locator('[data-quote-paper] img[alt="otro-parte.jpg"]').waitFor();
   const finished = page.waitForResponse(
@@ -228,8 +234,8 @@ module.exports = async function checkQuoteMeasures(page, context, root) {
   );
   assert.equal(await page.locator("#quote-job").inputValue(), fixture.second);
   await page.evaluate((id) => VSFiles.remove("photos", id), fixture.otherPhoto);
-  await page.locator("#quote-job").selectOption(fixture.first);
-  await page.locator("#quote-job").selectOption(fixture.second);
+  await selectBySearch(page, "#quote-job", fixture.first);
+  await selectBySearch(page, "#quote-job", fixture.second, "rocio plata");
   await page.locator("#quote-measures > summary").click();
   await page
     .locator("[data-quote-paper]")

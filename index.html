@@ -470,7 +470,10 @@
         <label>CIF/NIF<input name="nif" maxlength="100" /></label>
         <label>Correo<input name="email" type="email" maxlength="200" /></label>
         <label
-          >Perfil de precios<select name="priceMode">
+          >Perfil de precios<select
+            name="priceMode"
+            data-search-select="Margen, recargo o tarifa"
+          >
             <option value="default">Sin perfil personalizado</option>
             <option value="markup">
               Margen personalizado sobre vidrio (%)
@@ -536,7 +539,11 @@
         <button type="button" id="measure-draw" class="primary">
           ✎ Dibujar medidas</button
         ><input type="hidden" name="id" /><label
-          >Trabajo<select name="trabajo" required></select
+          >Trabajo<select
+            name="trabajo"
+            data-search-select="Cliente, referencia o dirección"
+            required
+          ></select
         ></label>
         <div class="measure-fields">
           <label

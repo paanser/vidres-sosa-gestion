@@ -944,7 +944,22 @@ async function checkMobileFields(page) {
     "page",
   );
   await page.locator('[data-tool-go="consultor"]').click();
-  assert.equal(await page.locator("#consult-filter").isVisible(), true);
+  await page
+    .getByRole("button", { name: "Tarifa · Todas las tarifas" })
+    .click();
+  const tariffPicker = page.locator(".select-search-dialog");
+  const tariffSearch = tariffPicker.getByRole("searchbox");
+  assert.equal(await tariffPicker.locator("li").count(), 30);
+  await tariffPicker.getByRole("button", { name: "Siguiente" }).click();
+  assert.match(await tariffPicker.getByRole("status").textContent(), /^31–/);
+  await tariffSearch.fill("sin coincidencia para esta prueba");
+  assert.equal(await tariffPicker.locator("li").count(), 0);
+  await tariffSearch.fill("laminado 5+5");
+  assert.ok(
+    await tariffPicker.getByRole("button", { name: /Laminado 55\.1/ }).count(),
+  );
+  await tariffSearch.press("Escape");
+  assert.equal(await page.locator("#consult-filter").inputValue(), "all");
   await page
     .getByRole("button", { name: "← Volver a Herramientas", exact: true })
     .click();

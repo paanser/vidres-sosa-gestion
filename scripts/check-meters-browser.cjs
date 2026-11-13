@@ -1,3 +1,4 @@
+const selectBySearch = require("./search-select-browser.cjs");
 const assert = require("node:assert/strict");
 const path = require("node:path");
 const fs = require("node:fs/promises");
@@ -169,7 +170,7 @@ module.exports = async function checkMeters(page, context, root) {
   await page.locator("#quote-quick").click();
   await page.locator("#quick-w").fill("1.234");
   await page.locator("#quick-h").fill("0.830");
-  await page.locator("#quick-glass").selectOption("T-METROS");
+  await selectBySearch(page, "#quick-glass", "T-METROS");
   assert.match(
     await page.locator("#quick-result").textContent(),
     /1.234 × 0.830 m/,

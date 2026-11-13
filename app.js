@@ -581,6 +581,7 @@ window.vidresAppReady = (async () => {
       existing.priceProfile?.mode || "markup";
     dialog.querySelector('[name="priceValue"]').value =
       existing.priceProfile?.value ?? 0;
+    VSSelectSearch.init(dialog);
     dialog.showModal();
   }
   function measurementArea(m) {
@@ -646,14 +647,7 @@ window.vidresAppReady = (async () => {
     form.reset();
     form.elements.id.value = m?.id || "";
     form.elements.trabajo.innerHTML = jobs
-      .map(
-        (j) =>
-          '<option value="' +
-          esc(j.id) +
-          '">' +
-          esc(j.id + " · " + j.cliente) +
-          "</option>",
-      )
+      .map((j) => VSSelectSearch.jobOption(j))
       .join("");
     if (m)
       for (const k of [
@@ -667,6 +661,7 @@ window.vidresAppReady = (async () => {
       ])
         form.elements[k].value = m[k] ?? "";
     else if (jobId) form.elements.trabajo.value = jobId;
+    VSSelectSearch.init(form);
     VSMeasureInput.init(form);
     for (const key of ["ancho", "alto"]) {
       form.querySelector(`[data-measure-label="${key}"]`).textContent =

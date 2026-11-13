@@ -1,3 +1,4 @@
+const selectBySearch = require("./search-select-browser.cjs");
 const assert = require("node:assert/strict");
 module.exports = async (page) => {
   await page.evaluate(async () => {
@@ -25,7 +26,7 @@ module.exports = async (page) => {
   await page.locator("#client-form [data-dialog-close]").click();
   await page.locator('[data-client-edit="Perfil de prueba"]').click();
   assert.equal(await page.locator('[name="priceValue"]').inputValue(), "80");
-  await page.locator('[name="priceMode"]').selectOption("fixed");
+  await selectBySearch(page, '[name="priceMode"]', "fixed");
   await page.locator('[name="priceValue"]').fill("95");
   await page.locator('#client-form button[type="submit"]').click();
   await page.locator("#client-editor").waitFor({ state: "hidden" });

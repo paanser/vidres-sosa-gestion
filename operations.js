@@ -86,13 +86,11 @@
   function overview() {
     selected = "";
     const host = header("Gestión · Agenda y avisos");
-    host.innerHTML = `<div class="operations-actions">${button("drafts", "Mediciones sin cobertura")}</div><h3>Avisos de material y montaje</h3>${alertsHtml()}<h3>Agenda semanal</h3><div id="operations-agenda">${weekHtml()}</div><h3>Abrir un expediente</h3><label>Trabajo<select data-op-job><option value="">Selecciona un trabajo</option>${jobs()
+    host.innerHTML = `<div class="operations-actions">${button("drafts", "Mediciones sin cobertura")}</div><h3>Avisos de material y montaje</h3>${alertsHtml()}<h3>Agenda semanal</h3><div id="operations-agenda">${weekHtml()}</div><h3>Abrir un expediente</h3><label>Trabajo<select data-op-job data-search-select="Cliente, referencia o dirección"><option value="">Selecciona un trabajo</option>${jobs()
       .filter((j) => !j.archivadoEn)
-      .map(
-        (j) =>
-          `<option value="${esc(j.id)}">${esc(j.id)} · ${esc(j.cliente)}</option>`,
-      )
+      .map((j) => VSSelectSearch.jobOption(j))
       .join("")}</select></label>`;
+    VSSelectSearch.init(host);
   }
   function alertsHtml() {
     const items = jobs()
@@ -849,18 +847,16 @@
         "beforeend",
         form(
           "draft-import",
-          `<input type="hidden" name="id" value="${esc(id)}"><label>Importar al expediente<select name="job" required><option value="">Selecciona</option>${jobs()
+          `<input type="hidden" name="id" value="${esc(id)}"><label>Importar al expediente<select name="job" data-search-select="Cliente, referencia o dirección" required><option value="">Selecciona</option>${jobs()
             .filter((j) => !j.archivadoEn)
-            .map(
-              (j) =>
-                `<option value="${esc(j.id)}">${esc(j.id)} · ${esc(j.cliente)}</option>`,
-            )
+            .map((j) => VSSelectSearch.jobOption(j))
             .join(
               "",
             )}</select></label><p>Importa la versión guardada del borrador. Guarda primero si has modificado sus datos.</p>`,
           "Importar al servidor",
         ),
       );
+    VSSelectSearch.init(host);
   }
   async function saveDraft(el, d) {
     const old = d.get("id") ? await draftGet(d.get("id")) : null;

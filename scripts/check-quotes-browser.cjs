@@ -1,3 +1,4 @@
+const selectBySearch = require("./search-select-browser.cjs");
 const assert = require("node:assert/strict");
 const fs = require("node:fs/promises");
 const path = require("node:path");
@@ -28,7 +29,12 @@ module.exports = async function checkQuotes(page, context, root) {
   await page.locator('[data-field="doubleGlazing"]').uncheck();
 
   assert.equal(await page.locator('[name="quote-margin-mode"]').count(), 0);
-  await page.locator('[data-field="tariff"]').selectOption("reuglass-2-0");
+  await selectBySearch(
+    page,
+    '[data-field="tariff"]',
+    "reuglass-2-0",
+    "16,72 float",
+  );
   assert.equal(
     await page.locator('[data-field="price"]').inputValue(),
     "16.72",
@@ -63,12 +69,12 @@ module.exports = async function checkQuotes(page, context, root) {
   );
   await page.locator('[data-field="doubleGlazing"]').check();
   assert.equal(await page.locator('[data-field="price"]').inputValue(), "27");
-  await page.locator('[data-field="faceOne"]').selectOption("reuglass-3-1");
+  await selectBySearch(page, '[data-field="faceOne"]', "reuglass-3-1");
   assert.equal(
     await page.locator('[data-field="price"]').inputValue(),
     "35.98",
   );
-  await page.locator('[data-field="faceTwo"]').selectOption("reuglass-4-1");
+  await selectBySearch(page, '[data-field="faceTwo"]', "reuglass-4-1");
   assert.equal(
     await page.locator('[data-field="price"]').inputValue(),
     "46.73",
@@ -88,7 +94,7 @@ module.exports = async function checkQuotes(page, context, root) {
     /Tarifa|Reuglass|Sustituciones/,
   );
   await page.locator('[data-field="doubleGlazing"]').uncheck();
-  await page.locator('[data-field="tariff"]').selectOption("");
+  await selectBySearch(page, '[data-field="tariff"]', "");
 
   await set('[data-field="glass"]', "Vidrio especial sin tarifa");
   await set('[data-field="w"]', "1.200");
@@ -288,9 +294,9 @@ module.exports = async function checkQuotes(page, context, root) {
   await set("#quick-w", "1.000");
   await set("#quick-h", "1.000");
   await page.locator('[data-field="doubleGlazing"]').check();
-  await page.locator('[data-field="faceOne"]').selectOption("reuglass-3-1");
+  await selectBySearch(page, '[data-field="faceOne"]', "reuglass-3-1");
   assert.match(await page.locator(".quick-double").textContent(), /35,98/);
-  await page.locator('[data-field="faceTwo"]').selectOption("reuglass-4-1");
+  await selectBySearch(page, '[data-field="faceTwo"]', "reuglass-4-1");
   assert.match(await page.locator(".quick-double").textContent(), /46,73/);
   await page.locator("#quick-save").click();
   await page.waitForFunction(

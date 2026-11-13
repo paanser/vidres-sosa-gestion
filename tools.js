@@ -169,7 +169,7 @@
           .includes(query.toLocaleLowerCase("es")),
     );
     return (
-      '<section class="panel"><h2>Consultor de tarifas</h2><p class="muted">Consulta rápida de Tarifa Reuglass y de los artículos importados en CSV. No crea presupuestos.</p><div class="quote-fields"><label>Tarifa<select id="consult-filter"><option value="all">Todas las tarifas</option>' +
+      '<section class="panel"><h2>Consultor de tarifas</h2><p class="muted">Consulta rápida de Tarifa Reuglass y de los artículos importados en CSV. No crea presupuestos.</p><div class="quote-fields"><label>Tarifa<select id="consult-filter" data-search-select="Vidrio, tarifa o precio"><option value="all">Todas las tarifas</option>' +
       list
         .map(
           (t) =>
@@ -179,7 +179,9 @@
             (selected === t.id ? "selected" : "") +
             ">" +
             esc(t.name) +
-            "</option>",
+            " · " +
+            euro(t.price) +
+            "/m²</option>",
         )
         .join("") +
       '</select></label><label>Buscar vidrio<input id="consult-search" placeholder="Laminado, 5+5, templado…" value="' +
@@ -361,6 +363,7 @@
           : page === "consultor"
             ? settingsBack("Herramientas", "herramientas") + consult()
             : settingsHome();
+      VSSelectSearch.init(root);
       return;
     }
     const section = {

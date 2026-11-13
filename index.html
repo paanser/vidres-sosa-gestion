@@ -464,12 +464,14 @@
         <label
           >Perfil de precios<select name="priceMode">
             <option value="default">Sin perfil personalizado</option>
-            <option value="markup">Recargo sobre vidrio (%)</option>
+            <option value="markup">
+              Margen personalizado sobre vidrio (%)
+            </option>
             <option value="fixed">Tarifa de venta del vidrio (€/m²)</option>
           </select></label
         >
         <label
-          >Valor del perfil<input
+          >Margen (%) o tarifa (€/m²)<input
             name="priceValue"
             type="number"
             min="0"
@@ -481,7 +483,7 @@
         <p>
           Se copia al seleccionar el cliente en un presupuesto. Cantos, energía
           y extras se suman aparte. Puedes ajustar cada oferta sin cambiar esta
-          ficha.
+          ficha. Las fichas nuevas empiezan con un margen del 0 %.
         </p>
         <div class="actions">
           <button type="button" data-dialog-close>Cancelar</button

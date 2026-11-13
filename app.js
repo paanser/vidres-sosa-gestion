@@ -491,6 +491,18 @@ window.vidresAppReady = (async () => {
                   esc(name) +
                   '">Editar ficha</button></div><p>' +
                   esc(c.direccion || "Dirección no indicada") +
+                  '</p><p class="muted">' +
+                  (c.priceProfile?.mode === "fixed"
+                    ? "Tarifa de venta del vidrio: " +
+                      esc(c.priceProfile.value) +
+                      " €/m²"
+                    : "Margen personalizado: " +
+                      esc(
+                        c.priceProfile?.mode === "markup"
+                          ? c.priceProfile.value
+                          : 0,
+                      ) +
+                      " %") +
                   '</p><div class="client-actions">' +
                   (tel
                     ? '<a href="tel:' +
@@ -526,7 +538,7 @@ window.vidresAppReady = (async () => {
       existing.nif || existing.cif || "";
     dialog.querySelector('[name="email"]').value = existing.email || "";
     dialog.querySelector('[name="priceMode"]').value =
-      existing.priceProfile?.mode || "default";
+      existing.priceProfile?.mode || "markup";
     dialog.querySelector('[name="priceValue"]').value =
       existing.priceProfile?.value ?? 0;
     dialog.showModal();

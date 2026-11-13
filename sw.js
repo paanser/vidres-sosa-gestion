@@ -39,6 +39,7 @@ const ASSETS = [
   "icons/icon-192.png",
   "icons/icon-512.png",
   "icons/app-logo.png",
+  "icons/vidres-sosa-horizontal.svg",
   "icons/app-icon-192.png",
   "icons/app-icon-512.png",
 ];

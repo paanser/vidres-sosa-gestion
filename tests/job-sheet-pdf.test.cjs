@@ -48,11 +48,12 @@ test("Se pueden imprimir expedientes sin datos opcionales", () => {
 test("El logo VS se imprime bajo la cuadrícula con opacidad suave", () => {
   const doc = build({ id: "VS-LOGO" });
   const commands = doc.internal.pages[1].join("\n");
-  const image = commands.indexOf("/I0 Do");
+  const image = commands.indexOf("/GS1 gs");
   assert.ok(image > 0);
-  assert.ok(commands.indexOf("/GS1 gs") < image);
+  assert.ok(commands.slice(image).includes(" c"));
   assert.ok((commands.slice(image).match(/ l\n/g) || []).length >= 60);
   const pdf = doc.output();
   assert.ok(pdf.includes("/ca 0.06"));
-  assert.ok(pdf.includes("/Subtype /Image"));
+  assert.ok(!pdf.includes("/Subtype /Image"));
+  assert.ok(!commands.includes("Cuadr"));
 });

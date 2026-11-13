@@ -313,3 +313,16 @@ CHROMIUM_PATH=/usr/bin/chromium npm run test:browser` (en una sola línea).
 - A petición del usuario, la cuadrícula incluye el logo VS de
   `icons/icon-512.png` centrado, con opacidad del 6 %, detrás de las líneas.
   Se incorpora en el módulo para generar el PDF sin solicitudes de imágenes.
+
+## Revisión de la hoja de visita · 13 de noviembre de 2026
+
+- Cabecera con empresa y título separados, datos de contacto y cita antes del
+  trabajo a realizar y observaciones opcionales. Se elimina la explicación del
+  tamaño de cuadrícula.
+- La marca de agua usa la misma silueta vectorial de `sketch.js`, en lugar del
+  icono de instalación de la app. Se dibuja directamente en el PDF, sin petición
+  de imagen ni dependencia de red.
+- El acceso a la hoja tiene un bloque propio en el expediente y acciones de
+  apertura y descarga, separado de editar y eliminar.
+- Verificación: 68 pruebas unitarias y comprobación de navegador con descarga
+  del PDF y acceso a 390, 768 y 1440 px.

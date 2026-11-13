@@ -39,9 +39,9 @@
       const filename =
         "visita-" + String(job.id).replace(/[^a-z0-9_-]/gi, "-") + ".pdf";
       sheetResult.innerHTML =
-        '<p>Hoja A4 preparada. Abre el PDF para imprimir a tamaño real (100 %).</p><a target="_blank" rel="noopener" href="' +
+        '<p>Tu hoja de visita está lista.</p><a target="_blank" rel="noopener" href="' +
         sheetUrl +
-        '">Abrir PDF e imprimir</a> · <a download="' +
+        '">Abrir e imprimir</a> <a download="' +
         filename +
         '" href="' +
         sheetUrl +

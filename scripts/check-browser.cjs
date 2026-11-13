@@ -728,7 +728,9 @@ async function checkMobileFields(page) {
   await page.locator(".job-card [data-id]").first().click();
   await page.locator("[data-exp-sheet]").click();
   const sheet = page.locator("#exp-sheet-result");
-  await sheet.getByText("Hoja A4 preparada.", { exact: false }).waitFor();
+  await sheet
+    .getByText("Tu hoja de visita está lista.", { exact: false })
+    .waitFor();
   const downloadReady = page.waitForEvent("download");
   await sheet.locator("a[download]").click();
   const sheetDownload = await downloadReady;

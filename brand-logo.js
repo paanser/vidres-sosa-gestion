@@ -22,7 +22,7 @@
       const tokens = d.match(/[MLCZ]|-?\d+(?:\.\d+)?/g);
       const path = [];
       let command;
-      for (let i = 0; i < tokens.length;) {
+      for (let i = 0; i < tokens.length; ) {
         if (/^[MLCZ]$/.test(tokens[i])) command = tokens[i++];
         const count = command === "C" ? 6 : command === "Z" ? 0 : 2;
         const c = tokens

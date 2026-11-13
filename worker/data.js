@@ -316,6 +316,13 @@ export function checked(values) {
     if (q.pricing) {
       if (!object(q.pricing)) fail(400, "Fiscalidad no válida");
       number(q.pricing.vat ?? 21, 0, 100);
+      if (
+        q.pricing.minimumArea != null &&
+        !["auto", "0.35", "0.5", "0.7", "1"].includes(
+          String(q.pricing.minimumArea),
+        )
+      )
+        fail(400, "Metraje mínimo no válido");
       if (q.pricing.energy) number(q.pricing.energy);
       if (q.pricing.margin != null && q.pricing.margin !== "")
         number(q.pricing.margin);

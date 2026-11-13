@@ -14,6 +14,19 @@ module.exports = async function checkQuotes(page, context, root) {
     window.print = () => window.quotePrintCount++;
   });
   await set("#quote-client", "Cliente ficticio de prueba");
+  assert.equal(await page.locator("#quote-minimum-area").inputValue(), "auto");
+  await set('[data-field="w"]', "0.200");
+  await set('[data-field="h"]', "0.300");
+  assert.match(await page.locator(".quote-result").textContent(), /0.5000 m²/);
+  await page.locator('[data-field="doubleGlazing"]').check();
+  assert.match(await page.locator(".quote-result").textContent(), /0.7000 m²/);
+  await page.locator("#quote-minimum-area").selectOption("0.35");
+  assert.match(await page.locator(".quote-result").textContent(), /0.3500 m²/);
+  await page.locator("#quote-minimum-area").selectOption("1");
+  assert.match(await page.locator(".quote-result").textContent(), /1.0000 m²/);
+  await page.locator("#quote-minimum-area").selectOption("auto");
+  await page.locator('[data-field="doubleGlazing"]').uncheck();
+
   assert.equal(await page.locator('[name="quote-margin-mode"]').count(), 0);
   await page.locator('[data-field="tariff"]').selectOption("reuglass-2-0");
   assert.equal(
@@ -88,6 +101,33 @@ module.exports = async function checkQuotes(page, context, root) {
     await page.locator(".quote-grand-total").textContent(),
     /269,59/,
   );
+  assert.match(
+    await page.locator(".quote-line-sale").textContent(),
+    /Precio de esta partida sin IVA: 222,80/,
+  );
+  await page.locator("#quote-add").click();
+  const second = page.locator('.quote-line[data-line="1"]');
+  await set('.quote-line[data-line="1"] [data-field="w"]', "1.000");
+  await set('.quote-line[data-line="1"] [data-field="h"]', "1.000");
+  await set('.quote-line[data-line="1"] [data-field="price"]', "50");
+  await set('.quote-line[data-line="1"] [data-field="qty"]', "2");
+  assert.match(
+    await second.locator(".quote-line-sale").textContent(),
+    /124,85/,
+  );
+  assert.match(
+    await page
+      .locator('.quote-line[data-line="0"] .quote-line-sale')
+      .textContent(),
+    /222,80/,
+  );
+  await page.locator("#quote-margin").fill("0");
+  assert.match(
+    await second.locator(".quote-line-sale").textContent(),
+    /104,04/,
+  );
+  await set("#quote-margin", "20");
+  await second.locator("[data-remove]").click();
   await page.locator("#quote-add-concept").click();
   const description = 'Trabajo especial <img src=x onerror="alert(1)">';
   await set('[data-field="description"]', description);

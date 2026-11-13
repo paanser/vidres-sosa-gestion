@@ -237,3 +237,44 @@ test("aluminio devuelve desglose completo sin alterar coste ni venta", () => {
   assert.equal(line.separate, false);
   assert.equal(result.totals.total, 1355.2);
 });
+
+test("metraje mínimo por pieza: automático, selección manual y presupuestos anteriores", () => {
+  const line = {
+    w: 20,
+    h: 30,
+    qty: 2,
+    price: 100,
+    sides: ["top"],
+    edgePrice: 10,
+  };
+  assert.equal(calc(line, { minimumArea: "auto" }).area, 0.5);
+  assert.equal(
+    calc({ ...line, doubleGlazing: true }, { minimumArea: "auto" }).area,
+    0.7,
+  );
+  for (const minimumArea of [0.35, 0.5, 0.7, 1]) {
+    const result = calc({ ...line, doubleGlazing: true }, { minimumArea });
+    assert.equal(result.area, minimumArea);
+    assert.equal(result.ml, 0.2);
+    assert.equal(result.total, (minimumArea * 100 + 2) * 2);
+  }
+  assert.equal(calc(line).area, 0.072);
+  assert.equal(
+    calc({ ...line, w: 120, h: 120 }, { minimumArea: 1 }).area,
+    1.44,
+  );
+  assert.equal(calc({}, { minimumArea: "auto" }).area, 0);
+  assert.equal(calc({ kind: "concept" }, { minimumArea: "auto" }).total, 0);
+  const q = {
+    pricing: { minimumArea: "auto", margin: 20, marginScope: "glass", vat: 21 },
+    lines: [
+      { w: 20, h: 30, price: 100 },
+      { w: 20, h: 30, price: 100, doubleGlazing: true },
+    ],
+  };
+  assert.deepEqual(quoteDetails(q).totals, {
+    base: 144,
+    iva: 30.24,
+    total: 174.24,
+  });
+});

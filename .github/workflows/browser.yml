@@ -5,6 +5,8 @@ on:
     paths:
       - .github/workflows/browser.yml
       - scripts/check-browser.cjs
+      - milestones.js
+      - scripts/check-milestones-browser.cjs
       - scripts/check-operations-browser.cjs
       - operations.js
       - operations-model.js
@@ -21,6 +23,8 @@ on:
     paths:
       - .github/workflows/browser.yml
       - scripts/check-browser.cjs
+      - milestones.js
+      - scripts/check-milestones-browser.cjs
       - scripts/check-operations-browser.cjs
       - operations.js
       - operations-model.js

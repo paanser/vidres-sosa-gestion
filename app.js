@@ -163,6 +163,8 @@ window.vidresAppReady = (async () => {
           "</option>",
       )
       .join("");
+  let milestoneFilter = "",
+    milestoneCompletion = "done";
   function jobCards(items) {
     if (!items.length)
       return '<div class="empty-state"><strong>No hay trabajos que coincidan</strong><p>Prueba otros filtros o crea un nuevo parte.</p></div>';
@@ -177,7 +179,9 @@ window.vidresAppReady = (async () => {
             status(j.estado) +
             "</div><h3>" +
             esc(j.cliente) +
-            "</h3><p>" +
+            "</h3>" +
+            VSMilestones.badges(j) +
+            "<p>" +
             esc(j.descripcion) +
             '</p><div class="job-meta"><span>📅 ' +
             esc(j.fecha || "Sin fecha") +
@@ -216,7 +220,7 @@ window.vidresAppReady = (async () => {
       "Crítico",
     ];
     return (
-      '<div class="simple-work-search"><label>Buscar trabajo<input id="search" type="search" placeholder="Cliente, dirección o referencia" value="' +
+      '<div class="simple-work-search"><label>Buscar trabajo<input id="search" type="search" placeholder="Cliente, fecha, dirección o referencia" value="' +
       esc(search) +
       '"></label><label>Mostrar<select id="job-scope">' +
       [
@@ -731,9 +735,10 @@ window.vidresAppReady = (async () => {
           ? '<p role="status" class="backup-reminder">Hace más de 14 días que no exportas una copia. <button type="button" data-go="ajustes-copias">Hacer copia</button></p>'
           : "") + dashboardHtml();
     } else if (page === "trabajos") {
-      const q = /^[+\d\s()-]+$/.test(search)
-        ? search.replace(/\D/g, "")
-        : search.toLocaleLowerCase("es");
+      const q =
+        !/\d{4}-\d{2}|\d{2}\/\d{2}/.test(search) && /^[+\d\s()-]+$/.test(search)
+          ? search.replace(/\D/g, "")
+          : search.toLocaleLowerCase("es");
       const filtered = jobs.filter(
         (j) =>
           (jobFocus !== "late" || (j.fecha && j.fecha < localToday())) &&
@@ -745,12 +750,21 @@ window.vidresAppReady = (async () => {
               : jobScope === "finalizados"
                 ? isClosed(j) && !isArchived(j)
                 : !isClosed(j) && !isArchived(j))) &&
+          VSMilestones.matches(
+            j,
+            "job",
+            "",
+            milestoneFilter,
+            milestoneCompletion,
+          ) &&
           (!filters.estado || j.estado === filters.estado) &&
           (!filters.responsable || j.responsable === filters.responsable) &&
           (!filters.tipoCliente ||
             (j.tipoCliente || "Particular") === filters.tipoCliente) &&
           [
             j.id,
+            j.fecha,
+            (j.fecha || "").split("-").reverse().join("/"),
             j.cliente,
             j.descripcion,
             j.direccion,
@@ -780,6 +794,7 @@ window.vidresAppReady = (async () => {
             "</button>"
           : "") +
         workFilters() +
+        VSMilestones.controls("jobs") +
         jobCards(filtered);
     } else if (page === "criticos") {
       const criticalJobs = jobs.filter((j) => j.estado === "Crítico");
@@ -894,6 +909,20 @@ window.vidresAppReady = (async () => {
         render();
       }),
     );
+    const mf = $("#jobs-milestone"),
+      mc = $("#jobs-completion");
+    if (mf) {
+      mf.value = milestoneFilter;
+      mc.value = milestoneCompletion;
+      mf.onchange = () => {
+        milestoneFilter = mf.value;
+        render();
+      };
+      mc.onchange = () => {
+        milestoneCompletion = mc.value;
+        render();
+      };
+    }
     const input = $("#search");
     if (input)
       input.addEventListener("input", (e) => {
@@ -1243,6 +1272,12 @@ window.vidresAppReady = (async () => {
       return false;
     }
   };
+  window.vidresSyncMilestones = () => {
+    jobs = VSStorage.read(KEY, []);
+  };
+  window.addEventListener("vidres-milestones-saved", () => {
+    if (page === "trabajos") render();
+  });
   window.vidresRefresh = render;
   window.vidresReloadData = () => {
     jobs = VSStorage.read(KEY, []);

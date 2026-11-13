@@ -139,3 +139,27 @@ En Clientes → Editar ficha se puede guardar un recargo porcentual (por ejemplo
 La tarifa fija sustituye únicamente la venta del vidrio sobre la superficie facturable, incluido el metraje mínimo. Cantos, energía y conceptos adicionales se suman aparte; aluminio conserva su incremento propio. El coste original permanece en el desglose interno. Los PDF y mensajes utilizan los mismos totales del presupuesto.
 
 En móvil, un deslizamiento horizontal de al menos 80 px desde los primeros 24 px del borde izquierdo regresa a la sección anterior. Los gestos cortos, verticales, sobre controles o con un diálogo abierto no activan el retroceso. El borrador del presupuesto permanece en memoria al cambiar de sección.
+
+### Hitos y búsqueda de expedientes
+
+Los botones M (Medido), F (Fabricado), PM (Pendiente Montaje) y MO (Montado)
+son indicadores independientes: gris significa pendiente y verde completado.
+No cambian el estado comercial ni los cálculos del expediente. Cada pulsación
+se confirma mediante `/api/state`, con la revisión existente, antes de mostrar
+el cambio. Los registros antiguos empiezan con todos los hitos pendientes.
+
+Los hitos se guardan en el objeto `hitos` del registro JSON de D1, sin migración
+SQL. Los presupuestos vinculados comparten los hitos del trabajo; los no
+vinculados guardan sus propios hitos. El Worker valida las cuatro claves y sus
+valores booleanos. Un fallo de red o conflicto deja visible el estado guardado
+y muestra el error, sin afirmar que se haya guardado localmente.
+
+Trabajos permite buscar por cliente, referencia y fecha (AAAA-MM-DD o
+DD/MM/AAAA), además de los campos anteriores. Trabajos y presupuestos permiten
+filtrar por hito y por pendiente/completado. En presupuestos, los filtros actúan
+sobre el listado sin reconstruir el formulario que se está editando.
+
+Validación: `npm test` y `CHROMIUM_PATH=/usr/bin/chromium npm run test:browser`.
+Las pruebas de navegador incluyen alternancia, recarga del estado del Worker/D1,
+hitos propios y vinculados, filtros y modo oscuro. Estas pruebas usan el backend
+de pruebas; no modifican D1 remoto ni despliegan recursos.

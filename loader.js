@@ -14,6 +14,7 @@ document.querySelectorAll("#nav button").forEach((b) => (b.disabled = true));
     "vendor/jspdf.umd.min",
     "vendor/jspdf.plugin.autotable.min",
     "quote-pdf",
+    "milestones",
     "quotes",
     "sketch",
     "job-measures",

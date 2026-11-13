@@ -131,6 +131,7 @@ async function checkMobileFields(page) {
     await fs.mkdir(path.join(root, "test-results"), { recursive: true });
     await require("./check-operations-browser.cjs")(page, context, root);
     assert.deepEqual(errors, []);
+    await require("./check-milestones-browser.cjs")(page);
     await browser.close();
     return;
   }
@@ -1037,6 +1038,7 @@ async function checkMobileFields(page) {
   );
   await require("./check-operations-browser.cjs")(page, context, root);
   assert.deepEqual(errors, []);
+  await require("./check-milestones-browser.cjs")(page);
   await browser.close();
 })().catch((e) => {
   console.error(e);

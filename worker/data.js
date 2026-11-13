@@ -52,6 +52,17 @@ function tree(value, depth = 0, field = "") {
       tree(v, depth + 1, key);
     }
 }
+function validateMilestones(record) {
+  if (record.hitos == null) return;
+  if (
+    !object(record.hitos) ||
+    Object.entries(record.hitos).some(
+      ([key, value]) =>
+        !["M", "F", "PM", "MO"].includes(key) || typeof value !== "boolean",
+    )
+  )
+    fail(400, "Hitos no válidos");
+}
 export function validateValues(values) {
   if (!object(values)) fail(400, "Datos no válidos");
   tree(values);
@@ -141,6 +152,7 @@ export function validateValues(values) {
       ].includes(j.estado)
     )
       fail(400, "Estado no válido");
+    validateMilestones(j);
     if (j.historial && !Array.isArray(j.historial))
       fail(400, "Historial no válido");
     if (j.historial)
@@ -223,6 +235,7 @@ export function checked(values) {
     }
   }
   for (const q of out[KEYS.presupuestos]) {
+    validateMilestones(q);
     text(q.client, 100);
     strings(q, {
       job: 150,

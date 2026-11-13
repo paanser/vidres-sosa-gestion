@@ -125,6 +125,7 @@
     }
     if (tab === "resumen") {
       body.innerHTML =
+        VSMilestones.badges(j) +
         detail +
         '<div class="exp-two"><section class="exp-section"><h3>Descripción del trabajo</h3><p>' +
         esc(j.descripcion) +

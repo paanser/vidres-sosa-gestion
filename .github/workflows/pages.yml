@@ -44,7 +44,7 @@ jobs:
       - name: Preparar archivos públicos
         run: |
           mkdir public
-          cp index.html styles.css manifest.json version.json loader.js auth.js users.js migration.js utils.js storage.js calculations.js files.js backup.js tariffs.js tools.js quote-pdf.js quotes.js sketch.js job-measures.js app.js ai-config.js voice.js enhancements.js expediente.js operations-model.js operations.js pwa.js sw.js public/
+          cp index.html styles.css manifest.json version.json loader.js auth.js users.js migration.js utils.js storage.js calculations.js files.js backup.js tariffs.js tools.js quote-pdf.js milestones.js quotes.js sketch.js job-measures.js app.js ai-config.js voice.js enhancements.js expediente.js operations-model.js operations.js pwa.js sw.js public/
           cp -R vendor public/vendor
           cp -R icons public/icons
           cp -R documents public/documents
@@ -67,7 +67,7 @@ jobs:
             await new Promise(resolve => setTimeout(resolve, 3000));
           }
           if (!published) throw Error("La versión pública todavía no coincide con el despliegue");
-          for (const asset of ["operations.js", "operations-model.js"]) {
+          for (const asset of ["operations.js", "operations-model.js", "milestones.js"]) {
             const response = await fetch(base + asset + "?v=" + revision, { signal: AbortSignal.timeout(15000) });
             if (!response.ok || !(response.headers.get("content-type") || "").includes("javascript")) throw Error("Recurso público ausente: " + asset);
           }

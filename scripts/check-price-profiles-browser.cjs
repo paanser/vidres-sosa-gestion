@@ -2,6 +2,7 @@ const assert = require("node:assert/strict");
 module.exports = async (page) => {
   await page.evaluate(async () => {
     await VSStorage.write(VSStorage.keys.clientes, [
+      { nombre: "Cliente nuevo" },
       {
         nombre: "Perfil de prueba",
         priceProfile: { mode: "markup", value: 80 },
@@ -10,6 +11,18 @@ module.exports = async (page) => {
     vidresReloadData();
     vidresNavigate("clientes");
   });
+  await page.locator('[data-client-edit="Cliente nuevo"]').click();
+  assert.equal(await page.locator('[name="priceMode"]').inputValue(), "markup");
+  assert.equal(await page.locator('[name="priceValue"]').inputValue(), "0");
+  await page.locator('#client-form button[type="submit"]').click();
+  await page.locator("#client-editor").waitFor({ state: "hidden" });
+  await page.reload();
+  await page.locator(".quick-notes").waitFor();
+  await page.evaluate(() => vidresNavigate("clientes"));
+  await page.locator('[data-client-edit="Cliente nuevo"]').click();
+  assert.equal(await page.locator('[name="priceMode"]').inputValue(), "markup");
+  assert.equal(await page.locator('[name="priceValue"]').inputValue(), "0");
+  await page.locator("#client-form [data-dialog-close]").click();
   await page.locator('[data-client-edit="Perfil de prueba"]').click();
   assert.equal(await page.locator('[name="priceValue"]').inputValue(), "80");
   await page.locator('[name="priceMode"]').selectOption("fixed");
@@ -23,7 +36,10 @@ module.exports = async (page) => {
   await page.locator("#quote-fixed-price").dispatchEvent("change");
   assert.equal(
     await page.evaluate(
-      () => VSStorage.read(VSStorage.keys.clientes, [])[0].priceProfile.value,
+      () =>
+        VSStorage.read(VSStorage.keys.clientes, []).find(
+          (c) => c.nombre === "Perfil de prueba",
+        ).priceProfile.value,
     ),
     95,
   );

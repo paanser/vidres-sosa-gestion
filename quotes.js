@@ -335,7 +335,9 @@
       width = document.querySelector("#quick-w");
     if (!client || !width) return;
     readMinimumArea();
+    const previousClient = draft.client;
     draft.client = client.value.trim();
+    if (previousClient !== draft.client) applyClientProfile();
     line.w = VSMeasureInput.read(width).cm ?? "";
     line.h = VSMeasureInput.read(document.querySelector("#quick-h")).cm ?? "";
     line.qty = document.querySelector("#quick-qty").value;

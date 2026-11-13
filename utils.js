@@ -313,3 +313,175 @@ if (typeof document !== "undefined") {
     );
   }
 }
+
+// Conserva el select como valor del formulario y comparte un buscador entre pantallas.
+if (typeof document !== "undefined") {
+  const enhancedSelects = new WeakMap();
+  const normalizeOption = (value) =>
+    value
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLocaleLowerCase("es")
+      .replace(/(\d)\s*\+\s*(?=\d)/g, "$1");
+  const optionPageSize = 30;
+  let picker;
+
+  function openSelectSearch(select, title) {
+    if (!picker) {
+      picker = document.createElement("dialog");
+      picker.className = "select-search-dialog";
+      picker.setAttribute("aria-labelledby", "select-search-title");
+      picker.innerHTML = `
+        <div class="select-search-header">
+          <h2 id="select-search-title"></h2>
+          <button type="button" data-select-close>Cerrar</button>
+        </div>
+        <input type="search" aria-label="Buscar opciones" autocomplete="off" autofocus>
+        <p class="muted" role="status"></p>
+        <ul class="select-search-results"></ul>
+        <div class="select-search-pages">
+          <button type="button" data-select-page="-1">Anterior</button>
+          <button type="button" data-select-page="1">Siguiente</button>
+        </div>`;
+      document.body.append(picker);
+      picker.querySelector("[data-select-close]").onclick = () =>
+        picker.close();
+    }
+    const search = picker.querySelector("input");
+    const results = picker.querySelector("ul");
+    const status = picker.querySelector("[role=status]");
+    const pages = picker.querySelector(".select-search-pages");
+    const previous = pages.querySelector('[data-select-page="-1"]');
+    const next = pages.querySelector('[data-select-page="1"]');
+    const options = Array.from(select.options)
+      .filter((option) => !option.disabled && !option.hidden)
+      .map((option) => ({
+        option,
+        searchText: normalizeOption(
+          [option.label, option.dataset.searchDetail, option.dataset.searchText]
+            .filter(Boolean)
+            .join(" "),
+        ),
+      }));
+    let matches = options;
+    let page = 0;
+    function renderResults() {
+      const start = page * optionPageSize;
+      const end = Math.min(start + optionPageSize, matches.length);
+      const fragment = document.createDocumentFragment();
+      for (const { option } of matches.slice(start, end)) {
+        const item = document.createElement("li");
+        const button = document.createElement("button");
+        button.type = "button";
+        button.value = option.value;
+        button.textContent = option.label;
+        if (option.selected) button.setAttribute("aria-current", "true");
+        if (option.dataset.searchDetail) {
+          const detail = document.createElement("small");
+          detail.textContent = option.dataset.searchDetail;
+          button.append(detail);
+        }
+        button.onclick = () => {
+          picker.close();
+          if (!select.isConnected || option.selected) return;
+          select.selectedIndex = option.index;
+          select.dispatchEvent(new Event("change", { bubbles: true }));
+        };
+        item.append(button);
+        fragment.append(item);
+      }
+      results.replaceChildren(fragment);
+      results.scrollTop = 0;
+      status.textContent = matches.length
+        ? `${start + 1}–${end} de ${matches.length} opciones`
+        : "No hay opciones que coincidan.";
+      pages.hidden = matches.length <= optionPageSize;
+      previous.disabled = page === 0;
+      next.disabled = end >= matches.length;
+    }
+    search.oninput = () => {
+      const terms = normalizeOption(search.value.trim()).split(/\s+/);
+      matches = options.filter(({ searchText }) =>
+        terms.every((term) => searchText.includes(term)),
+      );
+      page = 0;
+      renderResults();
+    };
+    search.onkeydown = (event) => {
+      if (event.isComposing) return;
+      if (event.key === "Escape") {
+        event.preventDefault();
+        picker.close();
+        return;
+      }
+      const first = results.querySelector("button");
+      if (event.key === "ArrowDown" && first) {
+        event.preventDefault();
+        first.focus();
+      }
+      if (event.key === "Enter" && matches.length === 1) {
+        event.preventDefault();
+        first.click();
+      }
+    };
+    for (const button of [previous, next]) {
+      button.onclick = () => {
+        page += Number(button.dataset.selectPage);
+        renderResults();
+        results.querySelector("button")?.focus();
+      };
+    }
+    picker.querySelector("h2").textContent = title;
+    search.placeholder = select.dataset.searchSelect || "Escribe para buscar";
+    search.value = "";
+    renderResults();
+    picker.showModal();
+    search.focus();
+  }
+
+  window.VSSelectSearch = {
+    init(root) {
+      for (const select of root.querySelectorAll(
+        "select[data-search-select]",
+      )) {
+        if (enhancedSelects.has(select)) {
+          this.refresh(select);
+          continue;
+        }
+        const label = select.parentElement;
+        const title = label.textContent.replace(select.textContent, "").trim();
+        const button = document.createElement("button");
+        button.type = "button";
+        button.id = `search-select-${crypto.randomUUID()}`;
+        button.className = "select-search-trigger";
+        button.setAttribute("aria-haspopup", "dialog");
+        button.onclick = () => openSelectSearch(select, title);
+        label.htmlFor = button.id;
+        label.append(button);
+        label.after(select);
+        select.hidden = true;
+        enhancedSelects.set(select, { button, title });
+        select.addEventListener("change", () => this.refresh(select));
+        select.addEventListener("invalid", (event) => {
+          event.preventDefault();
+          if (!picker?.open) button.click();
+        });
+        this.refresh(select);
+      }
+    },
+    refresh(select) {
+      const control = enhancedSelects.get(select);
+      if (!control) return;
+      const { button, title } = control;
+      const value = select.selectedOptions[0]?.label || "Selecciona";
+      button.textContent = value;
+      button.setAttribute("aria-label", `${title} · ${value}`);
+      button.disabled = select.disabled;
+    },
+    jobOption(job, selected = "") {
+      const { esc } = VSUtils;
+      const detail = [job.direccion, job.poblacion].filter(Boolean).join(" · ");
+      return `<option value="${esc(job.id)}" data-search-detail="${esc(detail)}" data-search-text="${esc(job.descripcion)}" ${job.id === selected ? "selected" : ""}>${esc(job.id)} · ${esc(job.cliente)}</option>`;
+    },
+  };
+}

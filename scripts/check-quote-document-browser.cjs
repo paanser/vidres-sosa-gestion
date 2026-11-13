@@ -1,3 +1,4 @@
+const selectBySearch = require("./search-select-browser.cjs");
 const assert = require("node:assert/strict");
 const fs = require("node:fs/promises");
 const path = require("node:path");
@@ -184,7 +185,7 @@ module.exports = async function checkQuoteDocument(page, context, root) {
   await set('[data-quote-client="email"]', "rapido@example.com");
   await set("#quick-w", "1.000");
   await set("#quick-h", "1.000");
-  await page.locator("#quick-glass").selectOption("reuglass-2-0");
+  await selectBySearch(page, "#quick-glass", "reuglass-2-0");
   await page.locator(".quote-document-options > summary").click();
   await page.locator('[data-pdf-option="area"]').uncheck();
   await page.locator("#quote-pdf").click();

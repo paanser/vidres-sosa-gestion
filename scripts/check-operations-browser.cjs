@@ -1,3 +1,4 @@
+const selectBySearch = require("./search-select-browser.cjs");
 const assert = require("node:assert/strict");
 module.exports = async (page, context, root) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -209,7 +210,11 @@ module.exports = async (page, context, root) => {
   await page.evaluate(() => VSOperations.open());
   await dialog.locator('[data-op="drafts"]').click();
   await dialog.locator('[data-op="draft-open"]').click();
-  await dialog.locator('[name="job"]').selectOption("VS-OPS");
+  await selectBySearch(
+    page,
+    "form[data-op-form=draft-import] [name=job]",
+    "VS-OPS",
+  );
   const failPhoto = async (route) => {
     if (route.request().method() === "PUT") await route.abort("failed");
     else await route.fallback();

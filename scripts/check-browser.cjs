@@ -1039,5 +1039,13 @@ async function checkMobileFields(page) {
   await browser.close();
 })().catch((e) => {
   console.error(e);
+  if (process.env.GITHUB_ACTIONS)
+    console.log(
+      "::error::" +
+        String(e.stack || e)
+          .replaceAll("%", "%25")
+          .replaceAll("\r", "%0D")
+          .replaceAll("\n", "%0A"),
+    );
   process.exit(1);
 });

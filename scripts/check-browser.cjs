@@ -126,6 +126,11 @@ async function checkMobileFields(page) {
     .locator("#nav button[disabled]")
     .first()
     .waitFor({ state: "detached" });
+  assert.equal(await page.locator(".operations-summary").count(), 0);
+  await page.locator('#nav [data-page="calendario"]').click();
+  await page.locator(".operations-summary").waitFor();
+  await page.locator('#nav [data-page="inicio"]').click();
+  assert.equal(await page.locator(".operations-summary").count(), 0);
   assert.equal(await page.locator("#home-customize").isVisible(), false);
   const personalizeIcon = await page
     .locator("[data-home-customize]")

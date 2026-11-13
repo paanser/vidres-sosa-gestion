@@ -957,11 +957,11 @@
       if (!dialog.open) dialog.showModal();
     },
     decorate(page) {
-      if (!["inicio", "calendario"].includes(page)) return;
+      if (page !== "calendario") return;
       const content = document.querySelector("#content");
       const section = document.createElement("section");
       section.className = "panel operations-summary";
-      section.innerHTML = `<div class="operations-summary-heading"><h2>Organización del trabajo</h2><p>Consulta la agenda y los avisos. Gestiona pedidos y cobros dentro de cada expediente.</p></div><div class="operations-actions">${button("overview", "Agenda y avisos")}${button("drafts", "Mediciones sin cobertura")}</div>${page === "inicio" ? alertsHtml() : ""}`;
+      section.innerHTML = `<div class="operations-summary-heading"><h2>Organización del trabajo</h2><p>Consulta la agenda y los avisos. Gestiona pedidos y cobros dentro de cada expediente.</p></div><div class="operations-actions">${button("overview", "Agenda y avisos")}${button("drafts", "Mediciones sin cobertura")}</div>`;
       content.prepend(section);
     },
   };

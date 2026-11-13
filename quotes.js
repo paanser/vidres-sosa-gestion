@@ -154,6 +154,31 @@
     glass: "",
     tariff: "",
   });
+  function minimumAreaFields() {
+    const value = String(pricing(draft).minimumArea ?? "legacy");
+    return `<div class="quote-fields"><label>Metraje mínimo por pieza<select id="quote-minimum-area">${[
+      ["auto", "Automático · simple 0,50 m² / doble 0,70 m²"],
+      ["0.35", "0,35 m²"],
+      ["0.5", "0,50 m²"],
+      ["0.7", "0,70 m²"],
+      ["1", "1 m²"],
+      ...(value === "legacy"
+        ? [["legacy", "Sin mínimo · presupuesto anterior"]]
+        : []),
+    ]
+      .map(
+        ([key, label]) =>
+          `<option value="${key}" ${value === key ? "selected" : ""}>${label}</option>`,
+      )
+      .join("")}</select></label></div>`;
+  }
+  function readMinimumArea() {
+    const input = document.querySelector("#quote-minimum-area");
+    if (input && input.value !== "legacy") {
+      draft.pricing ||= { ...pricing(draft) };
+      draft.pricing.minimumArea = input.value;
+    }
+  }
   function fresh() {
     const c = config();
     return {
@@ -169,6 +194,7 @@
         margin: "",
         marginMode: "cost",
         marginScope: "glass",
+        minimumArea: "auto",
       },
       lines: [emptyLine()],
     };
@@ -234,7 +260,7 @@
     document.querySelector("#content").innerHTML =
       `<div class="quote-toolbar"><button type="button" class="quick-quote-button" id="quote-quick">⚡ Presupuesto rápido</button><button type="button" class="primary" id="quote-new">+ Nuevo presupuesto</button><button type="button" id="quote-settings">Ajustes de tarifas</button></div>
  <section class="panel quote-editor"><h2>Presupuesto · ${esc(draft.id || "Sin guardar")}</h2><div class="quote-fields"><label>Cliente<input id="quote-client" list="quote-clients" maxlength="100" value="${esc(draft.client)}"></label><datalist id="quote-clients">${(window.vidresClientNames?.() || []).map((name) => `<option value="${esc(name)}"></option>`).join("")}</datalist><label>Parte relacionado<select id="quote-job"><option value="">Sin vincular</option>${jobs.map((j) => `<option value="${esc(j.id)}" ${draft.job === j.id ? "selected" : ""}>${esc(j.id + " · " + j.cliente)}</option>`).join("")}</select></label><label>Estado<select id="quote-status">${statuses.map((s) => `<option ${s === (draft.status || "Borrador") ? "selected" : ""}>${s}</option>`).join("")}</select></label></div>
- ${measurePanel()}${customerFields()}<div class="quote-margin"><label>Margen (%)<input id="quote-margin" type="text" inputmode="decimal" data-price-input value="${esc(pricing(draft).margin || "")}"></label><p>Incremento sobre el precio del vidrio: 100 € con 20 % → 120 €. Mano de obra, cantos, recargos y conceptos adicionales sin margen. Antes del IVA; solo visible en la copia interna.</p>${pricing(draft).marginScope !== "glass" && num(pricing(draft).margin) ? "<p>Presupuesto anterior: conserva el cálculo guardado. Al editar se aplicará el incremento solo al vidrio.</p>" : ""}</div><div id="quote-lines">${draft.lines.map(row).join("")}</div><button type="button" id="quote-add">+ Añadir otro vidrio</button><button type="button" id="quote-add-aluminum">+ Añadir aluminio con dibujo</button><button type="button" id="quote-add-concept">+ Añadir concepto libre</button><div class="quote-total"><div class="quote-total-breakdown">${totalResult(breakdown)}</div></div>${documentFields()}<div class="quote-toolbar"><button type="button" class="primary" id="quote-save">Guardar presupuesto</button><button type="button" id="quote-whatsapp">Enviar por WhatsApp</button><button type="button" id="quote-pdf">PDF para cliente</button><button type="button" id="quote-pdf-internal">PDF interno · Vidres Sosa</button></div></section>
+ ${minimumAreaFields()}${measurePanel()}${customerFields()}<div class="quote-margin"><label>Margen (%)<input id="quote-margin" type="text" inputmode="decimal" data-price-input value="${esc(pricing(draft).margin || "")}"></label><p>Incremento sobre el precio del vidrio: 100 € con 20 % → 120 €. Mano de obra, cantos, recargos y conceptos adicionales sin margen. Antes del IVA; solo visible en la copia interna.</p>${pricing(draft).marginScope !== "glass" && num(pricing(draft).margin) ? "<p>Presupuesto anterior: conserva el cálculo guardado. Al editar se aplicará el incremento solo al vidrio.</p>" : ""}</div><div id="quote-lines">${draft.lines.map(row).join("")}</div><button type="button" id="quote-add">+ Añadir otro vidrio</button><button type="button" id="quote-add-aluminum">+ Añadir aluminio con dibujo</button><button type="button" id="quote-add-concept">+ Añadir concepto libre</button><div class="quote-total"><div class="quote-total-breakdown">${totalResult(breakdown)}</div></div>${documentFields()}<div class="quote-toolbar"><button type="button" class="primary" id="quote-save">Guardar presupuesto</button><button type="button" id="quote-whatsapp">Enviar por WhatsApp</button><button type="button" id="quote-pdf">PDF para cliente</button><button type="button" id="quote-pdf-internal">PDF interno · Vidres Sosa</button></div></section>
  <section class="panel"><h2>Presupuestos guardados</h2>${list.length ? list.map((q) => `<article class="quote-saved"><span>${esc(q.id)} · ${esc(q.client)} · ${esc(q.status || "Borrador")} · Total: ${money(sum(q).total)}</span><div><button type="button" data-load="${esc(q.id)}">Abrir</button><button type="button" data-whatsapp="${esc(q.id)}">WhatsApp</button><button type="button" data-duplicate="${esc(q.id)}">Duplicar</button><button type="button" data-delete-quote="${esc(q.id)}">Eliminar</button></div></article>`).join("") : "<p>No hay presupuestos guardados.</p>"}</section>`;
     const panel = document.querySelector("#quote-measures");
     if (panel && previousMeasures?.dataset.job === draft.job) {
@@ -271,6 +297,7 @@
       <section class="panel quick-quote-editor">
         <h2>⚡ Presupuesto rápido</h2>
         <p class="muted">Calcula un precio sin crear antes un parte.</p>
+        ${minimumAreaFields()}
         <div class="quote-fields">
           <label>Cliente (opcional)<input id="quick-client" list="quick-quote-clients" maxlength="100" value="${esc(draft.client)}"></label>
           <datalist id="quick-quote-clients">${names.map((name) => `<option value="${esc(name)}"></option>`).join("")}</datalist>
@@ -299,6 +326,7 @@
       client = document.querySelector("#quick-client"),
       width = document.querySelector("#quick-w");
     if (!client || !width) return;
+    readMinimumArea();
     draft.client = client.value.trim();
     line.w = VSMeasureInput.read(width).cm ?? "";
     line.h = VSMeasureInput.read(document.querySelector("#quick-h")).cm ?? "";
@@ -466,6 +494,7 @@
     if (!draft || !document.querySelector("#quote-client")) return;
     if (!validPriceFields()) return;
     const previous = JSON.stringify(draft);
+    readMinimumArea();
     draft.client = document.querySelector("#quote-client").value.trim();
     draft.job = document.querySelector("#quote-job").value;
     draft.status = document.querySelector("#quote-status").value;

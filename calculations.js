@@ -17,7 +17,16 @@
         (n, s) => n + (s === "top" || s === "bottom" ? w : h) / 100,
         0,
       ),
-      area = (aw * ah) / 10000,
+      area = Math.max(
+        (aw * ah) / 10000,
+        w > 0 && h > 0 && !["concept", "aluminum"].includes(line.kind)
+          ? config.minimumArea === "auto"
+            ? line.doubleGlazing
+              ? 0.7
+              : 0.5
+            : num(config.minimumArea)
+          : 0,
+      ),
       real = (w * h) / 10000;
     const subtotal = (area * num(line.price) + ml * num(line.edgePrice)) * qty;
     let energy = 0;

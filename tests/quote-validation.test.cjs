@@ -134,3 +134,25 @@ test("servidor: aluminio y dibujo privado se conservan y validan", async () => {
     ),
   );
 });
+
+test("servidor: valida y conserva la selección de metraje mínimo", async () => {
+  const { checked, KEYS } = await import("../worker/data.js");
+  const validate = (minimumArea) =>
+    checked({
+      [KEYS.presupuestos]: [
+        {
+          id: "P-MIN",
+          client: "Cliente",
+          lines: [{ w: 20, h: 30, qty: 1, price: 100 }],
+          pricing: { minimumArea },
+        },
+      ],
+    });
+  for (const value of ["auto", "0.35", "0.5", "0.7", "1", 0.7])
+    assert.equal(
+      validate(value)[KEYS.presupuestos][0].pricing.minimumArea,
+      value,
+    );
+  for (const value of ["", -1, 0, 2, {}, true])
+    assert.throws(() => validate(value));
+});

@@ -14,6 +14,19 @@ module.exports = async function checkQuotes(page, context, root) {
     window.print = () => window.quotePrintCount++;
   });
   await set("#quote-client", "Cliente ficticio de prueba");
+  assert.equal(await page.locator("#quote-minimum-area").inputValue(), "auto");
+  await set('[data-field="w"]', "0.200");
+  await set('[data-field="h"]', "0.300");
+  assert.match(await page.locator(".quote-result").textContent(), /0.5000 m²/);
+  await page.locator('[data-field="doubleGlazing"]').check();
+  assert.match(await page.locator(".quote-result").textContent(), /0.7000 m²/);
+  await page.locator("#quote-minimum-area").selectOption("0.35");
+  assert.match(await page.locator(".quote-result").textContent(), /0.3500 m²/);
+  await page.locator("#quote-minimum-area").selectOption("1");
+  assert.match(await page.locator(".quote-result").textContent(), /1.0000 m²/);
+  await page.locator("#quote-minimum-area").selectOption("auto");
+  await page.locator('[data-field="doubleGlazing"]').uncheck();
+
   assert.equal(await page.locator('[name="quote-margin-mode"]').count(), 0);
   await page.locator('[data-field="tariff"]').selectOption("reuglass-2-0");
   assert.equal(

@@ -21,7 +21,9 @@
     let y = 16;
     doc.setProperties({ title: "Presupuesto · Vidres Sosa" });
     const logo = host.querySelector(".quote-doc-logo");
-    if (logo) {
+    if (logo?.dataset.vectorLogo === "true") {
+      VSBrandLogo.draw(doc, margin, 12, 85);
+    } else if (logo) {
       const p = doc.getImageProperties(logo.src);
       const scale = Math.min(60 / p.width, 15 / p.height);
       doc.addImage(logo.src, margin, 12, p.width * scale, p.height * scale);
@@ -35,6 +37,8 @@
         21,
       );
     }
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(21, 82, 62);
     doc.setFontSize(16);
     doc.text("PRESUPUESTO", 118, 19);
     doc.setFontSize(9);

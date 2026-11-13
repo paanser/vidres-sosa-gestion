@@ -13,6 +13,7 @@ document.querySelectorAll("#nav button").forEach((b) => (b.disabled = true));
     "tools",
     "vendor/jspdf.umd.min",
     "vendor/jspdf.plugin.autotable.min",
+    "brand-logo",
     "quote-pdf",
     "milestones",
     "quotes",

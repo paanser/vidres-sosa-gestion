@@ -147,7 +147,10 @@ module.exports = async function checkQuotes(page, context, root) {
   assert.match(client, /390,59/);
   assert.ok(client.includes(description));
   assert.doesNotMatch(client, /Coste|Margen|Montaje interno reservado/);
-  assert.equal(await page.locator("#quote-print img").count(), 0);
+  assert.equal(
+    await page.locator("#quote-print img:not(.quote-doc-logo)").count(),
+    0,
+  );
   await page.locator("#quote-whatsapp").click();
   let message = await page
     .locator('#quote-message-form [name="mensaje"]')

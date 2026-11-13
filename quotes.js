@@ -847,7 +847,7 @@
       companyName = company.name || "Vidres Sosa",
       logo = VSUtils.isCompanyLogo(company.logo)
         ? `<img class="quote-doc-logo" src="${esc(company.logo)}" alt="${esc(companyName)}">`
-        : `<div class="quote-doc-wordmark"><span>${esc(companyName.toLocaleLowerCase("es") === "vidres sosa" ? "Vidres" : companyName)}</span>${companyName.toLocaleLowerCase("es") === "vidres sosa" ? "<strong>Sosa</strong>" : ""}</div>`,
+        : `<img class="quote-doc-logo" data-vector-logo="true" src="icons/vidres-sosa-horizontal.svg" alt="Vidres Sosa · Cristalleria i alumini">`,
       lines = (text) => esc(text || "").replace(/\n/g, "<br>"),
       showValidity = internal || options.validity;
     host.innerHTML = `<header class="quote-doc-header"><div>${logo}<div class="quote-doc-company"><strong>${esc(companyName)}</strong>${company.taxId ? `<br>CIF/NIF: ${esc(company.taxId)}` : ""}${[

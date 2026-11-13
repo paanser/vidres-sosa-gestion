@@ -94,7 +94,7 @@ module.exports = async function checkQuoteDocument(page, context, root) {
   await page.locator('[data-pdf-option="unitPrice"]').check();
   await page.locator("#quote-pdf").click();
   let printed = await page.locator("#quote-print").textContent();
-  assert.match(printed, /VidresSosa/);
+  assert.match(printed, /Vidres Sosa/);
   assert.match(printed, /NIF DE EJEMPLO/);
   assert.match(printed, /cliente@example.com/);
   assert.match(printed, /empresa@example.com/);

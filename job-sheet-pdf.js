@@ -38,12 +38,11 @@
     function header(continued = false) {
       doc.setTextColor(30);
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(18);
-      doc.text(
-        doc.splitTextToSize(text(company.name || "Vidres Sosa"), 95)[0],
-        left,
-        20,
-      );
+      const brand =
+        typeof module !== "undefined" && module.exports
+          ? require("./brand-logo.js")
+          : window.VSBrandLogo;
+      brand.draw(doc, left, 12, 85);
       doc.setFontSize(11);
       doc.text("HOJA DE VISITA", left + width, 19, { align: "right" });
       if (continued) {

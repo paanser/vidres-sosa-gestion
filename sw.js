@@ -1,6 +1,8 @@
 "use strict";
 const RELEASE = "__BUILD_VERSION__";
-const VERSION = RELEASE.startsWith("__") ? "20261113-hoja-visita-4" : RELEASE;
+const VERSION = RELEASE.startsWith("__")
+  ? "20261113-documentos-logo-horizontal"
+  : RELEASE;
 const PREFIX = "vidres-sosa:" + self.registration.scope + ":",
   CACHE = PREFIX + VERSION;
 const ASSETS = [
@@ -21,6 +23,7 @@ const ASSETS = [
   "tools.js",
   "vendor/jspdf.umd.min.js",
   "vendor/jspdf.plugin.autotable.min.js",
+  "brand-logo.js",
   "quote-pdf.js",
   "milestones.js",
   "quotes.js",

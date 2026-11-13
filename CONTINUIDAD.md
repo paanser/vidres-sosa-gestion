@@ -256,3 +256,21 @@ CHROMIUM_PATH=/usr/bin/chromium npm run test:browser` (en una sola línea).
 - Publicación autorizada: desplegar Worker desde rama primero, integrar después
   y comprobar Pages y navegador. Sigue vigente la configuración Pages legacy:
   cancelar la ejecución automática paralela, conservando el workflow pages.yml.
+
+### Publicación y diagnóstico del backend
+
+- PR #54: `feat/gestion-integral-20261113`.
+- GitHub Actions no puede desplegar: el token de Cloudflare del repositorio está
+  inactivo (diagnóstico confirmado por anotación de la ejecución 43420424959).
+  El script ahora publica el mensaje seguro como anotación del check; no expone
+  solicitudes, credenciales ni salida cruda de Wrangler.
+- Se ha desplegado el backend mediante la conexión Cloudflare autorizada, en la
+  cuenta y Worker existentes. Deployment ID `c958b157142d49eda066286d11f4953d`.
+  Se preservaron todos los bindings, secretos y fecha/flags de compatibilidad.
+  Lectura posterior de módulos confirma `validateOperations` desplegado.
+- El workflow Pages comprueba después del despliegue el SHA de `version.json`,
+  los dos módulos públicos nuevos y respuestas 401 sin sesión de estado,
+  archivos y usuarios. No consulta ni modifica registros privados.
+- Pendiente operativo ajeno a esta funcionalidad: renovar el token de Cloudflare
+  en GitHub Actions para futuros despliegues automáticos del backend. La conexión
+  Cloudflare de la sesión sigue siendo válida y permitió publicar este backend.

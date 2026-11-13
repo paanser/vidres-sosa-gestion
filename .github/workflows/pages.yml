@@ -55,3 +55,25 @@ jobs:
       - name: Publicar
         id: deployment
         uses: actions/deploy-pages@v4
+      - name: Comprobar versión publicada y API privada
+        run: |
+          node --input-type=module <<'JS'
+          const base = "https://paanser.github.io/vidres-sosa-gestion/";
+          const revision = process.env.GITHUB_SHA;
+          let published = false;
+          for (let attempt = 0; attempt < 12; attempt++) {
+            const response = await fetch(base + "version.json?v=" + revision, { cache: "no-store", signal: AbortSignal.timeout(15000) });
+            if (response.ok && (await response.json()).version === revision) { published = true; break; }
+            await new Promise(resolve => setTimeout(resolve, 3000));
+          }
+          if (!published) throw Error("La versión pública todavía no coincide con el despliegue");
+          for (const asset of ["operations.js", "operations-model.js"]) {
+            const response = await fetch(base + asset + "?v=" + revision, { signal: AbortSignal.timeout(15000) });
+            if (!response.ok || !(response.headers.get("content-type") || "").includes("javascript")) throw Error("Recurso público ausente: " + asset);
+          }
+          for (const path of ["/api/state", "/api/files", "/api/users"]) {
+            const response = await fetch("https://vidres-sosa-ia.pausosagomez.workers.dev" + path, { headers: { Origin: "https://paanser.github.io" }, signal: AbortSignal.timeout(15000) });
+            if (response.status !== 401) throw Error("La API privada no devuelve 401 sin sesión: " + path + " (" + response.status + ")");
+          }
+          console.log("Versión pública, nuevos módulos y protección 401 verificados: " + revision);
+          JS

@@ -38,6 +38,9 @@ const ASSETS = [
   "manifest.json",
   "icons/icon-192.png",
   "icons/icon-512.png",
+  "icons/app-logo.png",
+  "icons/app-icon-192.png",
+  "icons/app-icon-512.png",
 ];
 self.addEventListener("install", (event) =>
   event.waitUntil(

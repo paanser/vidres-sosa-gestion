@@ -274,3 +274,7 @@ CHROMIUM_PATH=/usr/bin/chromium npm run test:browser` (en una sola línea).
 - Pendiente operativo ajeno a esta funcionalidad: renovar el token de Cloudflare
   en GitHub Actions para futuros despliegues automáticos del backend. La conexión
   Cloudflare de la sesión sigue siendo válida y permitió publicar este backend.
+- La ejecución remota detectó una carrera con respuestas lentas: el mensaje de
+  éxito anterior seguía visible durante otro guardado. Se retira al iniciar la
+  escritura y el cuerpo del gestor queda inerte hasta recibir confirmación o error.
+  La prueba de operaciones simula 150 ms adicionales en cada guardado para cubrirlo.

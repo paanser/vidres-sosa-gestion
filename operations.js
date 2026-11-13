@@ -582,6 +582,8 @@
     const b = formEl.querySelector('[type="submit"]');
     if (b.disabled) return;
     b.disabled = true;
+    notify("Guardando…");
+    dialog.querySelector("#operations-body").inert = true;
     const d = new FormData(formEl),
       type = formEl.dataset.opForm,
       id = selected;
@@ -716,6 +718,7 @@
       notify("No se pudo guardar: " + error.message);
     } finally {
       b.disabled = false;
+      dialog.querySelector("#operations-body").inert = false;
     }
   });
   // Drafts are deliberately local, explicitly saved, and never replayed automatically.

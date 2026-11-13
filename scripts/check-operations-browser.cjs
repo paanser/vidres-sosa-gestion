@@ -1,6 +1,12 @@
 const assert = require("node:assert/strict");
 module.exports = async (page, context, root) => {
   await page.setViewportSize({ width: 390, height: 844 });
+  const slowSave = async (route) => {
+    if (route.request().method() === "PUT")
+      await new Promise((resolve) => setTimeout(resolve, 150));
+    await route.fallback();
+  };
+  await page.route("**/api/state", slowSave);
   await page.evaluate(async () => {
     const keys = VSStorage.keys,
       values = VSStorage.values();
@@ -144,6 +150,7 @@ module.exports = async (page, context, root) => {
   await dialog
     .locator('[name="photos"]')
     .setInputFiles({ name: "montaje.png", mimeType: "image/png", buffer: png });
+  await dialog.locator("canvas").scrollIntoViewIfNeeded();
   const canvas = await dialog.locator("canvas").boundingBox();
   await page.mouse.move(canvas.x + 20, canvas.y + 40);
   await page.mouse.down();
@@ -273,6 +280,7 @@ module.exports = async (page, context, root) => {
   );
   assert.ok((await page.locator(".new-measure-piece").count()) > 0);
   await page.locator("#cancel").click();
+  await page.unroute("**/api/state", slowSave);
   console.log(
     "PASS pedidos con copia de medidas, recepción parcial, PDF, cobros, rentabilidad, solapamientos, firma/fotos y borradores offline con importación",
   );

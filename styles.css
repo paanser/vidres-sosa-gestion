@@ -4158,3 +4158,116 @@ html {
   outline: 3px solid #2c8965;
   outline-offset: 2px;
 }
+
+/* La gestión forma parte del expediente y comparte su jerarquía visual. */
+#expediente .operations-embedded {
+  position: static;
+  width: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+  background: transparent;
+}
+.operations-heading {
+  gap: 8px;
+  border-bottom: 1px solid #e3e9e6;
+  padding-bottom: 12px;
+}
+.operations-heading h2 {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: 1.2rem;
+}
+.operations-embedded .operations-heading:has([data-op="back"][hidden]) {
+  display: none;
+}
+.operations-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px;
+  margin-bottom: 18px;
+  border-radius: 12px;
+  background: #edf2ef;
+}
+.operations-tabs button {
+  flex: 1 1 auto;
+  border-color: transparent;
+  background: transparent;
+}
+.operations-tabs button[aria-pressed="true"] {
+  background: #116243;
+  color: #fff;
+}
+.operations-actions {
+  margin-bottom: 16px;
+}
+.operations-dialog section[data-op-section] {
+  padding: 20px;
+  border: 1px solid #e3e9e6;
+  border-radius: 12px;
+  background: #fff;
+}
+.operations-dialog section[data-op-section] h3 {
+  margin-top: 0;
+}
+.operations-dialog p {
+  line-height: 1.5;
+}
+.operations-dialog [data-op-message]:empty {
+  display: none;
+}
+.operations-form input,
+.operations-form textarea,
+.operations-form select,
+.operations-dialog select,
+.operations-week-controls input {
+  padding: 10px 12px;
+  border: 1px solid #ccd9d1;
+  border-radius: 8px;
+  background: #fff;
+  color: inherit;
+  font-family: inherit;
+}
+.operations-form button[type="submit"] {
+  justify-self: start;
+}
+.operations-summary-heading h2 {
+  margin: 0 0 6px;
+  font-size: 1.1rem;
+}
+.operations-summary-heading p {
+  margin: 0 0 16px;
+  color: #52665b;
+  line-height: 1.5;
+}
+.operations-summary .operations-actions {
+  margin-bottom: 0;
+}
+@media (max-width: 480px) {
+  .operations-dialog section[data-op-section] {
+    padding: 14px;
+  }
+  .operations-actions {
+    gap: 8px;
+  }
+  .operations-actions button {
+    flex: 1 1 auto;
+  }
+}
+.operations-dialog section[data-op-section] > button {
+  margin: 8px 8px 0 0;
+}
+.operations-dialog button[data-op="order"],
+.operations-dialog button[data-op="payment"],
+.operations-dialog button[data-op="cost"],
+.operations-dialog button[data-op="closure"] {
+  background: #15523e;
+  color: #fff;
+  border-color: #15523e;
+}

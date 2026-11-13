@@ -17,6 +17,8 @@
     signature = [],
     drawing = false;
   let pdfUrl = null;
+  let panel = "pedidos";
+  let embedded = false;
   const button = (action, text, value = "") =>
     `<button type="button" data-op="${action}" data-value="${esc(value)}">${text}</button>`;
   const input = (name, label, type = "text", value = "", extra = "") =>
@@ -36,7 +38,7 @@
       URL.revokeObjectURL(pdfUrl);
       pdfUrl = null;
     }
-    dialog.innerHTML = `<div class="operations-heading"><h2 id="operations-title">${esc(title)}</h2>${button("close", "Cerrar")}</div><p data-op-message role="status" aria-live="polite"></p><div id="operations-body"></div><div id="operations-pdf"></div>`;
+    dialog.innerHTML = `<div class="operations-heading"><h2 id="operations-title">${esc(title)}</h2>${selected ? button("back", "← Volver a gestión") : ""}${embedded ? "" : button("close", "Cerrar")}</div><p data-op-message role="status" aria-live="polite"></p><div id="operations-body"></div><div id="operations-pdf"></div>`;
     return dialog.querySelector("#operations-body");
   }
   async function mutate(id, change) {
@@ -107,15 +109,35 @@
   function showJob(id) {
     const j = job(id);
     if (!j) throw Error("Expediente no encontrado");
+    if (selected !== id) panel = "pedidos";
     selected = id;
     const o = j.operativa || {},
       f = finances(o);
     const host = header(`${j.cliente} · ${j.id}`);
-    host.innerHTML = `<div class="operations-actions">${button("overview", "Agenda y avisos")}${button("schedule", "Planificar visita o montaje")}${button("template", "Guardar como plantilla")}</div>
-      <section><h3>Pedidos a proveedores</h3><p>Las medidas de corte se copian de las piezas del expediente, sin redondeo de facturación. Revisa medidas, acabados y croquis antes de enviar.</p>${(o.pedidos || []).map((p) => `<article class="operations-card"><strong>${esc(p.proveedor)} · ${esc(p.referencia || "Sin referencia")}</strong><p>Pedido: ${esc(p.fecha)} · Entrega: ${esc(p.entrega || "Sin fecha")}</p><p>${p.piezas.reduce((s, x) => s + x.recibidas, 0)} de ${p.piezas.reduce((s, x) => s + x.cantidad, 0)} piezas recibidas</p>${button("order-pdf", "Hoja de pedido PDF", p.id)}${button("receive", "Registrar recepción", p.id)}${button("edit-order", "Editar entrega y referencia", p.id)}</article>`).join("") || '<p class="muted">Sin pedidos registrados.</p>'}${button("order", "+ Pedido desde medidas")}</section>
-      <section><h3>Importe y cobros</h3><p>Importes con IVA. Saldo pendiente: <strong>${money(f.balance)}</strong> · Cobrado: ${money(f.paid)}</p>${form("sale", input("venta", "Importe acordado con IVA (€)", "number", o.venta ?? "", 'min="0" max="1000000000" step="0.01" required'))}${ledger(o.pagos, "payment", "Registrar anticipo o pago")}</section>
-      <section><h3>Costes y rentabilidad</h3><p>Registra costes sin IVA deducible. La rentabilidad usa la venta sin IVA indicada aquí.</p>${form("net-sale", input("ventaNeta", "Venta sin IVA (€)", "number", o.ventaNeta ?? "", 'min="0" max="1000000000" step="0.01" required'))}<p>Coste registrado: <strong>${money(f.costs)}</strong>${o.ventaNeta != null ? ` · Beneficio provisional: <strong>${money(f.profit)}</strong> · Margen sobre venta: ${o.ventaNeta ? f.margin.toFixed(1) : "0"} %` : " · Introduce la venta sin IVA para calcular el beneficio."}</p><p class="muted">Resultado provisional según los costes registrados; incluye horas y repeticiones para completarlo.</p>${ledger(o.costes, "cost", "Registrar coste")}</section>
-      <section><h3>Cierre de montaje</h3>${o.cierre ? `<p>${esc(o.cierre.fecha)} · ${esc(o.cierre.nombre)} · ${o.cierre.conforme ? "Conforme" : "Con incidencias"}</p><p>${esc(o.cierre.incidencias)}</p><p>Pendiente: ${esc(o.cierre.pendiente || "Nada indicado")}</p>${button("close-pdf", "Parte de montaje PDF")}` : '<p class="muted">Todavía no se ha registrado el cierre.</p>'}${button("closure", o.cierre ? "Editar cierre" : "Registrar cierre y firma")}</section>`;
+    host.innerHTML = `<div class="operations-actions">${embedded ? "" : button("overview", "Agenda y avisos")}${button("schedule", "Planificar visita o montaje")}${button("template", "Guardar como plantilla")}</div>
+      <section data-op-section="pedidos"><h3>Pedidos a proveedores</h3><p>Las medidas de corte se copian de las piezas del expediente, sin redondeo de facturación. Revisa medidas, acabados y croquis antes de enviar.</p>${(o.pedidos || []).map((p) => `<article class="operations-card"><strong>${esc(p.proveedor)} · ${esc(p.referencia || "Sin referencia")}</strong><p>Pedido: ${esc(p.fecha)} · Entrega: ${esc(p.entrega || "Sin fecha")}</p><p>${p.piezas.reduce((s, x) => s + x.recibidas, 0)} de ${p.piezas.reduce((s, x) => s + x.cantidad, 0)} piezas recibidas</p>${button("order-pdf", "Hoja de pedido PDF", p.id)}${button("receive", "Registrar recepción", p.id)}${button("edit-order", "Editar entrega y referencia", p.id)}</article>`).join("") || '<p class="muted">Sin pedidos registrados.</p>'}${button("order", "+ Pedido desde medidas")}</section>
+      <section data-op-section="cobros"><h3>Importe y cobros</h3><p>Importes con IVA. Saldo pendiente: <strong>${money(f.balance)}</strong> · Cobrado: ${money(f.paid)}</p>${form("sale", input("venta", "Importe acordado con IVA (€)", "number", o.venta ?? "", 'min="0" max="1000000000" step="0.01" required'))}${ledger(o.pagos, "payment", "Registrar anticipo o pago")}</section>
+      <section data-op-section="costes"><h3>Costes y rentabilidad</h3><p>Registra costes sin IVA deducible. La rentabilidad usa la venta sin IVA indicada aquí.</p>${form("net-sale", input("ventaNeta", "Venta sin IVA (€)", "number", o.ventaNeta ?? "", 'min="0" max="1000000000" step="0.01" required'))}<p>Coste registrado: <strong>${money(f.costs)}</strong>${o.ventaNeta != null ? ` · Beneficio provisional: <strong>${money(f.profit)}</strong> · Margen sobre venta: ${o.ventaNeta ? f.margin.toFixed(1) : "0"} %` : " · Introduce la venta sin IVA para calcular el beneficio."}</p><p class="muted">Resultado provisional según los costes registrados; incluye horas y repeticiones para completarlo.</p>${ledger(o.costes, "cost", "Registrar coste")}</section>
+      <section data-op-section="montaje"><h3>Cierre de montaje</h3>${o.cierre ? `<p>${esc(o.cierre.fecha)} · ${esc(o.cierre.nombre)} · ${o.cierre.conforme ? "Conforme" : "Con incidencias"}</p><p>${esc(o.cierre.incidencias)}</p><p>Pendiente: ${esc(o.cierre.pendiente || "Nada indicado")}</p>${button("close-pdf", "Parte de montaje PDF")}` : '<p class="muted">Todavía no se ha registrado el cierre.</p>'}${button("closure", o.cierre ? "Editar cierre" : "Registrar cierre y firma")}</section>`;
+    const navigation = document.createElement("nav");
+    navigation.className = "operations-tabs";
+    navigation.setAttribute("aria-label", "Gestión del expediente");
+    navigation.innerHTML = [
+      ["pedidos", "Pedidos"],
+      ["cobros", "Cobros"],
+      ["costes", "Costes"],
+      ["montaje", "Montaje"],
+    ]
+      .map(
+        ([key, label]) =>
+          `<button type="button" data-op="panel" data-value="${key}" aria-pressed="${panel === key}">${label}</button>`,
+      )
+      .join("");
+    host.prepend(navigation);
+    host.querySelectorAll("[data-op-section]").forEach((section) => {
+      section.hidden = section.dataset.opSection !== panel;
+    });
+    dialog.querySelector('[data-op="back"]').hidden = true;
   }
   function ledger(list = [], action, text) {
     return (
@@ -517,7 +539,14 @@
       const action = b.dataset.op,
         value = b.dataset.value;
       if (action === "close") dialog.close();
-      else if (action === "overview") overview();
+      else if (action === "back") showJob(selected);
+      else if (action === "panel") {
+        panel = value;
+        showJob(selected);
+        dialog
+          .querySelector(`[data-op="panel"][data-value="${panel}"]`)
+          .focus();
+      } else if (action === "overview") overview();
       else if (action === "job") showJob(value);
       else if (action === "order") orderForm();
       else if (action === "receive") receiveForm(value);
@@ -906,7 +935,23 @@
     );
   }
   window.VSOperations = {
+    mount(host, id) {
+      VSOperations.unmount();
+      embedded = true;
+      dialog.classList.add("operations-embedded");
+      host.append(dialog);
+      showJob(id);
+      dialog.show();
+    },
+    unmount() {
+      if (!embedded) return;
+      dialog.close();
+      document.body.append(dialog);
+      dialog.classList.remove("operations-embedded");
+      embedded = false;
+    },
     open(id = "") {
+      VSOperations.unmount();
       if (id) showJob(id);
       else overview();
       if (!dialog.open) dialog.showModal();
@@ -916,7 +961,7 @@
       const content = document.querySelector("#content");
       const section = document.createElement("section");
       section.className = "panel operations-summary";
-      section.innerHTML = `<div class="operations-actions">${button("overview", "Agenda semanal, pedidos y cobros")}${button("drafts", "Mediciones sin cobertura")}</div>${page === "inicio" ? alertsHtml() : ""}`;
+      section.innerHTML = `<div class="operations-summary-heading"><h2>Organización del trabajo</h2><p>Consulta la agenda y los avisos. Gestiona pedidos y cobros dentro de cada expediente.</p></div><div class="operations-actions">${button("overview", "Agenda y avisos")}${button("drafts", "Mediciones sin cobertura")}</div>${page === "inicio" ? alertsHtml() : ""}`;
       content.prepend(section);
     },
   };

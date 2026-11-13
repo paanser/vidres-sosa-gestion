@@ -278,3 +278,19 @@ CHROMIUM_PATH=/usr/bin/chromium npm run test:browser` (en una sola línea).
   éxito anterior seguía visible durante otro guardado. Se retira al iniciar la
   escritura y el cuerpo del gestor queda inerte hasta recibir confirmación o error.
   La prueba de operaciones simula 150 ms adicionales en cada guardado para cubrirlo.
+
+## Integración visual de gestión · 13 de noviembre de 2026
+
+- Retirado el botón añadido junto al título del expediente. La pestaña Gestión
+  monta el gestor dentro del expediente, sin abrir otra ventana modal.
+- Pedidos, Cobros, Costes y Montaje se navegan por separado. Se conserva el
+  apartado al guardar y al volver desde un formulario; los formularios incluyen
+  «Volver a gestión». Las acciones principales y los campos comparten estilos.
+- Inicio y Calendario presentan Agenda y avisos, con indicación de que pedidos y
+  cobros se gestionan en cada expediente. El gestor independiente sigue disponible
+  para agenda, avisos y borradores sin cobertura.
+- Validación: 61 pruebas Node y batería completa de navegador; comprobaciones
+  adicionales de navegación, cobro persistido dentro del expediente, desmontaje,
+  reapertura y ausencia de desbordamiento en 390/768/1440 px. Capturas
+  `test-results/gestion-integrada-*.png`. Chromium local: `/usr/bin/chromium`.
+- Publicación solicitada por el usuario; se integra mediante PR y workflow Pages.

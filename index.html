@@ -595,6 +595,7 @@
             <h2 id="exp-title"></h2>
           </div>
           <div class="exp-header-actions">
+            <button type="button" data-exp-sheet>Hoja de visita PDF</button>
             <button type="button" data-exp-delete>Eliminar trabajo</button>
             <button type="button" data-exp-edit class="primary">
               Editar trabajo</button
@@ -607,6 +608,13 @@
             </button>
           </div>
         </header>
+        <div
+          id="exp-sheet-result"
+          class="exp-section"
+          role="status"
+          aria-live="polite"
+          hidden
+        ></div>
         <nav
           class="exp-tabs"
           aria-label="Secciones del expediente"

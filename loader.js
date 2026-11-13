@@ -21,6 +21,7 @@ document.querySelectorAll("#nav button").forEach((b) => (b.disabled = true));
     "app",
     "voice",
     "enhancements",
+    "job-sheet-pdf",
     "expediente",
     "operations-model",
     "operations",

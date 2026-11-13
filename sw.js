@@ -1,6 +1,6 @@
 "use strict";
 const RELEASE = "__BUILD_VERSION__";
-const VERSION = RELEASE.startsWith("__") ? "20261113-hitos-1" : RELEASE;
+const VERSION = RELEASE.startsWith("__") ? "20261113-hoja-visita-1" : RELEASE;
 const PREFIX = "vidres-sosa:" + self.registration.scope + ":",
   CACHE = PREFIX + VERSION;
 const ASSETS = [
@@ -30,6 +30,7 @@ const ASSETS = [
   "ai-config.js",
   "voice.js",
   "enhancements.js",
+  "job-sheet-pdf.js",
   "expediente.js",
   "operations-model.js",
   "operations.js",

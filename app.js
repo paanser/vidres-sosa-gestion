@@ -12,14 +12,47 @@ window.vidresAppReady = (async () => {
   let usersBackPage = "ajustes";
   const isSettingsPage = (value) =>
     value === "ajustes" || value.startsWith("ajustes-") || value === "usuarios";
-  let homeView;
-  try {
-    homeView =
-      VSStorage.local.getItem("vidres-home-view") === "calendar"
-        ? "calendar"
-        : "dashboard";
-  } catch {
-    homeView = "dashboard";
+  const homeBlocks = {
+    summary: "Resumen de actividad",
+    jobs: "Próximos trabajos",
+    notes: "Notas pendientes",
+    followups: "Presupuestos por reclamar",
+  };
+  const homeDefaults = { view: "dashboard", blocks: Object.keys(homeBlocks) };
+  let homePreferences =
+    (await VSAuth.json("/api/preferences/home")).home || homeDefaults;
+  let homeView = homePreferences.view;
+  let homeNotice = "";
+  function homeSettingsHtml() {
+    return (
+      '<section class="panel home-personalization"><div class="simple-section-head"><div><h2>Hola, ' +
+      esc(VSAuth.user.nombre) +
+      '</h2><p class="muted">Tu inicio, a tu manera.</p></div></div>' +
+      '<details id="home-customize"><summary>Personalizar inicio</summary><form id="home-preferences-form">' +
+      "<p>Elige qué quieres ver. Se guardará solo en tu cuenta, también para otros dispositivos.</p>" +
+      '<label>Vista principal<select name="view"><option value="dashboard"' +
+      (homeView === "dashboard" ? " selected" : "") +
+      '>Panel de gestión</option><option value="calendar"' +
+      (homeView === "calendar" ? " selected" : "") +
+      ">Calendario</option></select></label>" +
+      "<fieldset><legend>Bloques del panel de gestión</legend>" +
+      Object.entries(homeBlocks)
+        .map(
+          ([key, label]) =>
+            '<label class="home-block-option"><input type="checkbox" name="blocks" value="' +
+            key +
+            '"' +
+            (homePreferences.blocks.includes(key) ? " checked" : "") +
+            "><span>" +
+            label +
+            "</span></label>",
+        )
+        .join("") +
+      '</fieldset><div class="home-preferences-actions"><button type="submit">Guardar preferencias</button><button type="button" data-home-reset>Restablecer</button></div>' +
+      '<p role="status" id="home-save-status"></p></form></details><p role="status">' +
+      esc(homeNotice) +
+      "</p></section>"
+    );
   }
   let shownMonth = new Date();
   function calendarHtml() {
@@ -73,15 +106,6 @@ window.vidresAppReady = (async () => {
       '</h2><div><button type="button" data-month="-1" aria-label="Mes anterior">‹</button><button type="button" data-month="0">Hoy</button><button type="button" data-month="1" aria-label="Mes siguiente">›</button></div></div><div class="cal-grid">' +
       cells +
       "</div></section>"
-    );
-  }
-  function homeSwitch() {
-    return (
-      '<div class="home-switch"><span>Vista principal</span><button type="button" data-home-view="dashboard" class="' +
-      (homeView === "dashboard" ? "chosen" : "") +
-      '" aria-label="Panel de gestión" title="Panel de gestión"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></button><button type="button" data-home-view="calendar" class="' +
-      (homeView === "calendar" ? "chosen" : "") +
-      '" aria-label="Calendario grande" title="Calendario grande"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M7 14h3M14 14h3M7 18h3"/></svg></button></div>'
     );
   }
   const $ = (s) => document.querySelector(s);
@@ -287,47 +311,59 @@ window.vidresAppReady = (async () => {
       )
       .slice(0, 5);
     return (
-      '<div class="stats simple-stats">' +
-      counts
-        .map(
-          ([label, n, action]) =>
-            "<" +
-            (action ? 'button type="button" ' + action : "div") +
-            ' class="stat ' +
-            (label === "Críticos" ? "critical-stat" : "") +
-            '"><small>' +
-            label +
-            "</small><b>" +
-            n +
-            "</b></" +
-            (action ? "button" : "div") +
-            ">",
-        )
-        .join("") +
-      '</div><section class="panel"><div class="simple-section-head"><h2>Próximos trabajos</h2><button type="button" data-go="trabajos">Ver trabajos activos</button></div>' +
-      (preview.length
-        ? '<div class="home-job-list">' +
-          preview
+      (homePreferences.blocks.includes("summary")
+        ? '<div class="stats simple-stats">' +
+          counts
             .map(
-              (j) =>
-                '<button type="button" class="home-job" data-id="' +
-                esc(j.id) +
-                '"><span><strong>' +
-                esc(j.cliente) +
-                "</strong><span>" +
-                esc(j.descripcion) +
-                "</span></span><span>" +
-                status(j.estado) +
-                "<small>" +
-                esc(j.fecha || "Sin fecha") +
-                "</small></span></button>",
+              ([label, n, action]) =>
+                "<" +
+                (action ? 'button type="button" ' + action : "div") +
+                ' class="stat ' +
+                (label === "Críticos" ? "critical-stat" : "") +
+                '"><small>' +
+                label +
+                "</small><b>" +
+                n +
+                "</b></" +
+                (action ? "button" : "div") +
+                ">",
             )
             .join("") +
           "</div>"
-        : '<p class="muted">No hay trabajos activos. Puedes crear un parte con el botón + de arriba.</p>') +
-      "</section>" +
-      pendingNotesHtml(pendingNotes, today) +
-      followupsHtml(followups)
+        : "") +
+      (homePreferences.blocks.includes("jobs")
+        ? '<section class="panel"><div class="simple-section-head"><h2>Próximos trabajos</h2><button type="button" data-go="trabajos">Ver trabajos activos</button></div>' +
+          (preview.length
+            ? '<div class="home-job-list">' +
+              preview
+                .map(
+                  (j) =>
+                    '<button type="button" class="home-job" data-id="' +
+                    esc(j.id) +
+                    '"><span><strong>' +
+                    esc(j.cliente) +
+                    "</strong><span>" +
+                    esc(j.descripcion) +
+                    "</span></span><span>" +
+                    status(j.estado) +
+                    "<small>" +
+                    esc(j.fecha || "Sin fecha") +
+                    "</small></span></button>",
+                )
+                .join("") +
+              "</div>"
+            : '<p class="muted">No hay trabajos activos. Puedes crear un parte con el botón + de arriba.</p>') +
+          "</section>"
+        : "") +
+      (homePreferences.blocks.includes("notes")
+        ? pendingNotesHtml(pendingNotes, today)
+        : "") +
+      (homePreferences.blocks.includes("followups")
+        ? followupsHtml(followups)
+        : "") +
+      (!homePreferences.blocks.length
+        ? '<section class="panel"><p class="muted">Has ocultado todos los bloques. Puedes añadirlos desde «Personalizar inicio».</p></section>'
+        : "")
     );
   }
 
@@ -733,7 +769,9 @@ window.vidresAppReady = (async () => {
       html =
         (VSBackup.overdue()
           ? '<p role="status" class="backup-reminder">Hace más de 14 días que no exportas una copia. <button type="button" data-go="ajustes-copias">Hacer copia</button></p>'
-          : "") + dashboardHtml();
+          : "") +
+        homeSettingsHtml() +
+        (homeView === "calendar" ? calendarHtml() : dashboardHtml());
     } else if (page === "trabajos") {
       const q =
         !/\d{4}-\d{2}|\d{2}\/\d{2}/.test(search) && /^[+\d\s()-]+$/.test(search)
@@ -1440,6 +1478,30 @@ window.vidresAppReady = (async () => {
     pendingMeasurePhotos.splice(Number(button.dataset.pendingPhotoDelete), 1);
     renderPendingMeasurePhotos();
   });
+  $("#content").addEventListener("submit", async (e) => {
+    if (e.target.id !== "home-preferences-form") return;
+    e.preventDefault();
+    const form = e.target;
+    const data = new FormData(form);
+    const next = { view: data.get("view"), blocks: data.getAll("blocks") };
+    form.querySelectorAll("button").forEach((button) => {
+      button.disabled = true;
+    });
+    try {
+      const result = await VSAuth.json("/api/preferences/home", "PUT", next);
+      homePreferences = result.home;
+      homeView = homePreferences.view;
+      homeNotice = "Preferencias guardadas en tu cuenta.";
+      render();
+      $("#home-customize summary")?.focus();
+    } catch (error) {
+      form.querySelector('[role="status"]').textContent =
+        "No se pudo guardar: " + error.message;
+      form.querySelectorAll("button").forEach((button) => {
+        button.disabled = false;
+      });
+    }
+  });
   $("#content").addEventListener("click", async (e) => {
     const archiveButton = e.target.closest(
       "[data-job-archive], [data-job-unarchive]",
@@ -1617,13 +1679,13 @@ window.vidresAppReady = (async () => {
       }
       return;
     }
-    const v = e.target.closest("[data-home-view]");
-    if (v) {
-      homeView = v.dataset.homeView;
-      try {
-        await VSStorage.local.setItem("vidres-home-view", homeView);
-      } catch {}
-      render();
+    if (e.target.closest("[data-home-reset]")) {
+      const settings = $("#home-preferences-form");
+      settings.elements.view.value = homeDefaults.view;
+      settings.querySelectorAll('[name="blocks"]').forEach((input) => {
+        input.checked = true;
+      });
+      settings.requestSubmit();
       return;
     }
     const month = e.target.closest("[data-month]");

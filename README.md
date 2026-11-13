@@ -175,3 +175,9 @@ largos continúan en otras páginas y se conserva un mínimo de 12 cm de cuadrí
 Usa «Abrir PDF e imprimir» o «Guardar PDF» e imprime a tamaño real (100 %).
 El PDF se genera en el dispositivo y toma los datos guardados del expediente;
 no incluye importes. No requiere cambios en el Worker.
+
+### Inicio personal por usuario
+
+En **Inicio → Personalizar inicio**, cada usuario puede elegir el panel o el calendario y mostrar u ocultar el resumen, los próximos trabajos, las notas y los presupuestos por reclamar. Es posible ocultar todos los bloques y restablecer la configuración inicial.
+
+Las preferencias se guardan en la cuenta mediante `/api/preferences/home`, separadas de los datos compartidos y de sus copias de seguridad. Se recuperan al iniciar o recargar la aplicación en cualquier dispositivo. Para publicar este cambio, aplicar primero la migración D1 `0004_home_preferences.sql` y desplegar el backend antes del frontend (el flujo de despliegue existente aplica las migraciones).

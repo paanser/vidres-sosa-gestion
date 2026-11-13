@@ -126,6 +126,29 @@ async function checkMobileFields(page) {
     .locator("#nav button[disabled]")
     .first()
     .waitFor({ state: "detached" });
+  await page.locator("#home-customize summary").click();
+  await page.locator('[name="blocks"][value="jobs"]').uncheck();
+  await page.locator('#home-preferences-form button[type="submit"]').click();
+  await page.getByText("Preferencias guardadas en tu cuenta.").waitFor();
+  assert.equal(
+    await page.getByRole("heading", { name: "Próximos trabajos" }).count(),
+    0,
+  );
+  await page.reload();
+  await page.locator("#home-customize summary").click();
+  assert.equal(
+    await page.locator('[name="blocks"][value="jobs"]').isChecked(),
+    false,
+  );
+  await page.locator("#home-preferences-form select").selectOption("calendar");
+  await page.locator('#home-preferences-form button[type="submit"]').click();
+  await page.locator(".cal-grid").waitFor();
+  await page.locator("#home-customize summary").click();
+  await page.locator("[data-home-reset]").click();
+  await page.getByRole("heading", { name: "Próximos trabajos" }).waitFor();
+  console.log(
+    "PASS inicio personal: ocultar bloques, recargar, calendario y restablecer",
+  );
   console.log("PASS login, cambio obligatorio y carga privada");
   if (process.env.OPERATIONS_ONLY === "1") {
     await fs.mkdir(path.join(root, "test-results"), { recursive: true });

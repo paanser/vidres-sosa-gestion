@@ -4406,3 +4406,42 @@ html {
   border-color: #c7d9ce;
   font-size: 14px;
 }
+
+/* Preferencias personales del inicio */
+.home-personalization summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 12px 0;
+}
+.home-personalization form {
+  max-width: 640px;
+}
+.home-personalization select {
+  display: block;
+  width: 100%;
+  margin: 8px 0 16px;
+  font-size: 16px;
+}
+.home-personalization fieldset {
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 12px;
+}
+.home-block-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+}
+.home-block-option input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  flex: 0 0 auto;
+}
+.home-preferences-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}

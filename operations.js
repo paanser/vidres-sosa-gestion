@@ -5,7 +5,7 @@
   const jobs = () => VSStorage.read(VSStorage.keys.trabajos, []);
   const job = (id) => jobs().find((j) => j.id === id);
   const today = () => new Date().toLocaleDateString("en-CA");
-  const uid = () => crypto.randomUUID();
+  const uid = () => crypto.randomUUID().replaceAll("-", "");
   const dialog = document.createElement("dialog");
   dialog.id = "operations-dialog";
   dialog.className = "operations-dialog";
@@ -41,8 +41,7 @@
   }
   async function mutate(id, change) {
     // Read inside the existing mutation queue, so simultaneous form saves cannot lose changes.
-    await VSStorage.runMutation(async () => {
-      const values = VSStorage.values();
+    await VSStorage.updateValues((values) => {
       const list = values[VSStorage.keys.trabajos];
       const target = list.find((j) => j.id === id);
       if (!target)
@@ -50,12 +49,8 @@
       const op = structuredClone(target.operativa || {});
       change(op, target);
       target.operativa = op;
-      // This endpoint uses the same revision and conflict handling as the rest of the app.
-      const result = await VSAuth.json("/api/state", "PUT", {
-        revision: VSStorage.revision(),
-        values,
-      });
-      VSStorage.acceptMutation(result);
+      if (op.venta != null)
+        target.cobrado = op.venta > 0 && finances(op).balance <= 0;
     });
     window.vidresReloadData();
   }
@@ -117,9 +112,9 @@
       f = finances(o);
     const host = header(`${j.cliente} · ${j.id}`);
     host.innerHTML = `<div class="operations-actions">${button("overview", "Agenda y avisos")}${button("schedule", "Planificar visita o montaje")}${button("template", "Guardar como plantilla")}</div>
-      <section><h3>Pedidos a proveedores</h3><p>Las medidas de corte se copian de las piezas del expediente, sin redondeo de facturación. Revisa medidas, acabados y croquis antes de enviar.</p>${(o.pedidos || []).map((p) => `<article class="operations-card"><strong>${esc(p.proveedor)} · ${esc(p.referencia || "Sin referencia")}</strong><p>Pedido: ${esc(p.fecha)} · Entrega: ${esc(p.entrega || "Sin fecha")}</p><p>${p.piezas.reduce((s, x) => s + x.recibidas, 0)} de ${p.piezas.reduce((s, x) => s + x.cantidad, 0)} piezas recibidas</p>${button("order-pdf", "Hoja de pedido PDF", p.id)}${button("receive", "Registrar recepción", p.id)}</article>`).join("") || '<p class="muted">Sin pedidos registrados.</p>'}${button("order", "+ Pedido desde medidas")}</section>
+      <section><h3>Pedidos a proveedores</h3><p>Las medidas de corte se copian de las piezas del expediente, sin redondeo de facturación. Revisa medidas, acabados y croquis antes de enviar.</p>${(o.pedidos || []).map((p) => `<article class="operations-card"><strong>${esc(p.proveedor)} · ${esc(p.referencia || "Sin referencia")}</strong><p>Pedido: ${esc(p.fecha)} · Entrega: ${esc(p.entrega || "Sin fecha")}</p><p>${p.piezas.reduce((s, x) => s + x.recibidas, 0)} de ${p.piezas.reduce((s, x) => s + x.cantidad, 0)} piezas recibidas</p>${button("order-pdf", "Hoja de pedido PDF", p.id)}${button("receive", "Registrar recepción", p.id)}${button("edit-order", "Editar entrega y referencia", p.id)}</article>`).join("") || '<p class="muted">Sin pedidos registrados.</p>'}${button("order", "+ Pedido desde medidas")}</section>
       <section><h3>Importe y cobros</h3><p>Importes con IVA. Saldo pendiente: <strong>${money(f.balance)}</strong> · Cobrado: ${money(f.paid)}</p>${form("sale", input("venta", "Importe acordado con IVA (€)", "number", o.venta ?? "", 'min="0" max="1000000000" step="0.01" required'))}${ledger(o.pagos, "payment", "Registrar anticipo o pago")}</section>
-      <section><h3>Costes y rentabilidad</h3><p>Registra costes sin IVA deducible. La rentabilidad usa la venta sin IVA indicada aquí.</p>${form("net-sale", input("ventaNeta", "Venta sin IVA (€)", "number", o.ventaNeta ?? "", 'min="0" max="1000000000" step="0.01" required'))}<p>Coste registrado: <strong>${money(f.costs)}</strong>${o.ventaNeta != null ? ` · Beneficio provisional: <strong>${money(o.ventaNeta - f.costs)}</strong> · Margen sobre venta: ${o.ventaNeta ? (((o.ventaNeta - f.costs) / o.ventaNeta) * 100).toFixed(1) : "0"} %` : " · Introduce la venta sin IVA para calcular el beneficio."}</p><p class="muted">Resultado provisional según los costes registrados; incluye horas y repeticiones para completarlo.</p>${ledger(o.costes, "cost", "Registrar coste")}</section>
+      <section><h3>Costes y rentabilidad</h3><p>Registra costes sin IVA deducible. La rentabilidad usa la venta sin IVA indicada aquí.</p>${form("net-sale", input("ventaNeta", "Venta sin IVA (€)", "number", o.ventaNeta ?? "", 'min="0" max="1000000000" step="0.01" required'))}<p>Coste registrado: <strong>${money(f.costs)}</strong>${o.ventaNeta != null ? ` · Beneficio provisional: <strong>${money(f.profit)}</strong> · Margen sobre venta: ${o.ventaNeta ? f.margin.toFixed(1) : "0"} %` : " · Introduce la venta sin IVA para calcular el beneficio."}</p><p class="muted">Resultado provisional según los costes registrados; incluye horas y repeticiones para completarlo.</p>${ledger(o.costes, "cost", "Registrar coste")}</section>
       <section><h3>Cierre de montaje</h3>${o.cierre ? `<p>${esc(o.cierre.fecha)} · ${esc(o.cierre.nombre)} · ${o.cierre.conforme ? "Conforme" : "Con incidencias"}</p><p>${esc(o.cierre.incidencias)}</p><p>Pendiente: ${esc(o.cierre.pendiente || "Nada indicado")}</p>${button("close-pdf", "Parte de montaje PDF")}` : '<p class="muted">Todavía no se ha registrado el cierre.</p>'}${button("closure", o.cierre ? "Editar cierre" : "Registrar cierre y firma")}</section>`;
   }
   function ledger(list = [], action, text) {
@@ -131,6 +126,17 @@
         )
         .join("") + button(action, text)
     );
+  }
+  function freezeSketch(value) {
+    const config = VSStorage.read(VSStorage.keys.configuracion, {});
+    const unit =
+      (config.legacyDimensionUnit || config.unit) === "mm" ? "mm" : "cm";
+    const sketch = structuredClone(value);
+    sketch.dims = (sketch.dims || []).map((d) => ({
+      ...d,
+      unit: d.unit || unit,
+    }));
+    return sketch;
   }
   function orderForm() {
     const measures = VSStorage.measurements
@@ -389,40 +395,24 @@
     offerPdf(doc, `pedido-${j.id}-${p.id.slice(0, 8)}.pdf`);
   }
   function drawSketch(doc, sketch) {
-    const points = sketch.strokes
-      .flatMap((s) => s.points)
-      .concat((sketch.dims || []).flatMap((d) => [d.a, d.b]));
-    if (!points.length) return;
-    const xs = points.map((p) => p[0]),
-      ys = points.map((p) => p[1]);
-    const left = Math.min(...xs),
-      top = Math.min(...ys),
-      scale = Math.min(
-        170 / Math.max(1, Math.max(...xs) - left),
-        190 / Math.max(1, Math.max(...ys) - top),
-      );
-    const pos = (p) => [18 + (p[0] - left) * scale, 40 + (p[1] - top) * scale];
-    doc.setLineWidth(0.4);
-    for (const s of sketch.strokes)
-      for (let i = 1; i < s.points.length; i++)
-        doc.line(...pos(s.points[i - 1]), ...pos(s.points[i]));
+    const image = window.vidresSketch.preview(sketch);
+    const size = doc.getImageProperties(image);
+    const scale = Math.min(180 / size.width, 215 / size.height);
+    doc.addImage(image, 14, 30, size.width * scale, size.height * scale);
+    if (sketch.notes)
+      doc.autoTable({
+        startY: 250,
+        body: [["Notas del croquis", sketch.notes]],
+        styles: { fontSize: 9 },
+      });
     doc.setFontSize(9);
-    for (const d of sketch.dims || []) {
-      const a = pos(d.a),
-        b = pos(d.b);
-      doc.line(...a, ...b);
-      doc.text(
-        `${d.valor} ${d.unit || "cm"}`,
-        (a[0] + b[0]) / 2,
-        (a[1] + b[1]) / 2,
-      );
-    }
     doc.text(
       "Las medidas de corte válidas figuran en la tabla del pedido.",
       14,
-      262,
+      285,
     );
   }
+
   async function closePdf() {
     const j = job(selected),
       c = j.operativa.cierre,
@@ -531,7 +521,29 @@
       else if (action === "job") showJob(value);
       else if (action === "order") orderForm();
       else if (action === "receive") receiveForm(value);
-      else if (action === "payment" || action === "cost") ledgerForm(action);
+      else if (action === "edit-order") {
+        const p = job(selected).operativa.pedidos.find((x) => x.id === value);
+        header("Datos del pedido").innerHTML = form(
+          "edit-order",
+          `<input type="hidden" name="id" value="${esc(value)}">` +
+            input(
+              "proveedor",
+              "Proveedor",
+              "text",
+              p.proveedor,
+              'maxlength="150" required',
+            ) +
+            input(
+              "referencia",
+              "Referencia",
+              "text",
+              p.referencia,
+              'maxlength="150"',
+            ) +
+            input("entrega", "Entrega prevista", "date", p.entrega) +
+            textarea("notas", "Instrucciones", p.notas),
+        );
+      } else if (action === "payment" || action === "cost") ledgerForm(action);
       else if (action === "schedule") scheduleForm();
       else if (action === "closure") await closureForm();
       else if (action === "clear-signature") {
@@ -604,11 +616,18 @@
             tipo: m.tipo || "",
             espesor: String(m.espesor || ""),
             observaciones: m.observaciones || "",
-            ...(m.croquis ? { croquis: structuredClone(m.croquis) } : {}),
+            ...(m.croquis ? { croquis: freezeSketch(m.croquis) } : {}),
           })),
         };
         await mutate(id, (o) => {
           o.pedidos = [...(o.pedidos || []), order];
+        });
+      } else if (type === "edit-order") {
+        await mutate(id, (o) => {
+          const p = o.pedidos.find((x) => x.id === d.get("id"));
+          if (!p) throw Error("Pedido no encontrado");
+          for (const key of ["proveedor", "referencia", "entrega", "notas"])
+            p[key] = d.get(key).trim();
         });
       } else if (type === "receive") {
         await mutate(id, (o) => {
@@ -660,16 +679,22 @@
           ids = d.getAll("existingPhoto");
         if (files.length + ids.length > 20)
           throw Error("Selecciona un máximo de 20 fotos finales.");
+        formEl.uploadedPhotos ||= new Map();
         for (const file of files) {
-          const blob = await VSFiles.compressImage(file),
-            photoId = uid();
-          await VSFiles.put("photos", {
-            id: photoId,
-            trabajo: id,
-            nombre: file.name.slice(0, 180),
-            fecha: new Date().toISOString(),
-            blob,
-          });
+          const key = `${file.name}:${file.size}:${file.lastModified}`;
+          let photoId = formEl.uploadedPhotos.get(key);
+          if (!photoId) {
+            const blob = await VSFiles.compressImage(file);
+            const result = await VSFiles.put("photos", {
+              id: uid(),
+              trabajo: id,
+              nombre: file.name.slice(0, 160),
+              fecha: new Date().toISOString(),
+              blob,
+            });
+            photoId = result.id;
+            formEl.uploadedPhotos.set(key, photoId);
+          }
           ids.push(photoId);
         }
         const cierre = {
@@ -807,6 +832,10 @@
   }
   async function saveDraft(el, d) {
     const old = d.get("id") ? await draftGet(d.get("id")) : null;
+    if (old?.importJob)
+      throw Error(
+        "Importación iniciada. Completa la importación antes de crear otro borrador con cambios.",
+      );
     const files = d.getAll("photos").filter((f) => f.size);
     const photos = old?.photos || [];
     if (files.length + photos.length > 12)
@@ -814,7 +843,7 @@
     for (const f of files)
       photos.push({
         id: uid(),
-        nombre: f.name.slice(0, 180),
+        nombre: f.name.slice(0, 160),
         blob: await VSFiles.compressImage(f),
       });
     const record = {

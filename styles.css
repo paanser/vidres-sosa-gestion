@@ -4134,3 +4134,27 @@ html {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+.operations-dialog button,
+.operations-summary button {
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid #b4c5bc;
+  border-radius: 10px;
+  color: #153f30;
+  background: #f0f6f2;
+  font: inherit;
+  cursor: pointer;
+}
+.operations-dialog button.primary {
+  background: #15523e;
+  color: white;
+}
+.operations-dialog button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.operations-dialog button:focus-visible,
+.operations-summary button:focus-visible {
+  outline: 3px solid #2c8965;
+  outline-offset: 2px;
+}

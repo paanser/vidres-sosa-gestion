@@ -103,12 +103,12 @@
       return result;
     },
     runMutation: enqueue,
-    acceptMutation(state) {
-      if (state.revision !== revision + 1) {
-        dirtyConflict = true;
-        throw Error("Revisión inesperada. Recarga los datos.");
-      }
-      accept(state);
+    updateValues(change) {
+      return enqueue(async () => {
+        const next = structuredClone(values);
+        change(next);
+        await save(next);
+      });
     },
     advanceRevision(next) {
       if (next !== revision + 1) {

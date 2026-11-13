@@ -4,13 +4,14 @@
   function finances(op = {}) {
     const payments = (op.pagos || []).reduce((s, p) => s + cents(p.importe), 0);
     const costs = (op.costes || []).reduce((s, c) => s + cents(c.importe), 0);
-    const sale = cents(op.venta);
+    const sale = cents(op.venta),
+      net = op.ventaNeta == null ? null : cents(op.ventaNeta);
     return {
       paid: payments / 100,
       balance: (sale - payments) / 100,
       costs: costs / 100,
-      profit: (sale - costs) / 100,
-      margin: sale ? ((sale - costs) / sale) * 100 : null,
+      profit: net == null ? null : (net - costs) / 100,
+      margin: net ? ((net - costs) / net) * 100 : null,
     };
   }
   function overlaps(a, b) {

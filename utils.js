@@ -409,6 +409,11 @@ if (typeof document !== "undefined") {
     };
     search.onkeydown = (event) => {
       if (event.isComposing) return;
+      if (event.key === "Escape") {
+        event.preventDefault();
+        picker.close();
+        return;
+      }
       const first = results.querySelector("button");
       if (event.key === "ArrowDown" && first) {
         event.preventDefault();

@@ -234,6 +234,95 @@ async function checkMobileFields(page) {
   console.log(
     "PASS guardado: desconexión, fallo, espera, confirmación y conflicto del servidor",
   );
+  // Simulate a publication from another device: update the server directly,
+  // without updating this tab's in-memory storage.
+  const beforeRefresh = await page.evaluate(() => {
+    window.refreshFixtureJobs = VSStorage.read(VSStorage.keys.trabajos, []);
+    return window.vidresGetJobs().length;
+  });
+  await page.evaluate(async () => {
+    const state = await VSAuth.json("/api/state");
+    state.values[VSStorage.keys.trabajos] = [
+      ...window.refreshFixtureJobs,
+      {
+        id: "remote-refresh-fixture",
+        cliente: "Trabajo de otro dispositivo",
+        descripcion: "Publicado mientras la app está abierta",
+        estado: "Pendiente",
+        fecha: "2026-11-13",
+        prioridad: "Normal",
+      },
+    ];
+    await VSAuth.json("/api/state", "PUT", {
+      revision: state.revision,
+      values: state.values,
+    });
+  });
+  assert.equal(
+    await page.evaluate(() => window.vidresGetJobs().length),
+    beforeRefresh,
+  );
+  async function pull(distance) {
+    await page.evaluate((distance) => {
+      window.scrollTo(0, 0);
+      const target = document.querySelector("#title");
+      const touch = (y) =>
+        new Touch({ identifier: 1, target, clientX: 160, clientY: y });
+      target.dispatchEvent(
+        new TouchEvent("touchstart", { bubbles: true, touches: [touch(80)] }),
+      );
+      target.dispatchEvent(
+        new TouchEvent("touchmove", {
+          bubbles: true,
+          cancelable: true,
+          touches: [touch(80 + distance)],
+        }),
+      );
+      target.dispatchEvent(
+        new TouchEvent("touchend", { bubbles: true, touches: [] }),
+      );
+    }, distance);
+  }
+  const readsBefore = requests.filter((p) => p === "/api/state").length;
+  await pull(35);
+  assert.equal(requests.filter((p) => p === "/api/state").length, readsBefore);
+  await pull(120);
+  await page.waitForFunction(
+    () =>
+      document.querySelector(".pull-refresh-label").textContent ===
+      "Actualizado",
+  );
+  assert.equal(
+    await page.evaluate(() => window.vidresGetJobs().length),
+    beforeRefresh + 1,
+  );
+  assert.equal(await page.locator(".layout").evaluate((el) => el.inert), false);
+  await context.route("**/api/state", (route) =>
+    route.fulfill({
+      status: 503,
+      contentType: "application/json",
+      body: JSON.stringify({ error: "Sin conexión" }),
+    }),
+  );
+  await pull(120);
+  await page.waitForFunction(() =>
+    document
+      .querySelector(".pull-refresh-label")
+      .textContent.startsWith("No se pudo actualizar"),
+  );
+  assert.equal(
+    await page.evaluate(() => window.vidresGetJobs().length),
+    beforeRefresh + 1,
+  );
+  await context.unroute("**/api/state");
+  await page.evaluate(async () => {
+    await VSStorage.write(VSStorage.keys.trabajos, window.refreshFixtureJobs);
+    window.vidresReloadData();
+  });
+  console.log(
+    "PASS deslizar actualiza trabajos remotos; gesto corto y fallo de red conservan datos y sesión",
+  );
+
   await require("./check-meters-browser.cjs")(page, context, root);
   await require("./check-quotes-browser.cjs")(page, context, root);
   await require("./check-quote-document-browser.cjs")(page, context, root);

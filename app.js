@@ -1136,6 +1136,116 @@ window.vidresAppReady = (async () => {
     window.dispatchEvent(new Event("vidres-data-restored"));
     render();
   };
+  // Refresh list views without closing the session or replacing open editors.
+  const refreshIndicator = document.createElement("div");
+  refreshIndicator.className = "pull-refresh";
+  refreshIndicator.hidden = true;
+  refreshIndicator.setAttribute("role", "status");
+  refreshIndicator.setAttribute("aria-live", "polite");
+  refreshIndicator.innerHTML =
+    '<span class="pull-refresh-circle" aria-hidden="true">↻</span><span class="pull-refresh-label"></span>';
+  document.body.appendChild(refreshIndicator);
+  const refreshLabel = refreshIndicator.querySelector(".pull-refresh-label");
+  let pullStart = null,
+    pullDistance = 0,
+    refreshing = false,
+    refreshTimer;
+  const canPullRefresh = () =>
+    [
+      "inicio",
+      "trabajos",
+      "criticos",
+      "calendario",
+      "clientes",
+      "mediciones",
+      "avisos",
+      "produccion",
+    ].includes(page) && !document.querySelector("dialog[open]");
+  function resetPull() {
+    pullStart = null;
+    pullDistance = 0;
+    if (!refreshing) refreshIndicator.hidden = true;
+  }
+  document.addEventListener(
+    "touchstart",
+    (e) => {
+      if (
+        refreshing ||
+        e.touches.length !== 1 ||
+        window.scrollY > 0 ||
+        !canPullRefresh() ||
+        e.target.closest(
+          "input, textarea, select, button, a, [contenteditable], aside",
+        )
+      )
+        return;
+      // A nested scrolling panel must keep its own scrolling gesture.
+      for (
+        let node = e.target;
+        node && node !== document.body;
+        node = node.parentElement
+      ) {
+        if (
+          node.scrollHeight > node.clientHeight &&
+          /auto|scroll/.test(getComputedStyle(node).overflowY)
+        )
+          return;
+      }
+      clearTimeout(refreshTimer);
+      resetPull();
+      pullStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    },
+    { passive: true },
+  );
+  document.addEventListener(
+    "touchmove",
+    (e) => {
+      if (!pullStart || refreshing) return;
+      if (e.touches.length !== 1 || !canPullRefresh()) return resetPull();
+      const dx = e.touches[0].clientX - pullStart.x;
+      const dy = e.touches[0].clientY - pullStart.y;
+      if (dy <= 0 || Math.abs(dx) > dy || window.scrollY > 0)
+        return resetPull();
+      if (dy < 10) return;
+      if (e.cancelable) e.preventDefault();
+      pullDistance = dy;
+      refreshIndicator.hidden = false;
+      refreshLabel.textContent =
+        dy >= 80 ? "Suelta para actualizar" : "Desliza para actualizar";
+      refreshIndicator.querySelector(".pull-refresh-circle").style.transform =
+        `rotate(${Math.min(dy, 180)}deg)`;
+    },
+    { passive: false },
+  );
+  document.addEventListener("touchcancel", resetPull, { passive: true });
+  document.addEventListener(
+    "touchend",
+    async () => {
+      const shouldRefresh = pullStart && pullDistance >= 80 && canPullRefresh();
+      pullStart = null;
+      pullDistance = 0;
+      if (!shouldRefresh || refreshing) return resetPull();
+      refreshing = true;
+      document.querySelector(".layout").inert = true;
+      refreshIndicator.hidden = false;
+      refreshIndicator.classList.add("is-refreshing");
+      refreshLabel.textContent = "Actualizando…";
+      try {
+        await VSStorage.refresh();
+        window.vidresReloadData();
+        refreshLabel.textContent = "Actualizado";
+      } catch (error) {
+        refreshLabel.textContent =
+          "No se pudo actualizar. Comprueba la conexión y vuelve a intentarlo.";
+      } finally {
+        refreshing = false;
+        document.querySelector(".layout").inert = false;
+        refreshIndicator.classList.remove("is-refreshing");
+        refreshTimer = setTimeout(resetPull, 3000);
+      }
+    },
+    { passive: true },
+  );
   window.vidresGetJobs = () => jobs;
   window.vidresGetMeasurements = () => measurements;
   window.vidresOpenMeasurement = measurementEditor;

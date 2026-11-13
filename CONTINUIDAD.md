@@ -205,3 +205,16 @@ CHROMIUM_PATH=/usr/bin/chromium npm run test:browser` (en una sola línea).
 - Verificación: npm test correcto y navegador con guardado sin fecha/hora,
   edición con fecha/hora, recarga y geometría de tarjetas a 390 y 1280 px.
 - Cambios locales pendientes de publicación; versión de recursos actualizada.
+
+## Actualizar deslizando · 13 de noviembre de 2026
+
+- Al deslizar hacia abajo desde el principio de Inicio y las listas de trabajos,
+  calendario, clientes y mediciones aparece un círculo de actualización.
+- Al soltar después de 80 px consulta el estado compartido y vuelve a dibujar
+  los datos sin cerrar la sesión. Respeta diálogos y campos de edición.
+- La lectura espera a las escrituras pendientes y recupera la revisión tras
+  conflictos. Durante la consulta se bloquea temporalmente la navegación para
+  evitar abrir un editor con datos antiguos. La petición caduca a los 15 s.
+- Ante un fallo conserva los datos visibles y ofrece volver a intentarlo.
+- Pruebas: 55 pruebas Node, formato y navegador móvil con publicación remota,
+  gesto corto, fallo de red y regresiones completas de la aplicación.

@@ -325,6 +325,14 @@ test("almacenamiento remoto: cola, transacciones, fallo de red, conflicto y orig
     () => s.write(s.keys.configuracion, {}),
     /otro dispositivo/i,
   );
+  await s.refresh();
+  assert.equal(s.read(s.keys.trabajos, [])[0].descripcion, "Otro dispositivo");
+  await s.write(s.keys.configuracion, { unit: "cm" });
+  disconnected = true;
+  const currentRevision = s.revision();
+  await assert.rejects(() => s.refresh(), /Sin red/);
+  assert.equal(s.revision(), currentRevision);
+  assert.equal(s.read(s.keys.trabajos, [])[0].descripcion, "Otro dispositivo");
   assert.equal(local.getItem("vidres-sosa-demo-v01"), original);
 });
 test("numeración de presupuesto reservada en servidor sin reutilizar referencias", async () => {

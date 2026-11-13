@@ -3963,3 +3963,54 @@ input[data-measure] {
   min-width: 0;
   margin: 8px 0;
 }
+
+/* Keep the in-app pull gesture consistent in standalone and browser mode. */
+html {
+  overscroll-behavior-y: contain;
+}
+.pull-refresh {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  border-radius: 28px;
+  background: white;
+  color: #163d32;
+  box-shadow: 0 3px 18px #0003;
+  pointer-events: none;
+  font-size: 14px;
+}
+.pull-refresh[hidden] {
+  display: none;
+}
+.pull-refresh-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  font-size: 25px;
+}
+.is-refreshing .pull-refresh-circle {
+  animation: pull-spin 0.8s linear infinite;
+}
+@keyframes pull-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .is-refreshing .pull-refresh-circle {
+    animation: none;
+  }
+}

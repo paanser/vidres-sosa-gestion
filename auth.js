@@ -141,9 +141,10 @@
       showSaveStatus();
     }
   }
-  async function json(path, method = "GET", body) {
+  async function json(path, method = "GET", body, options = {}) {
     return (
       await request(path, {
+        ...options,
         method,
         ...(body === undefined
           ? {}

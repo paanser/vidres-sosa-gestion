@@ -261,6 +261,16 @@ try {
   await main();
 } catch (error) {
   say("ERROR: " + error.message);
+  // Expose the existing safe diagnostic in the check API when log downloads
+  // are unavailable; never relay raw CLI output or credential-bearing requests.
+  if (process.env.GITHUB_ACTIONS)
+    console.log(
+      "::error::" +
+        String(error.message)
+          .replaceAll("%", "%25")
+          .replaceAll("\r", "%0D")
+          .replaceAll("\n", "%0A"),
+    );
   process.exitCode = 1;
 } finally {
   if (process.env.GITHUB_STEP_SUMMARY)

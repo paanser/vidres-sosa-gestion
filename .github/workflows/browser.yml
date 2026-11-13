@@ -5,6 +5,10 @@ on:
     paths:
       - .github/workflows/browser.yml
       - scripts/check-browser.cjs
+      - scripts/check-operations-browser.cjs
+      - operations.js
+      - operations-model.js
+      - worker/operations.js
       - auth.js
       - users.js
       - app.js
@@ -17,6 +21,10 @@ on:
     paths:
       - .github/workflows/browser.yml
       - scripts/check-browser.cjs
+      - scripts/check-operations-browser.cjs
+      - operations.js
+      - operations-model.js
+      - worker/operations.js
       - auth.js
       - users.js
       - app.js

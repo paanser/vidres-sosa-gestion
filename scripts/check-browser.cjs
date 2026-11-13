@@ -127,6 +127,13 @@ async function checkMobileFields(page) {
     .first()
     .waitFor({ state: "detached" });
   console.log("PASS login, cambio obligatorio y carga privada");
+  if (process.env.OPERATIONS_ONLY === "1") {
+    await fs.mkdir(path.join(root, "test-results"), { recursive: true });
+    await require("./check-operations-browser.cjs")(page, context, root);
+    assert.deepEqual(errors, []);
+    await browser.close();
+    return;
+  }
   assert.deepEqual(
     await page
       .locator("#nav [data-page]")
@@ -380,7 +387,7 @@ async function checkMobileFields(page) {
   });
   await page.setViewportSize({ width: 390, height: 844 });
   console.log("PASS campos móviles sin texto pequeño ni recortes al escribir");
-  assert.equal(await page.locator("#form [name=duracion]").isVisible(), false);
+  assert.equal(await page.locator("#form [name=duracion]").isVisible(), true);
   assert.equal(
     await page.locator("#form [name=responsable]").inputValue(),
     await page.evaluate(() => VSAuth.user.nombre),
@@ -1027,8 +1034,18 @@ async function checkMobileFields(page) {
   console.log(
     "PASS lectura y navegación sin desbordamiento a 390/768/1024/1440/1920 px",
   );
+  await require("./check-operations-browser.cjs")(page, context, root);
+  assert.deepEqual(errors, []);
   await browser.close();
 })().catch((e) => {
   console.error(e);
+  if (process.env.GITHUB_ACTIONS)
+    console.log(
+      "::error::" +
+        String(e.stack || e)
+          .replaceAll("%", "%25")
+          .replaceAll("\r", "%0D")
+          .replaceAll("\n", "%0A"),
+    );
   process.exit(1);
 });

@@ -861,6 +861,7 @@ window.vidresAppReady = (async () => {
       );
     }
     $("#content").innerHTML = html;
+    window.VSOperations?.decorate(page);
     const advanced = $(".advanced-work-filters");
     if (advanced && Object.values(filters).some(Boolean)) advanced.open = true;
     const scope = $("#job-scope");
@@ -996,6 +997,42 @@ window.vidresAppReady = (async () => {
             "No se pudo cargar la lista de usuarios. Cierra y vuelve a abrir el parte para reintentarlo.",
           );
       });
+    let templateSelect = form.querySelector("#job-template");
+    if (!templateSelect) {
+      const label = document.createElement("label");
+      label.textContent = "Empezar con una plantilla";
+      templateSelect = document.createElement("select");
+      templateSelect.id = "job-template";
+      label.append(templateSelect);
+      $("#formtitle").after(label);
+      templateSelect.addEventListener("change", () => {
+        const t = (window.vidresPlantillasList?.() || []).find(
+          (x) => x.id === templateSelect.value,
+        );
+        if (!t) return;
+        if (
+          !confirm(
+            "¿Aplicar la descripción, notas y piezas de la plantilla? Sustituirá esos campos y las piezas que hayas añadido.",
+          )
+        ) {
+          templateSelect.value = "";
+          return;
+        }
+        form.elements.descripcion.value = t.descripcion || "";
+        form.elements.notas.value = t.notas || "";
+        form.elements.tipoCliente.value = t.tipoCliente || "Particular";
+        window.vidresNewMeasures.applyTemplatePieces(t.piezas);
+      });
+    }
+    templateSelect.parentElement.hidden = Boolean(id);
+    templateSelect.innerHTML =
+      '<option value="">Sin plantilla</option>' +
+      (window.vidresPlantillasList?.() || [])
+        .map(
+          (t) =>
+            '<option value="' + esc(t.id) + '">' + esc(t.nombre) + "</option>",
+        )
+        .join("");
     $("#formtitle").textContent = id ? "Editar trabajo" : "Nuevo parte";
     if (id) {
       const job = jobs.find((j) => j.id === id);
@@ -1662,6 +1699,12 @@ window.vidresAppReady = (async () => {
         nextJobs[i] = {
           ...old,
           ...values,
+          ...(old.operativa &&
+          (old.fecha !== values.fecha ||
+            old.hora !== values.hora ||
+            old.responsable !== values.responsable)
+            ? { operativa: { ...old.operativa, montajeConfirmado: false } }
+            : {}),
           historial: history,
           finalizadoEn:
             values.estado === "Finalizado"

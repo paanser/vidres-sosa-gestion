@@ -218,3 +218,63 @@ CHROMIUM_PATH=/usr/bin/chromium npm run test:browser` (en una sola línea).
 - Ante un fallo conserva los datos visibles y ofrece volver a intentarlo.
 - Pruebas: 55 pruebas Node, formato y navegador móvil con publicación remota,
   gesto corto, fallo de red y regresiones completas de la aplicación.
+
+## Gestión integral · 13 de noviembre de 2026
+
+- El usuario autoriza ejecutar y publicar las seis mejoras propuestas y sus tres
+  complementos: pedidos, hoja PDF, agenda semanal, cobros, cierre con firma/fotos,
+  rentabilidad, avisos, plantillas y borradores de medición sin cobertura.
+- `operations.js` integra la gestión con expedientes, Inicio y Calendario.
+  `operations-model.js` calcula saldos en céntimos, solapamientos y avisos.
+  Los campos compartidos se guardan en `trabajo.operativa`, validados en
+  `worker/operations.js`; las copias existentes los conservan dentro del trabajo.
+- Pedidos con selección y copia inmutable de medidas/croquis, recepción acumulada
+  por pieza y edición de proveedor/referencia/entrega/instrucciones. PDF para
+  proveedor con medidas de corte en mm y el mismo renderizador de croquis.
+- Agenda por responsable; advertencia de solapamiento y confirmación explícita
+  para guardarlo desde el planificador. El editor del parte muestra duración y
+  retira confirmación previa si se cambia la planificación.
+- Venta con IVA y pagos parciales; venta sin IVA separada para calcular resultado
+  provisional con costes sin IVA deducible. El saldo actualiza el control cobrado
+  cuando existe importe acordado. No emite facturas fiscales.
+- Cierre con firma de trazos normalizados, fotos privadas y PDF local; conserva
+  el estado del trabajo. Los reintentos de un cierre conservan fotos ya subidas.
+- Guardar un trabajo como plantilla y aplicar una plantilla desde un nuevo parte,
+  con confirmación antes de sustituir descripción/notas/especificaciones de piezas.
+- Borradores explícitos en IndexedDB separados por usuario, medidas y fotos.
+  Requieren iniciar sesión/abrir la app con conexión antes de trabajar sin cobertura.
+  Importación manual, IDs estables, mismo expediente tras fallo parcial y borrado
+  local únicamente al confirmar medidas y fotos. No se incluyen en copia del servidor.
+- `VSStorage.updateValues` reutiliza la cola, revisión y tratamiento de conflictos;
+  no modifica el modelo de autenticación ni las tablas de D1.
+- Integradas las novedades ya publicadas de `origin/main` (`dff5cf1`): mínimo
+  facturable por pieza y precio de venta por partida. No retomar rediseños antiguos.
+- Pruebas: 61 de Node; batería nueva de navegador con Worker y SQLite en memoria,
+  pedidos/PDF/recepciones, snapshot inmutable, cobros, costes, conflictos de agenda,
+  firma/fotos, persistencia tras recarga, borradores offline y reintento tras fallo
+  parcial de importación, plantillas y 390/768/1440 px. Capturas en test-results.
+- Publicación autorizada: desplegar Worker desde rama primero, integrar después
+  y comprobar Pages y navegador. Sigue vigente la configuración Pages legacy:
+  cancelar la ejecución automática paralela, conservando el workflow pages.yml.
+
+### Publicación y diagnóstico del backend
+
+- PR #54: `feat/gestion-integral-20261113`.
+- GitHub Actions no puede desplegar: el token de Cloudflare del repositorio está
+  inactivo (diagnóstico confirmado por anotación de la ejecución 43420424959).
+  El script ahora publica el mensaje seguro como anotación del check; no expone
+  solicitudes, credenciales ni salida cruda de Wrangler.
+- Se ha desplegado el backend mediante la conexión Cloudflare autorizada, en la
+  cuenta y Worker existentes. Deployment ID `c958b157142d49eda066286d11f4953d`.
+  Se preservaron todos los bindings, secretos y fecha/flags de compatibilidad.
+  Lectura posterior de módulos confirma `validateOperations` desplegado.
+- El workflow Pages comprueba después del despliegue el SHA de `version.json`,
+  los dos módulos públicos nuevos y respuestas 401 sin sesión de estado,
+  archivos y usuarios. No consulta ni modifica registros privados.
+- Pendiente operativo ajeno a esta funcionalidad: renovar el token de Cloudflare
+  en GitHub Actions para futuros despliegues automáticos del backend. La conexión
+  Cloudflare de la sesión sigue siendo válida y permitió publicar este backend.
+- La ejecución remota detectó una carrera con respuestas lentas: el mensaje de
+  éxito anterior seguía visible durante otro guardado. Se retira al iniciar la
+  escritura y el cuerpo del gestor queda inerte hasta recibir confirmación o error.
+  La prueba de operaciones simula 150 ms adicionales en cada guardado para cubrirlo.

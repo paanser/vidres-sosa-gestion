@@ -21,6 +21,8 @@ document.querySelectorAll("#nav button").forEach((b) => (b.disabled = true));
     "voice",
     "enhancements",
     "expediente",
+    "operations-model",
+    "operations",
   ];
   // Download public assets together while the session is being checked.
   // Execution and private data requests still wait for authentication.

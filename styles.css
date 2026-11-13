@@ -4014,3 +4014,147 @@ html {
     animation: none;
   }
 }
+
+.operations-dialog {
+  width: min(1100px, 96vw);
+  max-width: 96vw;
+  max-height: 92dvh;
+  overflow: auto;
+  padding: 20px;
+}
+.operations-heading,
+.operations-actions,
+.operations-week-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.operations-heading {
+  justify-content: space-between;
+}
+.operations-dialog h2,
+.operations-dialog h3 {
+  overflow-wrap: anywhere;
+}
+.operations-dialog section {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border, #ddd);
+}
+.operations-form {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0;
+}
+.operations-form label,
+.operations-week-controls label {
+  display: grid;
+  gap: 6px;
+}
+.operations-form input,
+.operations-form textarea,
+.operations-form select,
+.operations-dialog select,
+.operations-week-controls input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  font-size: 16px;
+  box-sizing: border-box;
+}
+.operations-form input[type="checkbox"] {
+  width: 22px;
+  min-height: 22px;
+}
+.operations-form fieldset {
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+}
+.operations-card {
+  padding: 12px;
+  margin: 10px 0;
+  border: 1px solid #d6dfda;
+  border-radius: 10px;
+  overflow-wrap: anywhere;
+}
+.operations-card button {
+  margin: 8px 8px 0 0;
+}
+.operations-week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+}
+.operations-week section {
+  min-width: 0;
+  background: #f5f8f6;
+  padding: 10px;
+  border-radius: 8px;
+}
+.operations-week button {
+  width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.operations-week p,
+.operations-week small {
+  overflow-wrap: anywhere;
+  display: block;
+}
+.operations-warning {
+  color: #a52b20;
+}
+.operations-alerts li {
+  margin: 12px 0;
+  overflow-wrap: anywhere;
+}
+#operations-signature {
+  display: block;
+  width: 100%;
+  height: 180px;
+  border: 1px solid #9aada4;
+  background: #fff;
+  touch-action: none;
+}
+#operations-pdf a {
+  display: inline-block;
+  padding: 12px;
+}
+@media (max-width: 900px) {
+  .operations-week {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 480px) {
+  .operations-dialog {
+    padding: 12px;
+  }
+  .operations-week {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.operations-dialog button,
+.operations-summary button {
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid #b4c5bc;
+  border-radius: 10px;
+  color: #153f30;
+  background: #f0f6f2;
+  font: inherit;
+  cursor: pointer;
+}
+.operations-dialog button.primary {
+  background: #15523e;
+  color: white;
+}
+.operations-dialog button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.operations-dialog button:focus-visible,
+.operations-summary button:focus-visible {
+  outline: 3px solid #2c8965;
+  outline-offset: 2px;
+}

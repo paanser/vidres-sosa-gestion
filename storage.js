@@ -103,6 +103,13 @@
       return result;
     },
     runMutation: enqueue,
+    updateValues(change) {
+      return enqueue(async () => {
+        const next = structuredClone(values);
+        change(next);
+        await save(next);
+      });
+    },
     advanceRevision(next) {
       if (next !== revision + 1) {
         dirtyConflict = true;

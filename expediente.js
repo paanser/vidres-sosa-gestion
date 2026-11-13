@@ -80,6 +80,14 @@
       return;
     }
     heading.textContent = j.cliente + " · " + j.id;
+    let ops = dialog.querySelector("[data-operations-job]");
+    if (!ops) {
+      ops = document.createElement("button");
+      ops.type = "button";
+      ops.textContent = "Pedidos, cobros y montaje";
+      heading.after(ops);
+    }
+    ops.dataset.operationsJob = j.id;
     dialog.querySelectorAll("[data-exp-tab]").forEach((b) => {
       b.classList.toggle("selected", b.dataset.expTab === tab);
       b.setAttribute("aria-selected", String(b.dataset.expTab === tab));

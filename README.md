@@ -38,7 +38,7 @@ Los datos anteriores de localStorage/IndexedDB **se conservan sin modificarlos**
 
 Los guardados esperan confirmación del servidor. Una revisión global detecta ediciones simultáneas y devuelve 409 en lugar de sobrescribir datos. Ante un conflicto, conserva el formulario y recarga antes de volver a editar. Los presupuestos reservan su referencia anual en el servidor; puede haber saltos si se abandona un guardado.
 
-Se necesita conexión para consultar o guardar los datos. La PWA solo conserva los archivos públicos de la interfaz, nunca respuestas de la API, contraseñas o datos de negocio. Una revocación no puede retirar archivos que un usuario ya haya descargado fuera de la aplicación.
+Se necesita conexión para consultar o guardar los datos compartidos. La sección «Mediciones sin cobertura» permite guardar explícitamente borradores de medidas y fotos en IndexedDB del dispositivo, separados por usuario, e importarlos al recuperar la conexión. Hay que iniciar sesión y abrir la app con conexión antes de ir a la obra. Estos borradores no se incluyen en la copia del servidor y se pierden al borrar los datos del navegador. La PWA solo conserva los archivos públicos de la interfaz, nunca respuestas de la API, contraseñas o datos de negocio. Una revocación no puede retirar archivos que un usuario ya haya descargado fuera de la aplicación.
 
 ## Despliegue, migración y pruebas
 
@@ -91,3 +91,43 @@ Se cargan desde el mismo sitio, sin CDN ni envío de documentos a terceros.
 El documento conserva los campos seleccionados para cliente, dibujos y logo; la
 copia interna incluye los costes. Al editar los datos se retiran los enlaces
 al PDF anterior para evitar enviar un documento desactualizado.
+
+## Gestión de pedidos, agenda, cobros y montaje
+
+Desde Inicio o Calendario abre «Agenda semanal, pedidos y cobros». En el
+expediente, «Pedidos, cobros y montaje» abre directamente la gestión del trabajo.
+
+- Pedidos desde las mediciones, selección de piezas, proveedor, referencia,
+  entrega e instrucciones. Guardan una copia de las medidas de corte y croquis,
+  independiente de las ediciones posteriores. Hoja PDF local con cotas en mm,
+  acabados y croquis, sin importes internos. La creación exige revisar las piezas.
+  La recepción registra cantidades acumuladas por pieza; admite editar entrega,
+  referencia e instrucciones. Los pedidos no se envían automáticamente.
+- Agenda semanal filtrada por responsable y avisos de solapamiento cuando ambos
+  trabajos tienen hora y duración. Al planificar un solapamiento exige indicarlo
+  expresamente. Cambiar fecha, hora o responsable en el parte retira la confirmación
+  previa del montaje. Inicio avisa de entregas vencidas, material incompleto para
+  instalar y montajes sin confirmar.
+- Venta acordada con IVA, anticipos y pagos fechados, saldo pendiente y eliminación
+  confirmada de movimientos incorrectos. Con un importe acordado positivo, el
+  control «cobrado» se actualiza según el saldo registrado. La venta sin IVA se
+  introduce aparte para calcular beneficio y margen sobre costes sin IVA deducible.
+  Costes de material, mano de obra, desplazamiento, repetición y otros; resultados
+  provisionales hasta completar todos los costes. No genera facturas fiscales.
+- Cierre con fecha, firmante, conformidad, incidencias, pendientes, firma opcional
+  y selección/subida de fotos finales. Parte PDF local con firma y fotografías.
+  Guardar el cierre conserva el estado del trabajo para poder resolver pendientes.
+- Guardar como plantilla desde un trabajo conserva descripción, tipo de cliente,
+  notas y especificaciones de piezas sin sus medidas. Se aplica desde el selector
+  del nuevo parte; requiere confirmar la sustitución de esos campos y piezas.
+  Los presupuestos existentes se pueden seguir duplicando desde su editor.
+- Borradores locales de medición con fotos para trabajar sin cobertura con la app
+  previamente abierta. Importación manual al expediente elegido, con identificadores
+  estables y conservación del borrador ante fallos parciales. Reintentar no duplica
+  la medición. Un borrador cuya importación se ha iniciado queda vinculado al mismo
+  expediente hasta completarla; no puede editarse durante una importación parcial.
+
+La gestión compartida se almacena en `operativa` dentro del trabajo, se valida en
+el Worker y viaja con las copias existentes. No requiere migraciones SQL. Publicar
+primero el Worker y después la interfaz. Los nuevos módulos públicos se incluyen
+en el Service Worker y en la lista explícita del artefacto Pages.

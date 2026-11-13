@@ -278,3 +278,40 @@ test("metraje mínimo por pieza: automático, selección manual y presupuestos a
     total: 174.24,
   });
 });
+
+test("tarifa fija sustituye solo venta de vidrio y conserva costes, extras e IVA", () => {
+  const { quoteDetails } = require("../calculations.js");
+  const q = {
+    pricing: {
+      priceMode: "fixed",
+      fixedPrice: 80,
+      margin: 200,
+      minimumArea: "auto",
+      vat: 21,
+    },
+    lines: [
+      {
+        w: 120,
+        h: 120,
+        qty: 2,
+        price: 20,
+        edgePrice: 5,
+        sides: ["top"],
+        extraAmount: 10,
+        extraMode: "separate",
+      },
+      { kind: "concept", amount: 30 },
+      { kind: "aluminum", amount: 100, aluminumMargin: 20 },
+    ],
+  };
+  q.pricing.marginScope = "glass";
+  const d = quoteDetails(q);
+  assert.equal(d.lines[0].cost, 79.6);
+  assert.equal(d.lines[0].sale, 252.4);
+  assert.equal(d.lines[0].extraSale, 10);
+  assert.equal(d.totals.base, 402.4);
+  assert.equal(d.totals.total, 486.9);
+  assert.equal(q.lines[0].price, 20);
+  q.pricing.fixedPrice = 0;
+  assert.equal(quoteDetails(q).lines[0].sale, 22);
+});

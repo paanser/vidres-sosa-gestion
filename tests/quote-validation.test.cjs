@@ -156,3 +156,37 @@ test("servidor: valida y conserva la selección de metraje mínimo", async () =>
   for (const value of ["", -1, 0, 2, {}, true])
     assert.throws(() => validate(value));
 });
+
+test("perfiles de cliente y precio por oferta se conservan y validan en D1", async () => {
+  const { checked, KEYS } = await import("../worker/data.js");
+  const client = {
+    nombre: "Perfil",
+    priceProfile: { mode: "markup", value: 80 },
+  };
+  const quote = {
+    id: "P-PERFIL",
+    client: "Perfil",
+    lines: [{ w: 100, h: 100, qty: 1, price: 20 }],
+    pricing: { priceMode: "fixed", fixedPrice: 50 },
+  };
+  const data = { [KEYS.clientes]: [client], [KEYS.presupuestos]: [quote] };
+  assert.equal(checked(data)[KEYS.clientes][0].priceProfile.value, 80);
+  for (const profile of [
+    { mode: "otro", value: 1 },
+    { mode: "fixed", value: -1 },
+    { mode: "markup", value: "NaN" },
+  ]) {
+    assert.throws(() =>
+      checked({ [KEYS.clientes]: [{ ...client, priceProfile: profile }] }),
+    );
+  }
+  for (const pricing of [
+    { priceMode: "otro" },
+    { priceMode: "fixed", fixedPrice: -1 },
+    { priceMode: "fixed" },
+  ]) {
+    assert.throws(() =>
+      checked({ [KEYS.presupuestos]: [{ ...quote, pricing }] }),
+    );
+  }
+});

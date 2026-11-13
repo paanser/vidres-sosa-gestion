@@ -93,9 +93,14 @@
                 : dimensions.area * num(line.price) * dimensions.qty
               : cost,
           sale = round2(
-            config.marginScope === "glass"
-              ? cost + marginBase * (factor - 1)
-              : cost * factor,
+            config.priceMode === "fixed" && line.kind !== "concept"
+              ? cost +
+                  dimensions.area *
+                    dimensions.qty *
+                    (num(config.fixedPrice) - num(line.price))
+              : config.marginScope === "glass"
+                ? cost + marginBase * (factor - 1)
+                : cost * factor,
           ),
           separate = line.extraMode === "separate",
           extraSale = separate
@@ -115,6 +120,7 @@
       });
     // Sin opciones nuevas se conserva el redondeo de presupuestos anteriores.
     const legacy =
+        config.priceMode !== "fixed" &&
         !marginRate &&
         !quote.lines.some(
           (l) => num(l.extraAmount) || ["concept", "aluminum"].includes(l.kind),

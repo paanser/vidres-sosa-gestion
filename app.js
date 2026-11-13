@@ -525,6 +525,10 @@ window.vidresAppReady = (async () => {
     dialog.querySelector('[name="nif"]').value =
       existing.nif || existing.cif || "";
     dialog.querySelector('[name="email"]').value = existing.email || "";
+    dialog.querySelector('[name="priceMode"]').value =
+      existing.priceProfile?.mode || "default";
+    dialog.querySelector('[name="priceValue"]').value =
+      existing.priceProfile?.value ?? 0;
     dialog.showModal();
   }
   function measurementArea(m) {
@@ -887,14 +891,77 @@ window.vidresAppReady = (async () => {
         $("#search").setSelectionRange(search.length, search.length);
       });
   }
+  const navigationStack = [];
   window.vidresNavigate = (p) => {
     if (p === "ajustes-plantillas") p = "ajustes";
     if (p === "usuarios")
       usersBackPage = page === "herramientas" ? "herramientas" : "ajustes";
+    if (p !== page) navigationStack.push(page);
     page = p;
     search = "";
     render();
   };
+  // Internal navigation never sends the standalone PWA to an external history entry.
+  const backHint = document.createElement("div");
+  backHint.className = "edge-back-hint";
+  backHint.textContent = "‹";
+  backHint.setAttribute("aria-hidden", "true");
+  document.body.append(backHint);
+  let edgeGesture = null;
+  const resetEdge = () => {
+    edgeGesture = null;
+    backHint.style.opacity = "0";
+    backHint.style.transform = "";
+  };
+  document.addEventListener(
+    "touchstart",
+    (e) => {
+      resetEdge();
+      if (
+        e.touches.length !== 1 ||
+        !navigationStack.length ||
+        document.querySelector("dialog[open]") ||
+        e.target.closest(
+          "input,textarea,select,button,a,canvas,[contenteditable]",
+        )
+      )
+        return;
+      const t = e.touches[0];
+      if (t.clientX <= 24)
+        edgeGesture = { x: t.clientX, y: t.clientY, distance: 0 };
+    },
+    { passive: true },
+  );
+  document.addEventListener(
+    "touchmove",
+    (e) => {
+      if (!edgeGesture) return;
+      if (e.touches.length !== 1) return resetEdge();
+      const dx = e.touches[0].clientX - edgeGesture.x,
+        dy = Math.abs(e.touches[0].clientY - edgeGesture.y);
+      if (dx < 0 || (dy > 12 && dy > dx / 1.5)) return resetEdge();
+      if (dx < 12) return;
+      if (e.cancelable) e.preventDefault();
+      edgeGesture.distance = dx;
+      backHint.style.opacity = String(Math.min(dx / 80, 1));
+      backHint.style.transform = `translateX(${Math.min(dx / 2, 55)}px)`;
+    },
+    { passive: false },
+  );
+  document.addEventListener("touchcancel", resetEdge, { passive: true });
+  document.addEventListener(
+    "touchend",
+    () => {
+      const goBack = edgeGesture?.distance >= 80;
+      resetEdge();
+      if (goBack && !document.querySelector("dialog[open]")) {
+        page = navigationStack.pop() || "inicio";
+        search = "";
+        render();
+      }
+    },
+    { passive: true },
+  );
   document.querySelectorAll("[data-page]").forEach((b) =>
     b.addEventListener("click", () => {
       jobFocus = "";
@@ -1576,6 +1643,10 @@ window.vidresAppReady = (async () => {
       const i = clients.findIndex(
         (c) => normName(c.nombre) === normName(nombre),
       );
+      item.priceProfile = {
+        mode: String(data.get("priceMode")),
+        value: Number(data.get("priceValue")),
+      };
       const nextClients = [...clients];
       if (i < 0) nextClients.push(item);
       else nextClients[i] = item;

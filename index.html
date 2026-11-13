@@ -461,6 +461,28 @@
         ><label>Dirección<input name="direccion" maxlength="180" /></label>
         <label>CIF/NIF<input name="nif" maxlength="100" /></label>
         <label>Correo<input name="email" type="email" maxlength="200" /></label>
+        <label
+          >Perfil de precios<select name="priceMode">
+            <option value="default">Sin perfil personalizado</option>
+            <option value="markup">Recargo sobre vidrio (%)</option>
+            <option value="fixed">Tarifa de venta del vidrio (€/m²)</option>
+          </select></label
+        >
+        <label
+          >Valor del perfil<input
+            name="priceValue"
+            type="number"
+            min="0"
+            max="1000000"
+            step="0.01"
+            value="0"
+            required
+        /></label>
+        <p>
+          Se copia al seleccionar el cliente en un presupuesto. Cantos, energía
+          y extras se suman aparte. Puedes ajustar cada oferta sin cambiar esta
+          ficha.
+        </p>
         <div class="actions">
           <button type="button" data-dialog-close>Cancelar</button
           ><button class="primary" type="submit">Guardar ficha</button>

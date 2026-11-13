@@ -152,7 +152,15 @@ export function validateValues(values) {
       if (j[k] != null && typeof j[k] !== "boolean")
         fail(400, "Control administrativo no válido");
   }
-  for (const c of result[KEYS.clientes])
+  for (const c of result[KEYS.clientes]) {
+    if (c.priceProfile != null) {
+      if (
+        !object(c.priceProfile) ||
+        !["default", "markup", "fixed"].includes(c.priceProfile.mode)
+      )
+        fail(400, "Perfil de precios no válido");
+      number(c.priceProfile.value, 0, 1000000);
+    }
     strings(c, {
       nombre: 100,
       telefono: 100,
@@ -160,6 +168,7 @@ export function validateValues(values) {
       nif: 100,
       email: 200,
     });
+  }
   // Measurements are kept as a separate collection, including vector sketches.
   return result;
 }
@@ -316,6 +325,13 @@ export function checked(values) {
     if (q.pricing) {
       if (!object(q.pricing)) fail(400, "Fiscalidad no válida");
       number(q.pricing.vat ?? 21, 0, 100);
+      if (
+        q.pricing.priceMode != null &&
+        !["markup", "fixed"].includes(q.pricing.priceMode)
+      )
+        fail(400, "Modo de precio no válido");
+      if (q.pricing.priceMode === "fixed")
+        number(q.pricing.fixedPrice, 0, 1000000);
       if (
         q.pricing.minimumArea != null &&
         !["auto", "0.35", "0.5", "0.7", "1"].includes(

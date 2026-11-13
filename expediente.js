@@ -9,6 +9,59 @@
   let current = null,
     tab = "resumen",
     revision = 0;
+  let sheetUrl = null;
+  const sheetResult = dialog.querySelector("#exp-sheet-result");
+  function clearSheet() {
+    if (sheetUrl) URL.revokeObjectURL(sheetUrl);
+    sheetUrl = null;
+    sheetResult.replaceChildren();
+    sheetResult.hidden = true;
+  }
+  function showSheet() {
+    clearSheet();
+    sheetResult.hidden = false;
+    try {
+      const job = getJob();
+      if (!job) throw Error("El expediente ya no existe.");
+      const client = VSStorage.read("vidres-clientes-v1", []).find(
+        (c) =>
+          String(c.nombre || "")
+            .trim()
+            .toLocaleLowerCase("es") ===
+          String(job.cliente || "")
+            .trim()
+            .toLocaleLowerCase("es"),
+      );
+      const company =
+        VSStorage.read(VSStorage.keys.configuracion, {}).company || {};
+      const blob = VSJobSheetPDF.build(job, client, company).output("blob");
+      sheetUrl = URL.createObjectURL(blob);
+      const filename =
+        "visita-" + String(job.id).replace(/[^a-z0-9_-]/gi, "-") + ".pdf";
+      sheetResult.innerHTML =
+        '<p>Hoja A4 preparada. Abre el PDF para imprimir a tamaño real (100 %).</p><a target="_blank" rel="noopener" href="' +
+        sheetUrl +
+        '">Abrir PDF e imprimir</a> · <a download="' +
+        filename +
+        '" href="' +
+        sheetUrl +
+        '">Guardar PDF</a>';
+      const file = new File([blob], filename, { type: "application/pdf" });
+      if (navigator.canShare?.({ files: [file] })) {
+        const share = document.createElement("button");
+        share.type = "button";
+        share.textContent = "Compartir PDF";
+        share.onclick = () =>
+          navigator.share({ files: [file] }).catch((error) => {
+            if (error.name !== "AbortError")
+              alert("No se pudo compartir el PDF: " + error.message);
+          });
+        sheetResult.append(share);
+      }
+    } catch (error) {
+      sheetResult.textContent = "No se pudo preparar la hoja: " + error.message;
+    }
+  }
   const photoUrls = new Set();
   function clearPhotoUrls() {
     for (const url of photoUrls) URL.revokeObjectURL(url);
@@ -22,6 +75,8 @@
   dialog.addEventListener("close", () => {
     revision++;
     window.VSOperations?.unmount();
+
+    clearSheet();
     clearPhotoUrls();
   });
   let scale = 1;
@@ -71,6 +126,7 @@
   const getJob = () => window.vidresGetJobs?.().find((j) => j.id === current);
   const date = (v) => (v ? new Date(v).toLocaleString("es-ES") : "—");
   async function render() {
+    clearSheet();
     const renderId = ++revision,
       jobId = current;
     clearPhotoUrls();
@@ -485,7 +541,9 @@
   dialog.addEventListener("click", async (e) => {
     const b = e.target.closest("button");
     if (!b) return;
-    if (b.hasAttribute("data-exp-status-open")) {
+    if (b.hasAttribute("data-exp-sheet")) {
+      showSheet();
+    } else if (b.hasAttribute("data-exp-status-open")) {
       const editor = body.querySelector("#exp-status-editor");
       editor.hidden = !editor.hidden;
       b.setAttribute("aria-expanded", String(!editor.hidden));

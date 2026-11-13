@@ -294,3 +294,22 @@ CHROMIUM_PATH=/usr/bin/chromium npm run test:browser` (en una sola línea).
   reapertura y ausencia de desbordamiento en 390/768/1440 px. Capturas
   `test-results/gestion-integrada-*.png`. Chromium local: `/usr/bin/chromium`.
 - Publicación solicitada por el usuario; se integra mediante PR y workflow Pages.
+
+## Hoja imprimible de visita · 13 de noviembre de 2026
+
+- Botón «Hoja de visita PDF» en la cabecera del expediente. PDF A4 local
+  mediante jsPDF, datos guardados del trabajo y teléfono de la ficha de cliente
+  como alternativa. Sin costes ni importes.
+- Fecha/operario en blanco y cuadrícula vectorial de 5 mm, trazo gris de 0,1 mm,
+  borde fino y al menos 120 mm de altura. Textos largos continúan en otras páginas.
+- Ofrece abrir/imprimir, guardar y compartir cuando el dispositivo lo permite.
+  Al cambiar de sección, volver a renderizar o cerrar se retira el PDF anterior.
+- Nuevo módulo incluido en loader, caché PWA y artefacto Pages; no cambia backend.
+- Comprobación inicial: 65 pruebas Node, formato, PDF de ejemplo y navegador con
+  descarga real y revisión de acceso al botón a 390/768/1440 px.
+- Publicación solicitada por el usuario. Se integra con las mejoras recientes
+  de main, conservando hitos, precios por cliente y gestión integrada.
+
+- A petición del usuario, la cuadrícula incluye el logo VS de
+  `icons/icon-512.png` centrado, con opacidad del 6 %, detrás de las líneas.
+  Se incorpora en el módulo para generar el PDF sin solicitudes de imágenes.

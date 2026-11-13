@@ -163,3 +163,15 @@ Validación: `npm test` y `CHROMIUM_PATH=/usr/bin/chromium npm run test:browser`
 Las pruebas de navegador incluyen alternancia, recarga del estado del Worker/D1,
 hitos propios y vinculados, filtros y modo oscuro. Estas pruebas usan el backend
 de pruebas; no modifican D1 remoto ni despliegan recursos.
+
+## Hoja imprimible para visitas
+
+En la cabecera de cualquier expediente, «Hoja de visita PDF» prepara una hoja A4
+con cliente, teléfono, dirección, población, cita, responsable, descripción y notas.
+Incluye campos para completar fecha y operario y un recuadro de cuadrícula de 5 mm
+con líneas finas para escribir medidas, anotaciones o croquis a boli. El logo VS
+aparece centrado al fondo como marca de agua suave, debajo de la cuadrícula. Los textos
+largos continúan en otras páginas y se conserva un mínimo de 12 cm de cuadrícula.
+Usa «Abrir PDF e imprimir» o «Guardar PDF» e imprime a tamaño real (100 %).
+El PDF se genera en el dispositivo y toma los datos guardados del expediente;
+no incluye importes. No requiere cambios en el Worker.

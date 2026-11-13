@@ -726,11 +726,37 @@ async function checkMobileFields(page) {
   );
   await page.locator('[data-page="trabajos"]').click();
   await page.locator(".job-card [data-id]").first().click();
+  await page.locator("[data-exp-sheet]").click();
+  const sheet = page.locator("#exp-sheet-result");
+  await sheet.getByText("Hoja A4 preparada.", { exact: false }).waitFor();
+  const downloadReady = page.waitForEvent("download");
+  await sheet.locator("a[download]").click();
+  const sheetDownload = await downloadReady;
+  assert.match(sheetDownload.suggestedFilename(), /^visita-.*\.pdf$/);
+  const pdfBytes = await fs.readFile(await sheetDownload.path());
+  assert.equal(pdfBytes.subarray(0, 5).toString(), "%PDF-");
+  assert.ok(pdfBytes.length > 1000);
+  for (const width of [390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 1000 });
+    assert.equal(
+      await page.locator("[data-exp-sheet]").evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        return r.left >= 0 && r.right <= innerWidth && r.bottom <= innerHeight;
+      }),
+      true,
+    );
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({
+    path: path.join(root, "test-results", "hoja-visita-mobile.png"),
+  });
+  console.log("PASS hoja de visita PDF desde expediente a 390/768/1440 px");
   assert.equal(await page.locator("#exp-status").isVisible(), false);
   await page.getByRole("button", { name: /Estado ▾/ }).click();
   await page.locator("#exp-status").selectOption("Finalizado");
   await page.locator("[data-exp-status-save]").click();
   await page.getByText("Estado guardado.", { exact: true }).waitFor();
+  assert.equal(await sheet.isVisible(), false);
   const closedJob = await page.evaluate(() => vidresGetJobs()[0]);
   assert.equal(closedJob.estado, "Finalizado");
   assert.ok(closedJob.finalizadoEn);

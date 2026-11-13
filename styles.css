@@ -1832,6 +1832,12 @@ textarea:focus {
   #expediente .exp-header {
     padding: 15px;
   }
+  #expediente .exp-header {
+    flex-wrap: wrap;
+  }
+  .exp-header-actions {
+    flex-wrap: wrap;
+  }
   .exp-header-actions button {
     padding: 9px 11px;
     font-size: 12px;
@@ -4343,4 +4349,14 @@ html {
     color: #dcfce7;
     border-color: #4ade80;
   }
+}
+
+#exp-sheet-result {
+  margin: 10px 15px;
+  flex-shrink: 0;
+  max-height: 25dvh;
+  overflow: auto;
+}
+#exp-sheet-result[hidden] {
+  display: none;
 }

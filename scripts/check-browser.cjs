@@ -331,6 +331,7 @@ async function checkMobileFields(page) {
   );
 
   await require("./check-meters-browser.cjs")(page, context, root);
+  await require("./check-price-profiles-browser.cjs")(page);
   await require("./check-quotes-browser.cjs")(page, context, root);
   await require("./check-quote-document-browser.cjs")(page, context, root);
   await require("./check-aluminum-browser.cjs")(page);

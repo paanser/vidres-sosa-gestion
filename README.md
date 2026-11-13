@@ -131,3 +131,11 @@ La gestión compartida se almacena en `operativa` dentro del trabajo, se valida 
 el Worker y viaja con las copias existentes. No requiere migraciones SQL. Publicar
 primero el Worker y después la interfaz. Los nuevos módulos públicos se incluyen
 en el Service Worker y en la lista explícita del artefacto Pages.
+
+### Precios por cliente y retroceso móvil
+
+En Clientes → Editar ficha se puede guardar un recargo porcentual (por ejemplo, 80 %) o una tarifa de venta del vidrio en €/m². Al seleccionar el cliente o iniciar una oferta desde su trabajo, el presupuesto copia el perfil. Los campos de precio de la oferta permiten ajustes puntuales sin modificar la ficha ni otras ofertas guardadas. Cambiar después el perfil del cliente no recalcula ofertas anteriores.
+
+La tarifa fija sustituye únicamente la venta del vidrio sobre la superficie facturable, incluido el metraje mínimo. Cantos, energía y conceptos adicionales se suman aparte; aluminio conserva su incremento propio. El coste original permanece en el desglose interno. Los PDF y mensajes utilizan los mismos totales del presupuesto.
+
+En móvil, un deslizamiento horizontal de al menos 80 px desde los primeros 24 px del borde izquierdo regresa a la sección anterior. Los gestos cortos, verticales, sobre controles o con un diálogo abierto no activan el retroceso. El borrador del presupuesto permanece en memoria al cambiar de sección.

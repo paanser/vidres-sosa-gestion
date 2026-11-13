@@ -220,7 +220,7 @@ async function checkMobileFields(page) {
   await context.setOffline(false);
   await page
     .locator("#save-status")
-    .filter({ hasText: "Sin cambios pendientes" })
+    .filter({ hasText: /^Guardado$/ })
     .waitFor();
   const stateUrl = "https://vidres-sosa-ia.pausosagomez.workers.dev/api/state";
   const failWrite = (route) =>

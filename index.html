@@ -612,34 +612,53 @@
           <div class="exp-header-actions">
             <button type="button" data-exp-delete>Eliminar trabajo</button>
             <button type="button" data-exp-edit class="primary">
-              Editar trabajo</button
-            ><button
+              Editar trabajo
+            </button>
+            <button
               type="button"
-              data-exp-close
-              aria-label="Cerrar expediente"
+              data-exp-sheet
+              aria-label="Hoja de visita PDF"
+              title="Hoja de visita PDF"
             >
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path
+                  d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                />
+                <path d="M14 2v6h6M8 13h8M8 17h5" />
+              </svg>
+            </button>
+            <button type="button" data-exp-close aria-label="Cerrar expediente">
               ✕
             </button>
           </div>
         </header>
-        <section class="exp-sheet-tools" aria-label="Hoja de visita">
-          <div class="exp-sheet-intro">
-            <div>
-              <strong>Hoja de visita</strong>
-              <p>Datos del trabajo y espacio para medidas y croquis.</p>
-            </div>
-            <button type="button" data-exp-sheet>
-              Preparar PDF <span aria-hidden="true">↓</span>
-            </button>
-          </div>
+        <dialog id="exp-sheet-dialog" aria-labelledby="exp-sheet-title">
+          <header class="exp-sheet-heading">
+            <h2 id="exp-sheet-title">Hoja de visita</h2>
+            <form method="dialog">
+              <button type="submit" aria-label="Cerrar hoja de visita">
+                ✕
+              </button>
+            </form>
+          </header>
           <div
             id="exp-sheet-result"
-            class="exp-section"
             role="status"
             aria-live="polite"
             hidden
           ></div>
-        </section>
+        </dialog>
         <nav
           class="exp-tabs"
           aria-label="Secciones del expediente"

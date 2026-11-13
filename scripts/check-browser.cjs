@@ -765,7 +765,13 @@ async function checkMobileFields(page) {
   );
   await page.locator('[data-page="trabajos"]').click();
   await page.locator(".job-card [data-id]").first().click();
+  const tabsBeforeSheet = await page.locator(".exp-tabs").boundingBox();
   await page.locator("[data-exp-sheet]").click();
+  assert.deepEqual(
+    await page.locator(".exp-tabs").boundingBox(),
+    tabsBeforeSheet,
+    "La hoja de visita no desplaza los menús del expediente",
+  );
   const sheet = page.locator("#exp-sheet-result");
   await sheet
     .getByText("Tu hoja de visita está lista.", { exact: false })
@@ -791,7 +797,19 @@ async function checkMobileFields(page) {
   await page.screenshot({
     path: path.join(root, "test-results", "hoja-visita-mobile.png"),
   });
-  console.log("PASS hoja de visita PDF desde expediente a 390/768/1440 px");
+  await page
+    .getByRole("button", { name: "Cerrar hoja de visita", exact: true })
+    .click();
+  await page.locator("#exp-sheet-dialog").waitFor({ state: "hidden" });
+  assert.equal(await page.locator("#expediente").isVisible(), true);
+  assert.equal(await sheet.isVisible(), false);
+  await page.locator("[data-exp-sheet]").click();
+  await page.keyboard.press("Escape");
+  await page.locator("#exp-sheet-dialog").waitFor({ state: "hidden" });
+  assert.equal(await page.locator("#expediente").isVisible(), true);
+  console.log(
+    "PASS hoja de visita PDF sin desplazar menús, cierre y Escape a 390/768/1440 px",
+  );
   assert.equal(await page.locator("#exp-status").isVisible(), false);
   await page.getByRole("button", { name: /Estado ▾/ }).click();
   await page.locator("#exp-status").selectOption("Finalizado");

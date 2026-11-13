@@ -462,7 +462,7 @@
     }
     if (l.kind === "concept")
       return `<div class="quote-line quote-concept" data-line="${i}"><div class="quote-line-head"><strong>Concepto libre</strong><button type="button" data-remove="${i}">Eliminar</button></div><div class="quote-fields"><label>Descripción libre<textarea data-field="description" maxlength="300" rows="2" placeholder="Ej.: montaje, reparación, transporte…">${esc(l.description || "")}</textarea></label><label>Importe de coste (€ sin IVA)<input type="text" inputmode="decimal" data-price-input data-field="amount" value="${esc(l.amount ?? "")}"></label></div><p>Importe por todo el concepto, sin medidas ni tarifa. Sin margen; se presenta por separado al cliente.</p></div>`;
-    const c = calc(l);
+    const c = details(draft).lines[i];
     return `<div class="quote-line" data-line="${i}"><div class="quote-line-head"><strong>Vidrio ${i + 1}</strong><button type="button" data-remove="${i}">Eliminar</button></div>${doubleFields(l)}<div class="quote-fields">${[
       ["w", "Ancho real (" + unit() + ")", display(l.w)],
       ["h", "Alto real (" + unit() + ")", display(l.h)],
@@ -484,7 +484,8 @@
       )}</select></label><label>Tipo de vidrio<input data-field="glass" ${l.doubleGlazing ? "readonly" : ""} value="${esc(glassName(l))}"></label><label>Precio vidrio (€/m², editable sin tarifa)<input type="text" inputmode="decimal" data-price-input data-field="price" ${l.doubleGlazing ? "readonly" : ""} value="${esc(l.price)}"></label></div>${edgeFields(l)}<div class="quote-fields quote-extras"><label>Descripción del concepto adicional<input data-field="extraDescription" maxlength="160" placeholder="Ej.: montaje, transporte, herrajes" value="${esc(l.extraDescription || "")}"></label><label>Coste adicional (€ por toda esta línea)<input type="text" inputmode="decimal" data-price-input data-field="extraAmount" value="${esc(l.extraAmount ?? "")}"></label><label>Presentación al cliente<select data-field="extraMode"><option value="included" ${l.extraMode !== "separate" ? "selected" : ""}>Integrado en el precio del vidrio</option><option value="separate" ${l.extraMode === "separate" ? "selected" : ""}>Como concepto separado</option></select></label></div><div class="quote-result">${lineResult(c)}</div></div>`;
   }
   function lineResult(c) {
-    return `<div class="quote-line-metrics"><span>Real: ${measures(c.w, c.h)} · ${c.real.toFixed(4)} m²</span><span>Aplicada: ${measures(c.aw, c.ah)} · ${c.area.toFixed(4)} m²</span><span>Canto por pieza: ${c.ml.toFixed(2)} ml · Unidades: ${c.qty}</span><span>Coste de vidrio y cantos: ${money(c.total)}</span>${c.energy ? "<span>Recargo energético incluido: " + money(c.energy) + "</span>" : ""}</div>`;
+    const sale = `<p class="quote-line-sale"><strong>Precio de esta partida sin IVA: ${money(c.glassSale)}</strong>${c.separate && c.extraSale ? `<br>Concepto separado sin IVA: ${money(c.extraSale)} · Total de la partida: ${money(c.sale)}` : ""}</p>`;
+    return `${sale}<div class="quote-line-metrics"><span>Real: ${measures(c.w, c.h)} · ${c.real.toFixed(4)} m²</span><span>Aplicada: ${measures(c.aw, c.ah)} · ${c.area.toFixed(4)} m²</span><span>Canto por pieza: ${c.ml.toFixed(2)} ml · Unidades: ${c.qty}</span><span>Coste de vidrio y cantos: ${money(c.total)}</span>${c.energy ? "<span>Recargo energético incluido: " + money(c.energy) + "</span>" : ""}</div>`;
   }
   function totalResult(breakdown) {
     const total = breakdown.totals;
@@ -1083,7 +1084,9 @@
           "Venta sin IVA: " +
           money(details(draft).lines[Number(el.dataset.line)].sale);
       else if (line.kind !== "concept")
-        el.querySelector(".quote-result").innerHTML = lineResult(calc(line));
+        el.querySelector(".quote-result").innerHTML = lineResult(
+          details(draft).lines[Number(el.dataset.line)],
+        );
     });
     const host = document.querySelector(".quote-total-breakdown");
     if (host) host.innerHTML = totalResult(details(draft));

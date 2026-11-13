@@ -101,6 +101,33 @@ module.exports = async function checkQuotes(page, context, root) {
     await page.locator(".quote-grand-total").textContent(),
     /269,59/,
   );
+  assert.match(
+    await page.locator(".quote-line-sale").textContent(),
+    /Precio de esta partida sin IVA: 222,80/,
+  );
+  await page.locator("#quote-add").click();
+  const second = page.locator('.quote-line[data-line="1"]');
+  await set('.quote-line[data-line="1"] [data-field="w"]', "1.000");
+  await set('.quote-line[data-line="1"] [data-field="h"]', "1.000");
+  await set('.quote-line[data-line="1"] [data-field="price"]', "50");
+  await set('.quote-line[data-line="1"] [data-field="qty"]', "2");
+  assert.match(
+    await second.locator(".quote-line-sale").textContent(),
+    /124,85/,
+  );
+  assert.match(
+    await page
+      .locator('.quote-line[data-line="0"] .quote-line-sale')
+      .textContent(),
+    /222,80/,
+  );
+  await page.locator("#quote-margin").fill("0");
+  assert.match(
+    await second.locator(".quote-line-sale").textContent(),
+    /104,04/,
+  );
+  await set("#quote-margin", "20");
+  await second.locator("[data-remove]").click();
   await page.locator("#quote-add-concept").click();
   const description = 'Trabajo especial <img src=x onerror="alert(1)">';
   await set('[data-field="description"]', description);

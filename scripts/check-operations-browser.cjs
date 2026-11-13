@@ -101,11 +101,13 @@ module.exports = async (page, context, root) => {
     ),
     120,
   );
+  await dialog.locator('[data-op="panel"][data-value="cobros"]').click();
   await dialog.locator('form[data-op-form="sale"] [name="venta"]').fill("1210");
   await dialog.locator('form[data-op-form="sale"] [type="submit"]').click();
   await dialog
     .getByText("Guardado y confirmado por el servidor.", { exact: true })
     .waitFor();
+  await dialog.locator('[data-op="panel"][data-value="costes"]').click();
   await dialog
     .locator('form[data-op-form="net-sale"] [name="ventaNeta"]')
     .fill("1000");
@@ -113,10 +115,12 @@ module.exports = async (page, context, root) => {
   await dialog
     .getByText("Guardado y confirmado por el servidor.", { exact: true })
     .waitFor();
+  await dialog.locator('[data-op="panel"][data-value="cobros"]').click();
   await dialog.locator('[data-op="payment"]').click();
   await dialog.locator('[name="concepto"]').fill("Anticipo transferencia");
   await dialog.locator('[name="importe"]').fill("210");
   await submit();
+  await dialog.locator('[data-op="panel"][data-value="costes"]').click();
   await dialog.locator('[data-op="cost"]').click();
   await dialog.locator('[name="concepto"]').fill("Vidrio y montaje");
   await dialog.locator('[name="importe"]').fill("400");
@@ -139,6 +143,7 @@ module.exports = async (page, context, root) => {
   await dialog.locator('[name="hora"]').fill("12:00");
   await dialog.locator('[name="confirmed"]').check();
   await submit();
+  await dialog.locator('[data-op="panel"][data-value="montaje"]').click();
   await dialog.locator('[data-op="closure"]').click();
   await dialog.locator('[name="nombre"]').fill("Cliente prueba");
   await dialog.locator('[name="conforme"]').check();
@@ -176,6 +181,7 @@ module.exports = async (page, context, root) => {
     .waitFor({ state: "detached" });
   await page.evaluate(() => VSOperations.open("VS-OPS"));
   await dialog.getByText("6 de 8 piezas recibidas", { exact: true }).waitFor();
+  await dialog.locator('[data-op="panel"][data-value="montaje"]').click();
   await dialog.locator('[data-op="close-pdf"]').click();
   await dialog.locator("#operations-pdf a[download]").waitFor();
   await dialog.locator('[data-op="overview"]').click();
@@ -280,6 +286,57 @@ module.exports = async (page, context, root) => {
   );
   assert.ok((await page.locator(".new-measure-piece").count()) > 0);
   await page.locator("#cancel").click();
+  await page.locator('#nav [data-page="trabajos"]').click();
+  await page.locator('#content [data-id="VS-OPS"]').first().click();
+  const expediente = page.locator("#expediente");
+  assert.equal(await expediente.locator("[data-operations-job]").count(), 0);
+  await expediente.locator('[data-exp-tab="gestion"]').click();
+  assert.equal(await expediente.locator("#operations-dialog[open]").count(), 1);
+  for (const width of [390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const panel of ["pedidos", "cobros", "costes", "montaje"]) {
+      await dialog.locator(`[data-op="panel"][data-value="${panel}"]`).click();
+      assert.equal(
+        await dialog.locator("[data-op-section]:visible").count(),
+        1,
+      );
+      assert.equal(
+        await dialog.locator(`[data-op-section="${panel}"]`).isVisible(),
+        true,
+      );
+      assert.equal(
+        await expediente.evaluate((d) => d.scrollWidth > d.clientWidth + 1),
+        false,
+      );
+      assert.equal(
+        await dialog.evaluate((d) => d.scrollWidth > d.clientWidth + 1),
+        false,
+      );
+    }
+    await page.screenshot({
+      path: `${root}/test-results/gestion-integrada-${width}.png`,
+    });
+  }
+  await dialog.locator('[data-op="panel"][data-value="cobros"]').click();
+  await dialog.locator('[data-op="payment"]').click();
+  await dialog.locator('[name="concepto"]').fill("Pago desde expediente");
+  await dialog.locator('[name="importe"]').fill("10");
+  await submit();
+  await dialog.getByText(/Pago desde expediente/).waitFor();
+  await dialog.locator('[data-op="payment"]').click();
+  await dialog.locator('[data-op="back"]').click();
+  assert.equal(
+    await dialog.locator('[data-op-section="cobros"]').isVisible(),
+    true,
+  );
+  await expediente.locator('[data-exp-tab="resumen"]').click();
+  assert.equal(await expediente.locator("#operations-dialog").count(), 0);
+  assert.equal(await dialog.isVisible(), false);
+  await expediente.locator('[data-exp-tab="gestion"]').click();
+  await dialog.getByText(/Pago desde expediente/).waitFor();
+  await expediente.locator("[data-exp-close]").click();
+  await page.evaluate(() => VSOperations.open());
+  await dialog.locator('[data-op="close"]').click();
   await page.unroute("**/api/state", slowSave);
   console.log(
     "PASS pedidos con copia de medidas, recepción parcial, PDF, cobros, rentabilidad, solapamientos, firma/fotos y borradores offline con importación",

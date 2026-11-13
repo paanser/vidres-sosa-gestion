@@ -21,6 +21,7 @@
   }
   dialog.addEventListener("close", () => {
     revision++;
+    window.VSOperations?.unmount();
     clearPhotoUrls();
   });
   let scale = 1;
@@ -80,14 +81,7 @@
       return;
     }
     heading.textContent = j.cliente + " · " + j.id;
-    let ops = dialog.querySelector("[data-operations-job]");
-    if (!ops) {
-      ops = document.createElement("button");
-      ops.type = "button";
-      ops.textContent = "Pedidos, cobros y montaje";
-      heading.after(ops);
-    }
-    ops.dataset.operationsJob = j.id;
+    window.VSOperations?.unmount();
     dialog.querySelectorAll("[data-exp-tab]").forEach((b) => {
       b.classList.toggle("selected", b.dataset.expTab === tab);
       b.setAttribute("aria-selected", String(b.dataset.expTab === tab));
@@ -124,6 +118,11 @@
       "</strong></div><div><small>Tipo de cliente</small><strong>" +
       esc(j.tipoCliente || "Particular") +
       "</strong></div></div>";
+    if (tab === "gestion") {
+      body.replaceChildren();
+      window.VSOperations.mount(body, j.id);
+      return;
+    }
     if (tab === "resumen") {
       body.innerHTML =
         detail +
@@ -523,6 +522,7 @@
     } else if (b.dataset.expTab) {
       tab = b.dataset.expTab;
       await render();
+      b.scrollIntoView({ block: "nearest", inline: "nearest" });
     } else if (b.hasAttribute("data-exp-delete")) {
       if (await window.vidresDeleteJob(current)) dialog.close();
     } else if (b.hasAttribute("data-exp-quote-measures")) {

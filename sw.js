@@ -1,7 +1,7 @@
 "use strict";
 const RELEASE = "__BUILD_VERSION__";
 const VERSION = RELEASE.startsWith("__")
-  ? "20261113-documentos-logo-horizontal"
+  ? "20261114-icono-vs-iphone"
   : RELEASE;
 const PREFIX = "vidres-sosa:" + self.registration.scope + ":",
   CACHE = PREFIX + VERSION;
@@ -44,6 +44,9 @@ const ASSETS = [
   "icons/app-logo.png",
   "icons/vidres-sosa-horizontal.svg",
   "icons/app-icon-192.png",
+  "icons/apple-touch-vs-180.png",
+  "icons/app-vs-192.png",
+  "icons/app-vs-512.png",
   "icons/app-icon-512.png",
 ];
 self.addEventListener("install", (event) =>

@@ -6,6 +6,7 @@ const path = require("node:path");
 // Se ejecuta desde check-browser.cjs contra su servidor simulado y datos ficticios.
 module.exports = async function checkQuotes(page, context, root) {
   await page.evaluate(() => window.vidresNavigate("presupuestos"));
+  await page.locator("#quote-new").click();
   const set = async (selector, value) => {
     await page.locator(selector).fill(value);
     await page.locator(selector).dispatchEvent("change");

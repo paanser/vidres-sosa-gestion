@@ -184,6 +184,13 @@ Las preferencias se guardan en la cuenta mediante `/api/preferences/home`, separ
 
 ### Vistas de presupuestos
 
+Al abrir Presupuestos se muestra directamente la lista de presupuestos guardados,
+con «Nuevo presupuesto» y «Presupuesto rápido» arriba. El formulario completo de
+cliente, medidas y precios se abre al crear, abrir o duplicar un presupuesto.
+«Volver a presupuestos» cierra el formulario y vuelve a la lista; si hay cambios
+sin guardar, pide confirmación antes de descartarlos. Un formulario abierto se
+conserva al consultar otro apartado y regresar.
+
 El icono de deslizadores de la esquina inferior derecha abre la personalización
 de cada apartado. En Presupuestos permite elegir entre tarjetas y una lista con
 estado, número, fecha, cliente/detalle, neto sin IVA y total con IVA. La lista es

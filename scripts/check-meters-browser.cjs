@@ -7,6 +7,11 @@ const fs = require("node:fs/promises");
 module.exports = async function checkMeters(page, context, root) {
   const original = await page.evaluate(() => VSStorage.values());
   await page.evaluate(() => window.vidresNavigate("presupuestos"));
+  assert.equal(await page.locator(".quote-saved-panel").isVisible(), true);
+  assert.equal(await page.locator(".quote-editor").count(), 0);
+  assert.equal(await page.locator("#quote-new").isVisible(), true);
+  assert.equal(await page.locator("#quote-quick").isVisible(), true);
+  await page.locator("#quote-new").click();
   assert.equal(
     await page.locator('[data-field="w"]').getAttribute("type"),
     "text",

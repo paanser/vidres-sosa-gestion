@@ -5,6 +5,7 @@
     T = "vs-tariffs-prototype-v1",
     C = "vs-config-v1";
   let draft = null,
+    editorOpen = false,
     quickMode = false,
     uploadingDrawing = false;
   const quotes = () => VSStorage.read(Q, []),
@@ -457,21 +458,32 @@
     if (empty) empty.hidden = visible > 0;
   }
   window.addEventListener("vidres-milestones-saved", filterSavedQuotes);
+  function toolbar() {
+    return `<div class="quote-toolbar"><button type="button" class="quick-quote-button" id="quote-quick">⚡ Presupuesto rápido</button><button type="button" class="primary" id="quote-new">+ Nuevo presupuesto</button><button type="button" id="quote-settings">Ajustes de tarifas</button>${editorOpen ? '<button type="button" id="quote-close">← Volver a presupuestos</button>' : ""}</div>`;
+  }
+  function savedPanel(list) {
+    return `<section class="panel quote-saved-panel"><h2>Presupuestos guardados</h2><label>Buscar presupuesto<input id="quote-search" type="search" placeholder="Cliente, referencia o fecha" value="${esc(quoteSearch)}"></label>${VSMilestones.controls("quotes")}<div id="quote-saved-results">${savedQuotesView(list)}</div></section>`;
+  }
   function sync() {
-    if (!draft) draft = fresh();
     if (quickMode) {
       quickSync();
       return;
     }
+    if (!editorOpen) {
+      document.querySelector("#content").innerHTML =
+        toolbar() + savedPanel(quotes());
+      initSavedFilters();
+      return;
+    }
+    if (!draft) draft = fresh();
     const list = quotes(),
       jobs = window.vidresGetJobs?.() || [],
       breakdown = details(draft);
     const previousMeasures = document.querySelector("#quote-measures");
-    document.querySelector("#content").innerHTML =
-      `<div class="quote-toolbar"><button type="button" class="quick-quote-button" id="quote-quick">⚡ Presupuesto rápido</button><button type="button" class="primary" id="quote-new">+ Nuevo presupuesto</button><button type="button" id="quote-settings">Ajustes de tarifas</button></div>
+    document.querySelector("#content").innerHTML = `${toolbar()}
  <section class="panel quote-editor"><h2>Presupuesto · ${esc(draft.id || "Sin guardar")}</h2><div class="quote-fields">${clientPicker()}<label>Cliente · escribe para buscar<input id="quote-client" type="search" autocomplete="off" aria-controls="quote-client-matches" maxlength="100" value="${esc(draft.client)}"></label><div id="quote-client-matches" class="quote-client-matches" role="group" aria-label="Coincidencias de clientes"></div><datalist id="quote-clients">${(window.vidresClientNames?.() || []).map((name) => `<option value="${esc(name)}"></option>`).join("")}</datalist><label>Parte relacionado<select id="quote-job" data-search-select="Cliente, referencia o dirección"><option value="">Sin vincular</option>${jobs.map((j) => VSSelectSearch.jobOption(j, draft.job)).join("")}</select></label><label>Estado<select id="quote-status">${statuses.map((s) => `<option ${s === (draft.status || "Borrador") ? "selected" : ""}>${s}</option>`).join("")}</select></label></div>
  ${draft.id ? VSMilestones.badges(quotes().find((q) => q.id === draft.id) || draft, "quote") : ""}${minimumAreaFields()}${measurePanel()}${customerFields()}<div class="quote-margin"><label>Precio para este presupuesto<select id="quote-price-mode" data-search-select="Margen, recargo o tarifa"><option value="markup" ${pricing(draft).priceMode !== "fixed" ? "selected" : ""}>Recargo porcentual</option><option value="fixed" ${pricing(draft).priceMode === "fixed" ? "selected" : ""}>Tarifa de venta por m²</option></select></label><label>Tarifa de venta del vidrio (€/m²)<input id="quote-fixed-price" type="text" inputmode="decimal" data-price-input value="${esc(pricing(draft).fixedPrice ?? "")}"></label><p>Perfil copiado del cliente al seleccionarlo; editable solo para esta oferta. La tarifa fija sustituye el precio de venta del vidrio, con cantos, energía y extras aparte.</p><label>Margen (%)<input id="quote-margin" type="text" inputmode="decimal" data-price-input value="${esc(pricing(draft).margin || "")}"></label><p>Incremento sobre el precio del vidrio: 100 € con 20 % → 120 €. Mano de obra, cantos, recargos y conceptos adicionales sin margen. Antes del IVA; solo visible en la copia interna.</p>${pricing(draft).marginScope !== "glass" && num(pricing(draft).margin) ? "<p>Presupuesto anterior: conserva el cálculo guardado. Al editar se aplicará el incremento solo al vidrio.</p>" : ""}</div><div id="quote-lines">${draft.lines.map(row).join("")}</div><button type="button" id="quote-add">+ Añadir otro vidrio</button><button type="button" id="quote-add-aluminum">+ Añadir aluminio con dibujo</button><button type="button" id="quote-add-concept">+ Añadir concepto libre</button><div class="quote-total"><div class="quote-total-breakdown">${totalResult(breakdown)}</div></div>${documentFields()}<div class="quote-toolbar"><button type="button" class="primary" id="quote-save">Guardar presupuesto</button><button type="button" id="quote-whatsapp">Enviar por WhatsApp</button><button type="button" id="quote-pdf">PDF para cliente</button><button type="button" id="quote-pdf-internal">PDF interno · Vidres Sosa</button></div></section>
- <section class="panel quote-saved-panel"><h2>Presupuestos guardados</h2><label>Buscar presupuesto<input id="quote-search" type="search" placeholder="Cliente, referencia o fecha" value="${esc(quoteSearch)}"></label>${VSMilestones.controls("quotes")}<div id="quote-saved-results">${savedQuotesView(list)}</div></section>`;
+ ${savedPanel(list)}`;
     const panel = document.querySelector("#quote-measures");
     if (panel && previousMeasures?.dataset.job === draft.job) {
       panel.replaceWith(previousMeasures);
@@ -480,6 +492,10 @@
         if (panel.open) loadMeasurePhotos(panel);
       });
     }
+    initSavedFilters();
+    initMeasures();
+  }
+  function initSavedFilters() {
     const search = document.querySelector("#quote-search"),
       milestone = document.querySelector("#quotes-milestone"),
       completion = document.querySelector("#quotes-completion");
@@ -498,7 +514,6 @@
       filterSavedQuotes();
     };
     filterSavedQuotes();
-    initMeasures();
   }
   function initMeasures() {
     const content = document.querySelector("#content");
@@ -984,6 +999,7 @@
       )
         await window.vidresChangeJobStatus?.(copy.job, "En producción");
       quickMode = false;
+      editorOpen = true;
       sync();
     };
     try {
@@ -1108,6 +1124,8 @@
   }
   window.addEventListener("vidres-data-restored", () => {
     draft = null;
+    editorOpen = false;
+    quickMode = false;
   });
   window.vidresQuoteRender = sync;
   window.vidresQuoteClick = async (e) => {
@@ -1138,6 +1156,7 @@
       } else if (b.id === "quote-new") {
         if (discard()) {
           quickMode = false;
+          editorOpen = true;
           draft = fresh();
           sync();
         }
@@ -1148,10 +1167,13 @@
           quickMode = true;
           sync();
         }
-      } else if (b.id === "quick-close") {
-        quickMode = false;
-        draft = fresh();
-        sync();
+      } else if (b.id === "quick-close" || b.id === "quote-close") {
+        if (discard()) {
+          quickMode = false;
+          editorOpen = false;
+          draft = null;
+          sync();
+        }
       } else if (b.id === "quick-copy") {
         updateQuickResult();
         if (!valid(true)) return;
@@ -1204,6 +1226,7 @@
       else if (b.id === "quote-pdf-internal") printQuote(true);
       else if (b.dataset.load) {
         if (discard()) {
+          editorOpen = true;
           draft = structuredClone(
             quotes().find((q) => q.id === b.dataset.load),
           );
@@ -1215,11 +1238,15 @@
             Q,
             quotes().filter((q) => q.id !== b.dataset.deleteQuote),
           );
-          if (draft?.id === b.dataset.deleteQuote) draft = fresh();
+          if (draft?.id === b.dataset.deleteQuote) {
+            draft = null;
+            editorOpen = false;
+          }
           sync();
         }
       } else if (b.dataset.duplicate) {
         if (discard()) {
+          editorOpen = true;
           draft = structuredClone(
             quotes().find((q) => q.id === b.dataset.duplicate),
           );
@@ -1399,6 +1426,7 @@
   window.vidresQuoteStartForJob = (id, client, measures) => {
     if (!discard()) return;
     quickMode = false;
+    editorOpen = true;
     draft = fresh();
     draft.job = id;
     draft.client = client || "";
@@ -1418,6 +1446,7 @@
   window.vidresQuoteOpenSaved = (id) => {
     if (discard()) {
       quickMode = false;
+      editorOpen = true;
       draft = structuredClone(quotes().find((q) => q.id === id));
       window.vidresQuotePage = "presupuestos";
       window.vidresNavigate("presupuestos");

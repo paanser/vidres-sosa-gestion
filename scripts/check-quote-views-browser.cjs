@@ -3,6 +3,8 @@ const path = require("node:path");
 
 // Solo usa el Worker de pruebas y presupuestos ficticios.
 module.exports = async (page, context, root) => {
+  await page.evaluate(() => vidresNavigate("presupuestos"));
+  await page.locator("#quote-close").click();
   const original = await page.evaluate(async () => {
     const key = "vidres-section-view-v1:" + VSAuth.user.id + ":presupuestos";
     const previous = {
@@ -32,6 +34,21 @@ module.exports = async (page, context, root) => {
     vidresNavigate("presupuestos");
     return previous;
   });
+  assert.equal(await page.locator(".quote-editor").count(), 0);
+  assert.equal(await page.locator("#quote-client, #quote-lines").count(), 0);
+  assert.equal(await page.locator("#quote-new").isVisible(), true);
+  assert.equal(await page.locator("#quote-quick").isVisible(), true);
+  assert.equal(await page.locator(".quote-saved-panel").isVisible(), true);
+  await page.locator("#quote-quick").click();
+  assert.equal(await page.locator(".quick-quote-editor").isVisible(), true);
+  assert.equal(await page.locator(".quote-editor").count(), 0);
+  await page.locator("#quick-close").click();
+  assert.equal(await page.locator(".quote-editor").count(), 0);
+  assert.equal(await page.locator(".quote-saved-panel").isVisible(), true);
+  await page.locator("#quote-new").click();
+  assert.equal(await page.locator(".quote-editor").isVisible(), true);
+  await page.locator("#quote-close").click();
+  assert.equal(await page.locator(".quote-editor").count(), 0);
   await page.locator("#quote-search").fill("Cliente de vistas");
   assert.equal(
     await page.locator("#section-customize-dialog").isVisible(),
@@ -69,6 +86,11 @@ module.exports = async (page, context, root) => {
     "Presupuesto no enviado",
   );
 
+  await row.locator("[data-load]").click();
+  assert.equal(
+    await page.locator("#quote-client").inputValue(),
+    "Cliente de vistas",
+  );
   await page.locator("#quote-margin").fill("17");
   await page.evaluate(() => {
     window.quoteViewEditor = document.querySelector(".quote-editor");
@@ -125,6 +147,7 @@ module.exports = async (page, context, root) => {
   await page.evaluate(() => vidresNavigate("presupuestos"));
   await page.locator(".quote-saved-card").first().waitFor();
   assert.equal(await page.locator(".quote-saved-table").count(), 0);
+  assert.equal(await page.locator(".quote-editor").count(), 0);
   await page.locator("[data-section-customize]").click();
   await page.keyboard.press("Escape");
   assert.equal(
@@ -142,6 +165,6 @@ module.exports = async (page, context, root) => {
   await page.locator("#quote-new").click();
   await page.setViewportSize({ width: 390, height: 844 });
   console.log(
-    "PASS vistas de presupuestos: tabla, tarjetas, icono ocultando opciones, orden, importes, texto escapado, filtros, borrador conservado, persistencia y móvil/escritorio",
+    "PASS presupuestos: entrada directa a la lista, nuevo, rápido, volver, abrir guardado, tabla/tarjetas, filtros, borrador conservado y móvil/escritorio",
   );
 };

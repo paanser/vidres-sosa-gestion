@@ -634,6 +634,7 @@ async function checkMobileFields(page) {
   }
   await page.setViewportSize({ width: 390, height: 844 });
   await page.evaluate(() => window.vidresNavigate("presupuestos"));
+  await page.locator("#quote-new").click();
   assert.equal(
     await page
       .locator('#quote-clients option[value="Cliente registrado"]')

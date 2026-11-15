@@ -3351,6 +3351,13 @@ body:not(.authenticated) > #quote-print {
   padding: 28px;
   box-shadow: 0 8px 40px #15523e12;
 }
+#startup-screen .startup-logo {
+  display: block;
+  width: 100%;
+  max-width: 384px;
+  height: auto;
+  margin: 0 auto 24px;
+}
 .auth-card form,
 .users-panel form {
   display: grid;

@@ -1,6 +1,8 @@
 "use strict";
 const RELEASE = "__BUILD_VERSION__";
-const VERSION = RELEASE.startsWith("__") ? "20261114-icono-vs-iphone" : RELEASE;
+const VERSION = RELEASE.startsWith("__")
+  ? "20261115-logo-carga-horizontal"
+  : RELEASE;
 const PREFIX = "vidres-sosa:" + self.registration.scope + ":",
   CACHE = PREFIX + VERSION;
 const ASSETS = [

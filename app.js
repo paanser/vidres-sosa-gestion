@@ -749,27 +749,36 @@ window.vidresAppReady = (async () => {
   function customizeSection() {
     if (!VSAuth.user) return;
     const host = $("#content");
+    if (
+      page === "inicio" ||
+      (page === "presupuestos" && !host.querySelector("#quote-saved-results"))
+    ) {
+      host.classList.remove("section-compact");
+      return;
+    }
     const key = "vidres-section-view-v1:" + VSAuth.user.id + ":" + page;
     const fields =
-      page === "clientes"
-        ? {
-            count: ["Número de trabajos", ".client-heading .muted"],
-            address: ["Dirección", ".client-card > p:first-of-type"],
-            price: ["Tarifa o margen", ".client-card > p:nth-of-type(2)"],
-            contact: ["Teléfono y accesos de contacto", ".client-actions"],
-            history: [
-              "Historial de trabajos",
-              ".client-card > details:first-of-type",
-            ],
-            quotes: ["Presupuestos", ".client-card > details:last-of-type"],
-          }
-        : {
-            description: ["Descripciones", ".job-card > p, .panel > p.muted"],
-            metadata: ["Fecha, responsable y tipo de cliente", ".job-meta"],
-            milestones: ["Hitos de trabajos", ".job-card > .milestones"],
-          };
+      page === "presupuestos"
+        ? {}
+        : page === "clientes"
+          ? {
+              count: ["Número de trabajos", ".client-heading .muted"],
+              address: ["Dirección", ".client-card > p:first-of-type"],
+              price: ["Tarifa o margen", ".client-card > p:nth-of-type(2)"],
+              contact: ["Teléfono y accesos de contacto", ".client-actions"],
+              history: [
+                "Historial de trabajos",
+                ".client-card > details:first-of-type",
+              ],
+              quotes: ["Presupuestos", ".client-card > details:last-of-type"],
+            }
+          : {
+              description: ["Descripciones", ".job-card > p, .panel > p.muted"],
+              metadata: ["Fecha, responsable y tipo de cliente", ".job-meta"],
+              milestones: ["Hitos de trabajos", ".job-card > .milestones"],
+            };
     const defaults = {
-      view: page === "clientes" ? "compact" : "cards",
+      view: ["clientes", "presupuestos"].includes(page) ? "compact" : "cards",
       hidden:
         page === "clientes" ? ["address", "price", "contact", "history"] : [],
     };
@@ -783,10 +792,11 @@ window.vidresAppReady = (async () => {
       )
         prefs = saved;
     } catch {}
-    const toolbar = document.createElement("details");
+    const toolbar = document.createElement("div");
     toolbar.className = "section-customize";
     toolbar.innerHTML =
-      '<summary>Personalizar vista</summary><p>Preferencias de este apartado para tu usuario en este navegador.</p><label>Vista<select data-section-view><option value="compact">Lista compacta</option><option value="cards">Tarjetas amplias</option></select></label><fieldset><legend>Información visible</legend>' +
+      '<button type="button" class="home-customize-trigger" data-section-customize aria-label="Personalizar vista" title="Personalizar vista" aria-haspopup="dialog" aria-controls="section-customize-dialog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h5m4 0h7M4 17h9m4 0h3"/><circle cx="11" cy="7" r="2"/><circle cx="15" cy="17" r="2"/></svg></button>' +
+      '<dialog id="section-customize-dialog" class="home-personalization section-personalization" aria-labelledby="section-customize-title"><div class="simple-section-head"><h2 id="section-customize-title">Personalizar vista</h2><button type="button" data-section-close aria-label="Cerrar personalización">×</button></div><p>Preferencias de este apartado para tu usuario en este navegador.</p><label>Vista<select data-section-view><option value="compact">Lista compacta</option><option value="cards">Tarjetas</option></select></label><fieldset><legend>Información visible</legend>' +
       Object.entries(fields)
         .filter(([, [, selector]]) => host.querySelector(selector))
         .map(
@@ -798,10 +808,21 @@ window.vidresAppReady = (async () => {
             "</label>",
         )
         .join("") +
-      '</fieldset><button type="button" data-section-reset>Restablecer vista</button><p role="status" data-section-status></p>';
+      '</fieldset><button type="button" data-section-reset>Restablecer vista</button><p role="status" data-section-status></p></dialog>';
     host.prepend(toolbar);
+    const dialog = toolbar.querySelector("dialog");
+    toolbar.querySelector("[data-section-customize]").onclick = () =>
+      dialog.showModal();
+    toolbar.querySelector("[data-section-close]").onclick = () =>
+      dialog.close();
+    if (!toolbar.querySelector("[data-section-field]"))
+      toolbar.querySelector("fieldset").hidden = true;
     function apply() {
-      host.classList.toggle("section-compact", prefs.view === "compact");
+      host.classList.toggle(
+        "section-compact",
+        prefs.view === "compact" && page !== "presupuestos",
+      );
+      if (page === "presupuestos") window.vidresQuoteSetView?.(prefs.view);
       toolbar.querySelector("select").value = prefs.view;
       for (const [id, [, selector]] of Object.entries(fields)) {
         host
@@ -843,7 +864,7 @@ window.vidresAppReady = (async () => {
       }
       save();
     });
-    toolbar.querySelector("button").onclick = () => {
+    toolbar.querySelector("[data-section-reset]").onclick = () => {
       prefs = structuredClone(defaults);
       save();
     };

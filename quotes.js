@@ -358,8 +358,88 @@
   let quoteSearch = "",
     quoteMilestone = "",
     quoteCompletion = "done";
+  function savedQuoteRow(q) {
+    const total = sum(q),
+      status = q.status || "Borrador",
+      state = {
+        Borrador: [
+          "draft",
+          "Presupuesto no enviado",
+          '<path d="M8 10h8M8 14h5"/>',
+        ],
+        Enviado: [
+          "sent",
+          "Presupuesto enviado",
+          '<path d="m8 13 8-4-3 8-2-4-3-2Z"/>',
+        ],
+        Aceptado: [
+          "accepted",
+          "Presupuesto aceptado",
+          '<path d="m8 13 3 3 5-6"/>',
+        ],
+        Rechazado: [
+          "rejected",
+          "Presupuesto rechazado",
+          '<path d="m9 10 6 6m0-6-6 6"/>',
+        ],
+      }[status] || ["draft", status, ""],
+      date = (q.date || "").slice(0, 10),
+      dateText = /^\d{4}-\d{2}-\d{2}$/.test(date)
+        ? date.split("-").reverse().join("-")
+        : date || "—",
+      description = (q.lines || [])
+        .map((line) =>
+          ["concept", "aluminum"].includes(line.kind)
+            ? line.description
+            : `${glassName(line) || "Vidrio"} ${measures(line.w, line.h)} · ${num(line.qty) || 1} ud.`,
+        )
+        .filter(Boolean)
+        .join(" · "),
+      detail = [q.client || "Sin cliente", description]
+        .filter(Boolean)
+        .join(" / ");
+    return `<tr class="quote-saved" data-saved-quote="${esc(q.id)}">
+      <td class="quote-saved-state"><span class="quote-state-icon quote-state-${state[0]}" role="img" aria-label="${esc(state[1])}" title="${esc(state[1])}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6Z"/><path d="M14 3v4h4"/>${state[2]}</svg></span></td>
+      <td><button type="button" class="quote-saved-number" data-load="${esc(q.id)}" aria-label="Abrir presupuesto ${esc(q.id)}">${esc(q.id)}</button></td>
+      <td class="quote-saved-date">${esc(dateText)}</td>
+      <td class="quote-saved-client"><div class="quote-saved-detail" title="${esc(detail)}">${esc(detail)}</div><details class="quote-saved-options"><summary aria-label="Opciones del presupuesto ${esc(q.id)}" title="Opciones del presupuesto">···</summary><div class="quote-saved-actions">${VSMilestones.badges(q, "quote")}<div><button type="button" data-whatsapp="${esc(q.id)}">WhatsApp</button><button type="button" data-duplicate="${esc(q.id)}">Duplicar</button><button type="button" data-delete-quote="${esc(q.id)}">Eliminar</button></div></div></details></td>
+      <td class="quote-saved-amount">${money(total.base)}</td><td class="quote-saved-amount">${money(total.total)}</td>
+    </tr>`;
+  }
+  function savedQuotesTable(list) {
+    return `<div class="quote-list-scroll" role="region" aria-label="Listado de presupuestos guardados" tabindex="0"><table class="quote-saved-table" aria-label="Presupuestos guardados"><colgroup><col class="quote-col-state"><col class="quote-col-number"><col class="quote-col-date"><col><col class="quote-col-amount"><col class="quote-col-amount"></colgroup><thead><tr><th scope="col">Estado</th><th scope="col">Número<br>presupuesto</th><th scope="col">Fecha</th><th scope="col">Cliente / Detalle</th><th scope="col" class="quote-saved-amount" title="Importe neto sin IVA">T. neto</th><th scope="col" class="quote-saved-amount" title="Total con IVA">Total</th></tr></thead><tbody>${list.map(savedQuoteRow).join("")}</tbody></table></div>`;
+  }
+  function savedQuotesView(list, view) {
+    if (!list.length) return "<p>No hay presupuestos guardados.</p>";
+    if (!view) {
+      try {
+        view = JSON.parse(
+          localStorage.getItem(
+            "vidres-section-view-v1:" + VSAuth.user.id + ":presupuestos",
+          ),
+        )?.view;
+      } catch {}
+    }
+    const sorted = [...list].sort(
+      (a, b) =>
+        (b.date || "").localeCompare(a.date || "") ||
+        b.id.localeCompare(a.id, "es", { numeric: true }),
+    );
+    const content =
+      view === "cards"
+        ? `<div class="quote-saved-cards">${sorted.map((q) => `<article class="quote-saved-card" data-saved-quote="${esc(q.id)}"><span>${esc(q.id)} · ${esc(q.client)} · ${esc(q.status || "Borrador")} · Total: ${money(sum(q).total)}</span>${VSMilestones.badges(q, "quote")}<div class="quote-card-actions"><button type="button" data-load="${esc(q.id)}">Abrir</button><button type="button" data-whatsapp="${esc(q.id)}">WhatsApp</button><button type="button" data-duplicate="${esc(q.id)}">Duplicar</button><button type="button" data-delete-quote="${esc(q.id)}">Eliminar</button></div></article>`).join("")}</div>`
+        : savedQuotesTable(sorted);
+    return `${content}<p id="quote-search-empty" class="muted" role="status" hidden>No hay presupuestos que coincidan con la búsqueda o los filtros.</p>`;
+  }
+  window.vidresQuoteSetView = (view) => {
+    const host = document.querySelector("#quote-saved-results");
+    if (!host) return;
+    host.innerHTML = savedQuotesView(quotes(), view);
+    filterSavedQuotes();
+  };
   function filterSavedQuotes() {
     const list = quotes();
+    let visible = 0;
     document.querySelectorAll("[data-saved-quote]").forEach((article) => {
       const q = list.find((q) => q.id === article.dataset.savedQuote);
       article.hidden =
@@ -367,11 +447,14 @@
         !VSMilestones.matches(
           q,
           "quote",
-          quoteSearch,
+          quoteSearch.replace(/^(\d{2})-(\d{2})-(\d{4})$/, "$3-$2-$1"),
           quoteMilestone,
           quoteCompletion,
         );
+      if (!article.hidden) visible++;
     });
+    const empty = document.querySelector("#quote-search-empty");
+    if (empty) empty.hidden = visible > 0;
   }
   window.addEventListener("vidres-milestones-saved", filterSavedQuotes);
   function sync() {
@@ -388,7 +471,7 @@
       `<div class="quote-toolbar"><button type="button" class="quick-quote-button" id="quote-quick">⚡ Presupuesto rápido</button><button type="button" class="primary" id="quote-new">+ Nuevo presupuesto</button><button type="button" id="quote-settings">Ajustes de tarifas</button></div>
  <section class="panel quote-editor"><h2>Presupuesto · ${esc(draft.id || "Sin guardar")}</h2><div class="quote-fields">${clientPicker()}<label>Cliente · escribe para buscar<input id="quote-client" type="search" autocomplete="off" aria-controls="quote-client-matches" maxlength="100" value="${esc(draft.client)}"></label><div id="quote-client-matches" class="quote-client-matches" role="group" aria-label="Coincidencias de clientes"></div><datalist id="quote-clients">${(window.vidresClientNames?.() || []).map((name) => `<option value="${esc(name)}"></option>`).join("")}</datalist><label>Parte relacionado<select id="quote-job" data-search-select="Cliente, referencia o dirección"><option value="">Sin vincular</option>${jobs.map((j) => VSSelectSearch.jobOption(j, draft.job)).join("")}</select></label><label>Estado<select id="quote-status">${statuses.map((s) => `<option ${s === (draft.status || "Borrador") ? "selected" : ""}>${s}</option>`).join("")}</select></label></div>
  ${draft.id ? VSMilestones.badges(quotes().find((q) => q.id === draft.id) || draft, "quote") : ""}${minimumAreaFields()}${measurePanel()}${customerFields()}<div class="quote-margin"><label>Precio para este presupuesto<select id="quote-price-mode" data-search-select="Margen, recargo o tarifa"><option value="markup" ${pricing(draft).priceMode !== "fixed" ? "selected" : ""}>Recargo porcentual</option><option value="fixed" ${pricing(draft).priceMode === "fixed" ? "selected" : ""}>Tarifa de venta por m²</option></select></label><label>Tarifa de venta del vidrio (€/m²)<input id="quote-fixed-price" type="text" inputmode="decimal" data-price-input value="${esc(pricing(draft).fixedPrice ?? "")}"></label><p>Perfil copiado del cliente al seleccionarlo; editable solo para esta oferta. La tarifa fija sustituye el precio de venta del vidrio, con cantos, energía y extras aparte.</p><label>Margen (%)<input id="quote-margin" type="text" inputmode="decimal" data-price-input value="${esc(pricing(draft).margin || "")}"></label><p>Incremento sobre el precio del vidrio: 100 € con 20 % → 120 €. Mano de obra, cantos, recargos y conceptos adicionales sin margen. Antes del IVA; solo visible en la copia interna.</p>${pricing(draft).marginScope !== "glass" && num(pricing(draft).margin) ? "<p>Presupuesto anterior: conserva el cálculo guardado. Al editar se aplicará el incremento solo al vidrio.</p>" : ""}</div><div id="quote-lines">${draft.lines.map(row).join("")}</div><button type="button" id="quote-add">+ Añadir otro vidrio</button><button type="button" id="quote-add-aluminum">+ Añadir aluminio con dibujo</button><button type="button" id="quote-add-concept">+ Añadir concepto libre</button><div class="quote-total"><div class="quote-total-breakdown">${totalResult(breakdown)}</div></div>${documentFields()}<div class="quote-toolbar"><button type="button" class="primary" id="quote-save">Guardar presupuesto</button><button type="button" id="quote-whatsapp">Enviar por WhatsApp</button><button type="button" id="quote-pdf">PDF para cliente</button><button type="button" id="quote-pdf-internal">PDF interno · Vidres Sosa</button></div></section>
- <section class="panel"><h2>Presupuestos guardados</h2><label>Buscar presupuesto<input id="quote-search" type="search" placeholder="Cliente, referencia o fecha" value="${esc(quoteSearch)}"></label>${VSMilestones.controls("quotes")}${list.length ? list.map((q) => `<article class="quote-saved" data-saved-quote="${esc(q.id)}"><span>${esc(q.id)} · ${esc(q.client)} · ${esc(q.status || "Borrador")} · Total: ${money(sum(q).total)}</span>${VSMilestones.badges(q, "quote")}<div><button type="button" data-load="${esc(q.id)}">Abrir</button><button type="button" data-whatsapp="${esc(q.id)}">WhatsApp</button><button type="button" data-duplicate="${esc(q.id)}">Duplicar</button><button type="button" data-delete-quote="${esc(q.id)}">Eliminar</button></div></article>`).join("") : "<p>No hay presupuestos guardados.</p>"}</section>`;
+ <section class="panel quote-saved-panel"><h2>Presupuestos guardados</h2><label>Buscar presupuesto<input id="quote-search" type="search" placeholder="Cliente, referencia o fecha" value="${esc(quoteSearch)}"></label>${VSMilestones.controls("quotes")}<div id="quote-saved-results">${savedQuotesView(list)}</div></section>`;
     const panel = document.querySelector("#quote-measures");
     if (panel && previousMeasures?.dataset.job === draft.job) {
       panel.replaceWith(previousMeasures);

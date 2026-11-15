@@ -61,6 +61,7 @@ module.exports = async (page) => {
   });
   await page.locator("#quote-search").fill("HITO-Q");
   assert.equal(await page.locator("[data-saved-quote]:visible").count(), 1);
+  await page.locator('[data-saved-quote="HITO-Q"] summary').click();
   const qb = page.locator('[data-milestone-id="HITO-Q"][data-milestone="F"]');
   await qb.click();
   await page.waitForFunction(
@@ -75,6 +76,7 @@ module.exports = async (page) => {
   assert.equal(await page.locator("[data-saved-quote]:visible").count(), 0);
   await page.locator("#quotes-milestone").selectOption("");
   await page.locator("#quote-search").fill("HITO-LINK");
+  await page.locator('[data-saved-quote="HITO-LINK"] summary').click();
   await page
     .locator('[data-saved-quote="HITO-LINK"] [data-milestone="MO"]')
     .click();

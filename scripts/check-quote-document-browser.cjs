@@ -172,6 +172,7 @@ module.exports = async function checkQuoteDocument(page, context, root) {
       await page.locator(`[data-pdf-option="${key}"]`).isChecked(),
       false,
     );
+  await page.locator(`[data-saved-quote="${id}"] summary`).click();
   await page.locator(`[data-duplicate="${id}"]`).click();
   assert.equal(
     await page.locator('[data-pdf-option="area"]').isChecked(),

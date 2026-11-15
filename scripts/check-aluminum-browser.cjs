@@ -83,6 +83,7 @@ module.exports = async (page) => {
   assert.doesNotMatch(pdf, /800,00|Coste interno|Margen añadido/);
   await page.locator("#quote-pdf-internal").click();
   assert.match(await page.locator("#quote-print").textContent(), /800,00/);
+  await page.locator(`[data-saved-quote="${saved.id}"] summary`).click();
   await page.locator(`[data-duplicate="${saved.id}"]`).click();
   assert.equal(
     await page

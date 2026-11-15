@@ -543,7 +543,9 @@ window.vidresAppReady = (async () => {
                           : 0,
                       ) +
                       " %") +
-                  '</p><div class="client-actions">' +
+                  '</p><div class="client-actions"><span>' +
+                  esc(c.telefono || "Sin teléfono") +
+                  "</span>" +
                   (tel
                     ? '<a href="tel:' +
                       esc(tel) +
@@ -712,6 +714,108 @@ window.vidresAppReady = (async () => {
       '<section class="panel"><h2>' + title + "</h2>" + body + "</section>"
     );
   }
+  function customizeSection() {
+    if (!VSAuth.user) return;
+    const host = $("#content");
+    const key = "vidres-section-view-v1:" + VSAuth.user.id + ":" + page;
+    const fields =
+      page === "clientes"
+        ? {
+            count: ["Número de trabajos", ".client-heading .muted"],
+            address: ["Dirección", ".client-card > p:first-of-type"],
+            price: ["Tarifa o margen", ".client-card > p:nth-of-type(2)"],
+            contact: ["Teléfono y accesos de contacto", ".client-actions"],
+            history: ["Historial de trabajos", ".client-card > details"],
+          }
+        : {
+            description: ["Descripciones", ".job-card > p, .panel > p.muted"],
+            metadata: ["Fecha, responsable y tipo de cliente", ".job-meta"],
+            milestones: ["Hitos de trabajos", ".job-card > .milestones"],
+          };
+    const defaults = {
+      view: page === "clientes" ? "compact" : "cards",
+      hidden:
+        page === "clientes" ? ["address", "price", "contact", "history"] : [],
+    };
+    let prefs = defaults;
+    try {
+      const saved = JSON.parse(localStorage.getItem(key));
+      if (
+        saved &&
+        ["compact", "cards"].includes(saved.view) &&
+        Array.isArray(saved.hidden)
+      )
+        prefs = saved;
+    } catch {}
+    const toolbar = document.createElement("details");
+    toolbar.className = "section-customize";
+    toolbar.innerHTML =
+      '<summary>Personalizar vista</summary><p>Preferencias de este apartado para tu usuario en este navegador.</p><label>Vista<select data-section-view><option value="compact">Lista compacta</option><option value="cards">Tarjetas amplias</option></select></label><fieldset><legend>Información visible</legend>' +
+      Object.entries(fields)
+        .filter(([, [, selector]]) => host.querySelector(selector))
+        .map(
+          ([id, [label]]) =>
+            '<label><input type="checkbox" data-section-field="' +
+            id +
+            '"> ' +
+            label +
+            "</label>",
+        )
+        .join("") +
+      '</fieldset><button type="button" data-section-reset>Restablecer vista</button><p role="status" data-section-status></p>';
+    host.prepend(toolbar);
+    function apply() {
+      host.classList.toggle("section-compact", prefs.view === "compact");
+      toolbar.querySelector("select").value = prefs.view;
+      for (const [id, [, selector]] of Object.entries(fields)) {
+        host
+          .querySelectorAll(selector)
+          .forEach((el) =>
+            el.classList.toggle(
+              "section-field-hidden",
+              prefs.hidden.includes(id),
+            ),
+          );
+        const checkbox = toolbar.querySelector(
+          '[data-section-field="' + id + '"]',
+        );
+        if (checkbox) checkbox.checked = !prefs.hidden.includes(id);
+      }
+    }
+    function save() {
+      apply();
+      try {
+        localStorage.setItem(key, JSON.stringify(prefs));
+        toolbar.querySelector("[data-section-status]").textContent =
+          "Vista guardada.";
+      } catch {
+        toolbar.querySelector("[data-section-status]").textContent =
+          "La vista se ha aplicado, pero no se pudo guardar en este navegador.";
+      }
+    }
+    toolbar.addEventListener("change", (e) => {
+      if (e.target.matches("select"))
+        prefs = { ...prefs, view: e.target.value };
+      if (e.target.matches("[data-section-field]")) {
+        const id = e.target.dataset.sectionField;
+        prefs = {
+          ...prefs,
+          hidden: e.target.checked
+            ? prefs.hidden.filter((x) => x !== id)
+            : [...prefs.hidden, id],
+        };
+      }
+      save();
+    });
+    toolbar.querySelector("button").onclick = () => {
+      prefs = structuredClone(defaults);
+      save();
+    };
+    apply();
+  }
+  new MutationObserver(() => {
+    if (!$("#content > .section-customize")) customizeSection();
+  }).observe($("#content"), { childList: true });
   function render() {
     if (usagePanel) {
       document.querySelector("main").appendChild(usagePanel);
@@ -852,10 +956,12 @@ window.vidresAppReady = (async () => {
         usersBackPage,
       );
       window.VSUsers.renderUsers();
+      customizeSection();
       return;
     } else if (page === "ajustes-cuenta") {
       $("#content").innerHTML = window.vidresSettingsBack();
       window.VSUsers.renderAccount();
+      customizeSection();
       return;
     } else if (page === "ajustes-ia") {
       $("#content").innerHTML = window.vidresSettingsBack();
@@ -926,6 +1032,7 @@ window.vidresAppReady = (async () => {
     }
     $("#content").innerHTML = html;
     window.VSOperations?.decorate(page);
+    customizeSection();
     const advanced = $(".advanced-work-filters");
     if (advanced && Object.values(filters).some(Boolean)) advanced.open = true;
     const scope = $("#job-scope");

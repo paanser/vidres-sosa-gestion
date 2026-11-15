@@ -12,7 +12,7 @@
     tariffs = () => window.vidresTariffs.catalog(VSStorage.read(T, [])),
     config = () => VSStorage.read(C, {});
   const pricing = (q) =>
-    q?.pricing || { vat: 21, energyMode: "pending", energy: "" };
+    q?.pricing || { vat: 21, energyMode: "kg", energy: "" };
   const calc = (line) => VSCalculations.calc(line, pricing(draft));
   const details = (q) => VSCalculations.quoteDetails(q);
   const sum = (q) => details(q).totals;
@@ -242,6 +242,9 @@
     }
     doublePrice(line);
   }
+  function weightFields(l) {
+    return `<label>Espesor total de vidrio (mm)<input data-field="thickness" type="text" inputmode="decimal" data-price-input value="${esc(l.thickness ?? "")}" placeholder="Ej.: 8; doble 4/16/4 = 8"></label><p class="muted">Suma los espesores de vidrio, sin cámara de aire. Necesario para aplicar el recargo por kg.</p>`;
+  }
   function doubleFields(l) {
     const face = (field, label) =>
       `<label>${label}<select data-field="${field}" data-search-select="Vidrio, tarifa o precio"><option value="">Float 4 · sin cambio (+0 €/m²)</option>${substitutions()
@@ -298,8 +301,8 @@
       date: localToday(),
       pricing: {
         vat: c.vat ?? 21,
-        energy: c.energy || "",
-        energyMode: c.energyMode || "pending",
+        energy: c.energyMode === "kg" ? c.energy || "" : "",
+        energyMode: "kg",
         margin: "",
         marginMode: "cost",
         marginScope: "glass",
@@ -557,7 +560,7 @@
             .join("")}</select></label>
         </div>
         ${customerFields()}<section class="quick-double">${doubleFields(line)}</section>
-        ${edgeFields(line, true)}
+        <div class="quick-double">${weightFields(line)}</div>${edgeFields(line, true)}
         <div id="quick-result" class="quote-result quick-result">${quickResultHtml(result, total)}</div>
         ${documentFields()}<div class="quote-toolbar"><button type="button" id="quote-pdf">PDF para cliente</button><button type="button" id="quick-copy">Copiar mensaje</button><button type="button" id="quick-whatsapp">Enviar por WhatsApp</button><button type="button" class="primary" id="quick-save">Guardar como presupuesto</button></div>
       </section>`;
@@ -719,11 +722,11 @@
       )
       .join(
         "",
-      )}</select></label><label>Tipo de vidrio<input data-field="glass" ${l.doubleGlazing ? "readonly" : ""} value="${esc(glassName(l))}"></label><label>Precio vidrio (€/m², editable sin tarifa)<input type="text" inputmode="decimal" data-price-input data-field="price" ${l.doubleGlazing ? "readonly" : ""} value="${esc(l.price)}"></label></div>${edgeFields(l)}<div class="quote-fields quote-extras"><label>Descripción del concepto adicional<input data-field="extraDescription" maxlength="160" placeholder="Ej.: montaje, transporte, herrajes" value="${esc(l.extraDescription || "")}"></label><label>Coste adicional (€ por toda esta línea)<input type="text" inputmode="decimal" data-price-input data-field="extraAmount" value="${esc(l.extraAmount ?? "")}"></label><label>Presentación al cliente<select data-field="extraMode"><option value="included" ${l.extraMode !== "separate" ? "selected" : ""}>Integrado en el precio del vidrio</option><option value="separate" ${l.extraMode === "separate" ? "selected" : ""}>Como concepto separado</option></select></label></div><div class="quote-result">${lineResult(c)}</div></div>`;
+      )}</select></label><label>Tipo de vidrio<input data-field="glass" ${l.doubleGlazing ? "readonly" : ""} value="${esc(glassName(l))}"></label><label>Precio vidrio (€/m², editable sin tarifa)<input type="text" inputmode="decimal" data-price-input data-field="price" ${l.doubleGlazing ? "readonly" : ""} value="${esc(l.price)}"></label></div>${weightFields(l)}${edgeFields(l)}<div class="quote-fields quote-extras"><label>Descripción del concepto adicional<input data-field="extraDescription" maxlength="160" placeholder="Ej.: montaje, transporte, herrajes" value="${esc(l.extraDescription || "")}"></label><label>Coste adicional (€ por toda esta línea)<input type="text" inputmode="decimal" data-price-input data-field="extraAmount" value="${esc(l.extraAmount ?? "")}"></label><label>Presentación al cliente<select data-field="extraMode"><option value="included" ${l.extraMode !== "separate" ? "selected" : ""}>Integrado en el precio del vidrio</option><option value="separate" ${l.extraMode === "separate" ? "selected" : ""}>Como concepto separado</option></select></label></div><div class="quote-result">${lineResult(c)}</div></div>`;
   }
   function lineResult(c) {
     const sale = `<p class="quote-line-sale"><strong>Precio de esta partida sin IVA: ${money(c.glassSale)}</strong>${c.separate && c.extraSale ? `<br>Concepto separado sin IVA: ${money(c.extraSale)} · Total de la partida: ${money(c.sale)}` : ""}</p>`;
-    return `${sale}<div class="quote-line-metrics"><span>Real: ${measures(c.w, c.h)} · ${c.real.toFixed(4)} m²</span><span>Aplicada: ${measures(c.aw, c.ah)} · ${c.area.toFixed(4)} m²</span><span>Canto por pieza: ${c.ml.toFixed(2)} ml · Unidades: ${c.qty}</span><span>Coste de vidrio y cantos: ${money(c.total)}</span>${c.energy ? "<span>Recargo energético incluido: " + money(c.energy) + "</span>" : ""}</div>`;
+    return `${sale}<div class="quote-line-metrics"><span>Peso: ${c.weight.toFixed(2)} kg</span><span>Real: ${measures(c.w, c.h)} · ${c.real.toFixed(4)} m²</span><span>Aplicada: ${measures(c.aw, c.ah)} · ${c.area.toFixed(4)} m²</span><span>Canto por pieza: ${c.ml.toFixed(2)} ml · Unidades: ${c.qty}</span><span>Coste de vidrio y cantos: ${money(c.total)}</span>${c.energy ? "<span>Recargo energético incluido: " + money(c.energy) + "</span>" : ""}</div>`;
   }
   function totalResult(breakdown) {
     const total = breakdown.totals;
@@ -846,6 +849,18 @@
     }
     if (!VSMeasureInput.validate(document.querySelector("#content")))
       return false;
+    if (
+      pricing(draft).energyMode === "kg" &&
+      num(pricing(draft).energy) &&
+      draft.lines.some(
+        (l) => !["concept", "aluminum"].includes(l.kind) && !num(l.thickness),
+      )
+    ) {
+      alert(
+        "Indica el espesor total del vidrio en mm para calcular el recargo por kg.",
+      );
+      return false;
+    }
     const nonNegative = (value) => {
       return !VSUtils.priceError(value);
     };

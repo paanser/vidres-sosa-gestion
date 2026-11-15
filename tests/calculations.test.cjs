@@ -315,3 +315,24 @@ test("tarifa fija sustituye solo venta de vidrio y conserva costes, extras e IVA
   q.pricing.fixedPrice = 0;
   assert.equal(quoteDetails(q).lines[0].sale, 22);
 });
+
+test("energía por kg usa superficie real, espesor y cantidad sin mínimo facturable", () => {
+  const line = { w: 50, h: 50, qty: 2, thickness: "8", price: 100 };
+  const result = calc(line, {
+    energyMode: "kg",
+    energy: "0,5",
+    minimumArea: "1",
+  });
+  assert.equal(result.weight, 10);
+  assert.equal(result.energy, 5);
+  assert.equal(result.area, 1);
+  assert.equal(result.total, 205);
+  assert.equal(
+    calc({ ...line, kind: "aluminum" }, { energyMode: "kg", energy: 1 }).energy,
+    0,
+  );
+  assert.equal(
+    calc({ ...line, kind: "concept" }, { energyMode: "kg", energy: 1 }).energy,
+    0,
+  );
+});

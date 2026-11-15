@@ -228,6 +228,7 @@ module.exports = async function checkQuotes(page, context, root) {
     await page.locator('[data-field="description"]').inputValue(),
     description,
   );
+  await page.locator(`[data-saved-quote="${saved.id}"] summary`).click();
   await page.locator(`[data-duplicate="${saved.id}"]`).click();
   assert.match(
     await page.locator(".quote-grand-total").textContent(),

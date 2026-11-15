@@ -60,6 +60,27 @@
           direccion: job.direccion || "",
         });
     }
+    for (const quote of quotes()) {
+      if (
+        !quote.client ||
+        quote.client === "Sin cliente" ||
+        options.some((c) =>
+          quote.clientId
+            ? c.id === quote.clientId
+            : clientNameKey(c.nombre) === clientNameKey(quote.client),
+        )
+      )
+        continue;
+      const data = quote.clientData || {};
+      options.push({
+        ...(quote.clientId ? { id: quote.clientId } : {}),
+        nombre: quote.client,
+        telefono: data.phone || "",
+        direccion: data.address || "",
+        nif: data.taxId || "",
+        email: data.email || "",
+      });
+    }
     return options;
   }
   const clientCard = (q) =>
@@ -75,7 +96,7 @@
     return `<label>Relacionar con un cliente existente (opcional)<select id="quote-existing-client" data-search-select="Nombre, teléfono o dirección"><option value="">Crear cliente nuevo</option>${clientOptions()
       .map(
         (c, i) =>
-          `<option value="${i}" ${(draft.clientId ? draft.clientId === c.id : draft.clientSource !== "quote" && !c.id && draft.client === c.nombre) ? "selected" : ""}>${esc(c.nombre)} · ${esc(c.telefono || c.direccion || "Sin datos de contacto")}</option>`,
+          `<option value="${i}" data-search-text="${esc([c.telefono, c.direccion].join(" "))}" ${(draft.clientId ? draft.clientId === c.id : draft.clientSource !== "quote" && !c.id && draft.client === c.nombre) ? "selected" : ""}>${esc(c.nombre)} · ${esc(c.telefono || c.direccion || "Sin datos de contacto")}</option>`,
       )
       .join(
         "",

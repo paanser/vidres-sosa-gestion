@@ -3,7 +3,14 @@ module.exports = async (page) => {
   const original = await page.evaluate(() => VSStorage.values());
   await page.evaluate(async () => {
     await VSStorage.patchValues({
-      [VSStorage.keys.clientes]: [],
+      [VSStorage.keys.clientes]: [
+        {
+          id: "cliente-registrado",
+          nombre: "Cliente Registrado",
+          telefono: "600654321",
+          direccion: "Plaza Registrada",
+        },
+      ],
       [VSStorage.keys.trabajos]: [
         {
           id: "T-CLIENTE-SIN-FICHA",
@@ -13,12 +20,46 @@ module.exports = async (page) => {
           direccion: "Calle del ejemplo",
         },
       ],
-      [VSStorage.keys.presupuestos]: [],
+      [VSStorage.keys.presupuestos]: [
+        {
+          id: "P-CLIENTE-SOLO-OFERTA",
+          client: "Cliente Solo Oferta",
+          clientSource: "quote",
+          clientData: { phone: "600987654", address: "Avenida Oferta" },
+          lines: [
+            { kind: "concept", description: "Oferta anterior", amount: 50 },
+          ],
+        },
+      ],
     });
     vidresReloadData();
     vidresNavigate("presupuestos");
   });
   await page.locator("#quote-new").click();
+  // Los tres orígenes se buscan desde el selector y desde el nombre.
+  await require("./search-select-browser.cjs")(
+    page,
+    "#quote-existing-client",
+    "0",
+    "Plaza Registrada",
+  );
+  assert.equal(
+    await page.locator("#quote-client").inputValue(),
+    "Cliente Registrado",
+  );
+  await page.locator("#quote-client").fill("solo oferta");
+  await page
+    .locator("[data-quote-client-option]")
+    .filter({ hasText: "Cliente Solo Oferta" })
+    .click();
+  assert.equal(
+    await page.locator("#quote-client").inputValue(),
+    "Cliente Solo Oferta",
+  );
+  assert.equal(
+    await page.locator('[data-quote-client="phone"]').inputValue(),
+    "600987654",
+  );
   // La búsqueda debe incluir a los clientes visibles en Clientes, aunque solo tengan un parte.
   assert.match(
     await page.locator("#quote-existing-client").textContent(),
@@ -40,10 +81,12 @@ module.exports = async (page) => {
   await page.locator('[data-field="amount"]').fill("100");
   await page.locator("#quote-save").click();
   await page.waitForFunction(
-    () => VSStorage.read(VSStorage.keys.presupuestos, []).length === 1,
+    () => VSStorage.read(VSStorage.keys.presupuestos, []).length === 2,
   );
-  const linked = await page.evaluate(
-    () => VSStorage.read(VSStorage.keys.presupuestos, [])[0],
+  const linked = await page.evaluate(() =>
+    VSStorage.read(VSStorage.keys.presupuestos, []).find(
+      (q) => q.client === "Ana García",
+    ),
   );
   assert.ok(linked.clientId);
   assert.equal(linked.job, "");
@@ -60,10 +103,13 @@ module.exports = async (page) => {
   await page.locator('[data-field="amount"]').fill("75");
   await page.locator("#quote-save").click();
   await page.waitForFunction(
-    () => VSStorage.read(VSStorage.keys.presupuestos, []).length === 2,
+    () => VSStorage.read(VSStorage.keys.presupuestos, []).length === 3,
   );
   const second = await page.evaluate(
-    () => VSStorage.read(VSStorage.keys.presupuestos, [])[1],
+    () =>
+      VSStorage.read(VSStorage.keys.presupuestos, []).filter(
+        (q) => q.client === "Ana García",
+      )[1],
   );
   assert.notEqual(second.clientId, linked.clientId);
   await page.reload();
@@ -85,6 +131,6 @@ module.exports = async (page) => {
     vidresNavigate("inicio");
   }, original);
   console.log(
-    "PASS clientes en presupuestos: búsqueda al escribir sin acentos, cliente de parte sin ficha, selección explícita, homónimo nuevo, presupuesto sin parte y fichas tras recargar",
+    "PASS clientes en presupuestos: búsqueda de cliente registrado por dirección, cliente de presupuesto anterior y cliente de parte sin ficha, selección explícita, homónimo nuevo, presupuesto sin parte y fichas tras recargar",
   );
 };

@@ -243,7 +243,7 @@
     doublePrice(line);
   }
   function weightFields(l) {
-    return `<label>Espesor total de vidrio (mm)<input data-field="thickness" type="text" inputmode="decimal" data-price-input value="${esc(l.thickness ?? "")}" placeholder="Ej.: 8; doble 4/16/4 = 8"></label><p class="muted">Suma los espesores de vidrio, sin cámara de aire. Necesario para aplicar el recargo por kg.</p>`;
+    return `<label>Espesor total de vidrio (mm)<input data-field="thickness" type="number" min="0.01" step="any" inputmode="decimal" value="${esc(l.thickness ?? "")}" placeholder="Ej.: 8; doble 4/16/4 = 8"></label><p class="muted">Suma los espesores de vidrio, sin cámara de aire. Necesario para aplicar el recargo por kg.</p>`;
   }
   function doubleFields(l) {
     const face = (field, label) =>

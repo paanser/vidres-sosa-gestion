@@ -559,8 +559,8 @@
             )
             .join("")}</select></label>
         </div>
-        ${customerFields()}<section class="quick-double">${doubleFields(line)}</section>
-        <div class="quick-double">${weightFields(line)}</div>${edgeFields(line, true)}
+        ${customerFields()}<section class="quick-double">${doubleFields(line)}${weightFields(line)}</section>
+        ${edgeFields(line, true)}
         <div id="quick-result" class="quote-result quick-result">${quickResultHtml(result, total)}</div>
         ${documentFields()}<div class="quote-toolbar"><button type="button" id="quote-pdf">PDF para cliente</button><button type="button" id="quick-copy">Copiar mensaje</button><button type="button" id="quick-whatsapp">Enviar por WhatsApp</button><button type="button" class="primary" id="quick-save">Guardar como presupuesto</button></div>
       </section>`;

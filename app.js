@@ -757,7 +757,11 @@ window.vidresAppReady = (async () => {
             address: ["Dirección", ".client-card > p:first-of-type"],
             price: ["Tarifa o margen", ".client-card > p:nth-of-type(2)"],
             contact: ["Teléfono y accesos de contacto", ".client-actions"],
-            history: ["Historial de trabajos", ".client-card > details"],
+            history: [
+              "Historial de trabajos",
+              ".client-card > details:first-of-type",
+            ],
+            quotes: ["Presupuestos", ".client-card > details:last-of-type"],
           }
         : {
             description: ["Descripciones", ".job-card > p, .panel > p.muted"],

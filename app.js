@@ -485,7 +485,15 @@ window.vidresAppReady = (async () => {
       .replace(/[\u0300-\u036f]/g, "")
       .toLocaleLowerCase("es");
   function clientsHtml() {
-    const list = clientNames();
+    clients = VSStorage.read(CLIENT_KEY, []);
+    const list = [
+      ...clients.map((c) => ({ ...c, key: c.id || c.nombre })),
+      ...clientNames()
+        .filter(
+          (name) => !clients.some((c) => normName(c.nombre) === normName(name)),
+        )
+        .map((nombre) => ({ nombre, key: nombre })),
+    ];
     return panel(
       "Clientes",
       '<p class="muted">Fichas compartidas: teléfono y dirección vinculados al historial de trabajos.</p><label for="client-search">Buscar clientes</label><input id="client-search" type="search" placeholder="Nombre, dirección, teléfono…" aria-controls="client-results" autocomplete="off"><p id="client-count" class="muted" role="status">' +
@@ -494,14 +502,19 @@ window.vidresAppReady = (async () => {
         (!list.length
           ? '<div class="empty-state">Todavía no hay clientes. Crea un trabajo para empezar.</div>'
           : list
-              .map((name) => {
-                const c =
-                    clients.find(
-                      (x) => normName(x.nombre) === normName(name),
-                    ) || {},
-                  items = jobs.filter(
-                    (j) => normName(j.cliente) === normName(name),
-                  );
+              .map((c) => {
+                const name = c.nombre;
+                const quotes = VSStorage.read(
+                  "vs-quote-prototype-v1",
+                  [],
+                ).filter((q) =>
+                  q.clientId
+                    ? q.clientId === c.id
+                    : normName(q.client) === normName(name) && !c.id,
+                );
+                const items = jobs.filter(
+                  (j) => normName(j.cliente) === normName(name),
+                );
                 const tel = phoneClean(c.telefono);
                 return (
                   '<article class="client-card" data-client-search="' +
@@ -528,7 +541,7 @@ window.vidresAppReady = (async () => {
                   '</h3><span class="muted">' +
                   items.length +
                   ' trabajo(s)</span></div><button type="button" data-client-edit="' +
-                  esc(name) +
+                  esc(c.key) +
                   '">Editar ficha</button></div><p>' +
                   esc(c.direccion || "Dirección no indicada") +
                   '</p><p class="muted">' +
@@ -562,6 +575,21 @@ window.vidresAppReady = (async () => {
                   items.length +
                   ")</summary>" +
                   jobCards(items) +
+                  "</details><details><summary>Presupuestos (" +
+                  quotes.length +
+                  ")</summary>" +
+                  (quotes
+                    .map(
+                      (q) =>
+                        "<p>" +
+                        esc(q.id) +
+                        " · " +
+                        esc(q.status || "Borrador") +
+                        ' <button type="button" data-client-quote="' +
+                        esc(q.id) +
+                        '">Abrir presupuesto</button></p>',
+                    )
+                    .join("") || '<p class="muted">Sin presupuestos.</p>') +
                   "</details></article>"
                 );
               })
@@ -569,11 +597,15 @@ window.vidresAppReady = (async () => {
         '</div><p id="client-no-results" class="empty-state" hidden>No hay clientes que coincidan con la búsqueda.</p>',
     );
   }
+  document.addEventListener("click", (e) => {
+    const button = e.target.closest("[data-client-quote]");
+    if (button) window.vidresQuoteOpenSaved?.(button.dataset.clientQuote);
+  });
   function clientEditor(name) {
-    const existing =
-      clients.find((c) => normName(c.nombre) === normName(name)) || {};
+    const existing = clients.find((c) => (c.id || c.nombre) === name) || {};
     const dialog = document.querySelector("#client-editor");
-    dialog.querySelector('[name="nombre"]').value = name;
+    dialog.dataset.clientKey = name;
+    dialog.querySelector('[name="nombre"]').value = existing.nombre || name;
     dialog.querySelector('[name="telefono"]').value = existing.telefono || "";
     dialog.querySelector('[name="direccion"]').value = existing.direccion || "";
     dialog.querySelector('[name="nif"]').value =
@@ -725,7 +757,11 @@ window.vidresAppReady = (async () => {
             address: ["Dirección", ".client-card > p:first-of-type"],
             price: ["Tarifa o margen", ".client-card > p:nth-of-type(2)"],
             contact: ["Teléfono y accesos de contacto", ".client-actions"],
-            history: ["Historial de trabajos", ".client-card > details"],
+            history: [
+              "Historial de trabajos",
+              ".client-card > details:first-of-type",
+            ],
+            quotes: ["Presupuestos", ".client-card > details:last-of-type"],
           }
         : {
             description: ["Descripciones", ".job-card > p, .panel > p.muted"],
@@ -1860,8 +1896,11 @@ window.vidresAppReady = (async () => {
         email: String(data.get("email") || "").trim(),
       };
       const i = clients.findIndex(
-        (c) => normName(c.nombre) === normName(nombre),
+        (c) =>
+          (c.id || c.nombre) ===
+          document.querySelector("#client-editor").dataset.clientKey,
       );
+      if (clients[i]?.id) item.id = clients[i].id;
       item.priceProfile = {
         mode: String(data.get("priceMode")),
         value: Number(data.get("priceValue")),

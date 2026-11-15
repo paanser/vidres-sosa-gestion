@@ -36,11 +36,27 @@
     ...q.pdfOptions,
   });
   const clientCard = (q) =>
-    VSStorage.read("vidres-clientes-v1", []).find(
-      (c) =>
-        String(c.nombre).trim().toLocaleLowerCase("es") ===
-        q.client.trim().toLocaleLowerCase("es"),
-    );
+    q.clientSource === "quote"
+      ? undefined
+      : VSStorage.read("vidres-clientes-v1", []).find((c) =>
+          q.clientId
+            ? c.id === q.clientId
+            : String(c.nombre).trim().toLocaleLowerCase("es") ===
+              q.client.trim().toLocaleLowerCase("es"),
+        );
+  function clientPicker() {
+    return `<label>Relacionar con un cliente existente (opcional)<select id="quote-existing-client" data-search-select="Nombre, teléfono o dirección"><option value="">Crear cliente nuevo</option>${VSStorage.read(
+      "vidres-clientes-v1",
+      [],
+    )
+      .map(
+        (c, i) =>
+          `<option value="${i}" ${(draft.clientId ? draft.clientId === c.id : draft.clientSource !== "quote" && draft.client === c.nombre) ? "selected" : ""}>${esc(c.nombre)} · ${esc(c.telefono || c.direccion || "Sin datos de contacto")}</option>`,
+      )
+      .join(
+        "",
+      )}</select></label><p class="muted">Puedes crear un cliente nuevo aunque coincida el nombre. Añade otro apellido o mote para distinguirlo.</p>`;
+  }
   function clientData(q) {
     const c = clientCard(q);
     return q.clientSource === "quote" || !c
@@ -63,7 +79,7 @@
   function customerFields() {
     const data = clientData(draft),
       fromCard = draft.clientSource !== "quote" && clientCard(draft);
-    return `<details class="quote-customer"><summary>Datos del cliente${fromCard ? " · de su ficha" : " · de este presupuesto"}</summary><p class="muted">${fromCard ? "Estos datos se obtienen de la ficha del cliente. Puedes modificarlos en Clientes." : "Se guardan con el presupuesto, sin necesidad de crear una ficha."}</p><div class="quote-fields">${[
+    return `<details class="quote-customer"><summary>Datos del cliente${fromCard ? " · de su ficha" : " · de este presupuesto"}</summary><p class="muted">${fromCard ? "Estos datos se obtienen de la ficha del cliente. Puedes modificarlos en Clientes." : "Al guardar el presupuesto se creará una ficha de cliente con estos datos."}</p><div class="quote-fields">${[
       ["taxId", "CIF/NIF", 100],
       ["phone", "Teléfono", 100],
       ["address", "Dirección", 500],
@@ -192,6 +208,7 @@
     return {
       id: null,
       client: "",
+      clientSource: "quote",
       job: "",
       status: "Borrador",
       date: localToday(),
@@ -286,7 +303,7 @@
     const previousMeasures = document.querySelector("#quote-measures");
     document.querySelector("#content").innerHTML =
       `<div class="quote-toolbar"><button type="button" class="quick-quote-button" id="quote-quick">⚡ Presupuesto rápido</button><button type="button" class="primary" id="quote-new">+ Nuevo presupuesto</button><button type="button" id="quote-settings">Ajustes de tarifas</button></div>
- <section class="panel quote-editor"><h2>Presupuesto · ${esc(draft.id || "Sin guardar")}</h2><div class="quote-fields"><label>Cliente<input id="quote-client" list="quote-clients" maxlength="100" value="${esc(draft.client)}"></label><datalist id="quote-clients">${(window.vidresClientNames?.() || []).map((name) => `<option value="${esc(name)}"></option>`).join("")}</datalist><label>Parte relacionado<select id="quote-job" data-search-select="Cliente, referencia o dirección"><option value="">Sin vincular</option>${jobs.map((j) => VSSelectSearch.jobOption(j, draft.job)).join("")}</select></label><label>Estado<select id="quote-status">${statuses.map((s) => `<option ${s === (draft.status || "Borrador") ? "selected" : ""}>${s}</option>`).join("")}</select></label></div>
+ <section class="panel quote-editor"><h2>Presupuesto · ${esc(draft.id || "Sin guardar")}</h2><div class="quote-fields">${clientPicker()}<label>Cliente<input id="quote-client" maxlength="100" value="${esc(draft.client)}"></label><datalist id="quote-clients">${(window.vidresClientNames?.() || []).map((name) => `<option value="${esc(name)}"></option>`).join("")}</datalist><label>Parte relacionado<select id="quote-job" data-search-select="Cliente, referencia o dirección"><option value="">Sin vincular</option>${jobs.map((j) => VSSelectSearch.jobOption(j, draft.job)).join("")}</select></label><label>Estado<select id="quote-status">${statuses.map((s) => `<option ${s === (draft.status || "Borrador") ? "selected" : ""}>${s}</option>`).join("")}</select></label></div>
  ${draft.id ? VSMilestones.badges(quotes().find((q) => q.id === draft.id) || draft, "quote") : ""}${minimumAreaFields()}${measurePanel()}${customerFields()}<div class="quote-margin"><label>Precio para este presupuesto<select id="quote-price-mode" data-search-select="Margen, recargo o tarifa"><option value="markup" ${pricing(draft).priceMode !== "fixed" ? "selected" : ""}>Recargo porcentual</option><option value="fixed" ${pricing(draft).priceMode === "fixed" ? "selected" : ""}>Tarifa de venta por m²</option></select></label><label>Tarifa de venta del vidrio (€/m²)<input id="quote-fixed-price" type="text" inputmode="decimal" data-price-input value="${esc(pricing(draft).fixedPrice ?? "")}"></label><p>Perfil copiado del cliente al seleccionarlo; editable solo para esta oferta. La tarifa fija sustituye el precio de venta del vidrio, con cantos, energía y extras aparte.</p><label>Margen (%)<input id="quote-margin" type="text" inputmode="decimal" data-price-input value="${esc(pricing(draft).margin || "")}"></label><p>Incremento sobre el precio del vidrio: 100 € con 20 % → 120 €. Mano de obra, cantos, recargos y conceptos adicionales sin margen. Antes del IVA; solo visible en la copia interna.</p>${pricing(draft).marginScope !== "glass" && num(pricing(draft).margin) ? "<p>Presupuesto anterior: conserva el cálculo guardado. Al editar se aplicará el incremento solo al vidrio.</p>" : ""}</div><div id="quote-lines">${draft.lines.map(row).join("")}</div><button type="button" id="quote-add">+ Añadir otro vidrio</button><button type="button" id="quote-add-aluminum">+ Añadir aluminio con dibujo</button><button type="button" id="quote-add-concept">+ Añadir concepto libre</button><div class="quote-total"><div class="quote-total-breakdown">${totalResult(breakdown)}</div></div>${documentFields()}<div class="quote-toolbar"><button type="button" class="primary" id="quote-save">Guardar presupuesto</button><button type="button" id="quote-whatsapp">Enviar por WhatsApp</button><button type="button" id="quote-pdf">PDF para cliente</button><button type="button" id="quote-pdf-internal">PDF interno · Vidres Sosa</button></div></section>
  <section class="panel"><h2>Presupuestos guardados</h2><label>Buscar presupuesto<input id="quote-search" type="search" placeholder="Cliente, referencia o fecha" value="${esc(quoteSearch)}"></label>${VSMilestones.controls("quotes")}${list.length ? list.map((q) => `<article class="quote-saved" data-saved-quote="${esc(q.id)}"><span>${esc(q.id)} · ${esc(q.client)} · ${esc(q.status || "Borrador")} · Total: ${money(sum(q).total)}</span>${VSMilestones.badges(q, "quote")}<div><button type="button" data-load="${esc(q.id)}">Abrir</button><button type="button" data-whatsapp="${esc(q.id)}">WhatsApp</button><button type="button" data-duplicate="${esc(q.id)}">Duplicar</button><button type="button" data-delete-quote="${esc(q.id)}">Eliminar</button></div></article>`).join("") : "<p>No hay presupuestos guardados.</p>"}</section>`;
     const panel = document.querySelector("#quote-measures");
@@ -435,16 +452,7 @@
     );
   }
   function phoneForQuote(q) {
-    const client = VSStorage.read("vidres-clientes-v1", []).find(
-      (item) =>
-        String(item.nombre || "")
-          .trim()
-          .toLocaleLowerCase("es") ===
-        String(q.client || "")
-          .trim()
-          .toLocaleLowerCase("es"),
-    );
-    let phone = String(client?.telefono || "").replace(/[^+0-9]/g, "");
+    let phone = String(clientData(q).phone || "").replace(/[^+0-9]/g, "");
     phone = phone.replace(/^\+|^00/, "");
     if (/^\d{9}$/.test(phone)) phone = "34" + phone;
     return phone;
@@ -547,6 +555,12 @@
     readMinimumArea();
     const previousClient = draft.client;
     draft.client = document.querySelector("#quote-client").value.trim();
+    if (previousClient !== draft.client) {
+      delete draft.clientId;
+      draft.clientSource = "quote";
+      document.querySelector("#quote-existing-client").value = "";
+      VSSelectSearch.refresh(document.querySelector("#quote-existing-client"));
+    }
     draft.job = document.querySelector("#quote-job").value;
     draft.status = document.querySelector("#quote-status").value;
     draft.pricing = {
@@ -754,6 +768,30 @@
       const list = quotes(),
         old = list.find((q) => q.id === draft.id);
       if (!draft.id) draft.id = await nextId();
+      if (
+        draft.client.trim() &&
+        draft.client !== "Sin cliente" &&
+        !clientCard(draft)
+      ) {
+        const clients = VSStorage.read("vidres-clientes-v1", []);
+        const id = draft.clientId || crypto.randomUUID();
+        const data = draft.clientData || {};
+        if (!clients.some((c) => c.id === id)) {
+          await VSStorage.write("vidres-clientes-v1", [
+            ...clients,
+            {
+              id,
+              nombre: draft.client,
+              telefono: data.phone || "",
+              direccion: data.address || "",
+              nif: data.taxId || "",
+              email: data.email || "",
+            },
+          ]);
+        }
+        draft.clientId = id;
+        delete draft.clientSource;
+      }
       if (draft.status === "Enviado") {
         draft.enviado = draft.enviado || localToday();
         draft.seguimiento =
@@ -1088,6 +1126,22 @@
         sync();
       return;
     }
+    if (e.target.id === "quote-existing-client") {
+      fromForm();
+      const c = VSStorage.read("vidres-clientes-v1", [])[e.target.value];
+      if (c) {
+        draft.client = c.nombre;
+        draft.clientId = c.id || "";
+        delete draft.clientSource;
+      } else {
+        delete draft.clientId;
+        draft.clientSource = "quote";
+        draft.clientData = {};
+      }
+      applyClientProfile();
+      sync();
+      return;
+    }
     fromForm();
     const el = e.target.closest(".quote-line");
     if (el && e.target.dataset.field === "doubleGlazing" && !e.target.checked) {
@@ -1173,6 +1227,7 @@
     draft = fresh();
     draft.job = id;
     draft.client = client || "";
+    delete draft.clientSource;
     applyClientProfile();
     if (measures?.length)
       draft.lines = measures.map((m) => ({

@@ -190,3 +190,33 @@ test("perfiles de cliente y precio por oferta se conservan y validan en D1", asy
     );
   }
 });
+
+test("clientes homónimos conservan identidades y presupuesto sin parte", async () => {
+  const { checked, KEYS } = await import("../worker/data.js");
+  const values = {
+    [KEYS.clientes]: [
+      { nombre: "Ana", telefono: "600000001" },
+      { id: "cliente-nuevo", nombre: "Ana", telefono: "600000002" },
+    ],
+    [KEYS.presupuestos]: [
+      {
+        id: "P-SIN-PARTE",
+        client: "Ana",
+        clientId: "cliente-nuevo",
+        job: "",
+        lines: [{ kind: "concept", description: "Montaje", amount: 100 }],
+      },
+    ],
+  };
+  const result = checked(values);
+  assert.deepEqual(result[KEYS.clientes], values[KEYS.clientes]);
+  assert.deepEqual(result[KEYS.presupuestos], values[KEYS.presupuestos]);
+  assert.throws(() =>
+    checked({
+      [KEYS.clientes]: [
+        { id: "mismo-id", nombre: "Ana" },
+        { id: "mismo-id", nombre: "Otra" },
+      ],
+    }),
+  );
+});

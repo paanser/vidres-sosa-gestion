@@ -113,7 +113,7 @@ export function validateValues(values) {
         fail(400, "Lista no válida");
       if (name !== "catalogo") {
         const ids = value.map((x) =>
-          name === "clientes" ? id(x.nombre) : id(x.id),
+          name === "clientes" ? id(x.id || x.nombre) : id(x.id),
         );
         if (new Set(ids).size !== ids.length)
           fail(400, "Referencias duplicadas");
@@ -238,6 +238,7 @@ export function checked(values) {
     validateMilestones(q);
     text(q.client, 100);
     strings(q, {
+      clientId: 150,
       job: 150,
       date: 40,
       status: 40,

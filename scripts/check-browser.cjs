@@ -374,6 +374,7 @@ async function checkMobileFields(page) {
   await require("./check-client-link-browser.cjs")(page);
   await require("./check-price-profiles-browser.cjs")(page);
   await require("./check-quotes-browser.cjs")(page, context, root);
+  await require("./check-quote-views-browser.cjs")(page, context, root);
   await require("./check-quote-document-browser.cjs")(page, context, root);
   await require("./check-aluminum-browser.cjs")(page);
 
@@ -394,7 +395,7 @@ async function checkMobileFields(page) {
     await page.locator(".client-card > p").first().isVisible(),
     false,
   );
-  await page.locator(".section-customize summary").click();
+  await page.locator("[data-section-customize]").click();
   await page.locator("[data-section-view]").selectOption("cards");
   await page.locator('[data-section-field="address"]').check();
   await page.evaluate(() => {
@@ -406,10 +407,10 @@ async function checkMobileFields(page) {
     await page.locator(".client-card > p").first().isVisible(),
     true,
   );
-  await page.locator(".section-customize summary").click();
+  await page.locator("[data-section-customize]").click();
   await page.locator("[data-section-reset]").click();
   assert.equal(await page.locator("#content.section-compact").count(), 1);
-  await page.locator(".section-customize summary").click();
+  await page.locator("[data-section-close]").click();
   for (const query of [
     "registrado",
     "fiscal 10",

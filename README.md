@@ -181,3 +181,12 @@ no incluye importes. No requiere cambios en el Worker.
 Desde el **icono de personalización en la esquina inferior derecha de Inicio**, que abre las opciones en una ventana oculta por defecto, cada usuario puede elegir el panel o el calendario y mostrar u ocultar el resumen, los próximos trabajos, las notas y los presupuestos por reclamar. Es posible ocultar todos los bloques y restablecer la configuración inicial.
 
 Las preferencias se guardan en la cuenta mediante `/api/preferences/home`, separadas de los datos compartidos y de sus copias de seguridad. Se recuperan al iniciar o recargar la aplicación en cualquier dispositivo. Para publicar este cambio, aplicar primero la migración D1 `0004_home_preferences.sql` y desplegar el backend antes del frontend (el flujo de despliegue existente aplica las migraciones).
+
+### Vistas de presupuestos
+
+El icono de deslizadores de la esquina inferior derecha abre la personalización
+de cada apartado. En Presupuestos permite elegir entre tarjetas y una lista con
+estado, número, fecha, cliente/detalle, neto sin IVA y total con IVA. La lista es
+la vista inicial; sus opciones por fila incluyen hitos, WhatsApp, duplicar y eliminar.
+Cambiar de vista conserva el formulario y los filtros. La elección se recuerda
+para cada usuario en ese navegador, independientemente de los demás apartados.

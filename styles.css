@@ -4298,6 +4298,36 @@ html {
 .quote-saved-panel {
   min-width: 0;
 }
+.quote-saved-cards {
+  display: grid;
+  gap: 12px;
+}
+.quote-saved-card {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #e0e8e3;
+  border-radius: 10px;
+  font-size: 13px;
+}
+.quote-saved-card > span {
+  flex: 1 1 240px;
+  overflow-wrap: anywhere;
+}
+.quote-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.quote-card-actions button {
+  border: 1px solid #c5d8cc;
+  border-radius: 8px;
+  padding: 10px 14px;
+  background: white;
+  color: #176340;
+}
 .quote-list-scroll {
   width: 100%;
   overflow-x: auto;
@@ -4720,16 +4750,11 @@ html {
 
 /* Preferencias de presentación independientes por apartado. */
 .section-customize {
-  margin: 0 0 16px;
-  padding: 10px 14px;
-  border: 1px solid #dce7df;
-  border-radius: 10px;
-  background: #fff;
+  margin: 0;
+  padding: 0;
 }
-.section-customize summary {
-  cursor: pointer;
-  font-weight: 700;
-  color: #15523e;
+#content:has(> .section-customize) {
+  padding-bottom: 76px;
 }
 .section-customize fieldset {
   display: flex;
@@ -4753,6 +4778,11 @@ html {
 }
 .section-customize p:empty {
   display: none;
+}
+@media print {
+  .section-customize {
+    display: none;
+  }
 }
 .section-field-hidden {
   display: none !important;

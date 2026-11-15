@@ -69,6 +69,15 @@ module.exports = async function checkQuoteDocument(page, context, root) {
   await page.evaluate(() => vidresNavigate("presupuestos"));
   await page.locator("#quote-new").click();
   await set("#quote-client", "Cliente de ejemplo");
+  assert.equal(
+    await page.locator('[data-quote-client="taxId"]').inputValue(),
+    "",
+  );
+  await require("./search-select-browser.cjs")(
+    page,
+    "#quote-existing-client",
+    "0",
+  );
   await page.locator(".quote-customer summary").click();
   assert.equal(
     await page.locator('[data-quote-client="taxId"]').inputValue(),
@@ -303,6 +312,38 @@ module.exports = async function checkQuoteDocument(page, context, root) {
       `PDF selector: desbordamiento a ${width}`,
     );
   }
+  // Un homónimo nuevo no debe usar la ficha existente ni exigir un parte.
+  await page.locator("#quote-new").click();
+  await set("#quote-client", "Cliente de ejemplo");
+  await page.locator("#quote-add-concept").click();
+  await set('[data-field="description"]', "Oferta sin parte");
+  await set('[data-field="amount"]', "75");
+  await page.locator("#quote-save").click();
+  await page.waitForFunction(
+    () =>
+      VSStorage.read("vidres-clientes-v1", []).filter(
+        (c) => c.nombre === "Cliente de ejemplo",
+      ).length === 2,
+  );
+  const newClient = await page.evaluate(() =>
+    VSStorage.read("vidres-clientes-v1", []).find(
+      (c) => c.id && c.nombre === "Cliente de ejemplo",
+    ),
+  );
+  assert.ok(newClient.id);
+  await page.reload();
+  await page.locator("#title").filter({ hasText: "Inicio" }).waitFor();
+  await page.evaluate(() => vidresNavigate("clientes"));
+  const card = page
+    .locator(".client-card")
+    .filter({ has: page.locator(`[data-client-edit="${newClient.id}"]`) });
+  await card.locator("details").last().locator("summary").click();
+  await card.locator("[data-client-quote]").click();
+  assert.equal(await page.locator("#quote-job").inputValue(), "");
+  assert.equal(
+    await page.locator("#quote-client").inputValue(),
+    "Cliente de ejemplo",
+  );
   await page.evaluate(async (original) => {
     await VSStorage.write("vs-config-v1", original.config);
     await VSStorage.write("vidres-clientes-v1", original.clients);

@@ -485,7 +485,15 @@ window.vidresAppReady = (async () => {
       .replace(/[\u0300-\u036f]/g, "")
       .toLocaleLowerCase("es");
   function clientsHtml() {
-    const list = clientNames();
+    clients = VSStorage.read(CLIENT_KEY, []);
+    const list = [
+      ...clients.map((c) => ({ ...c, key: c.id || c.nombre })),
+      ...clientNames()
+        .filter(
+          (name) => !clients.some((c) => normName(c.nombre) === normName(name)),
+        )
+        .map((nombre) => ({ nombre, key: nombre })),
+    ];
     return panel(
       "Clientes",
       '<p class="muted">Fichas compartidas: teléfono y dirección vinculados al historial de trabajos.</p><label for="client-search">Buscar clientes</label><input id="client-search" type="search" placeholder="Nombre, dirección, teléfono…" aria-controls="client-results" autocomplete="off"><p id="client-count" class="muted" role="status">' +
@@ -494,14 +502,19 @@ window.vidresAppReady = (async () => {
         (!list.length
           ? '<div class="empty-state">Todavía no hay clientes. Crea un trabajo para empezar.</div>'
           : list
-              .map((name) => {
-                const c =
-                    clients.find(
-                      (x) => normName(x.nombre) === normName(name),
-                    ) || {},
-                  items = jobs.filter(
-                    (j) => normName(j.cliente) === normName(name),
-                  );
+              .map((c) => {
+                const name = c.nombre;
+                const quotes = VSStorage.read(
+                  "vs-quote-prototype-v1",
+                  [],
+                ).filter((q) =>
+                  q.clientId
+                    ? q.clientId === c.id
+                    : normName(q.client) === normName(name) && !c.id,
+                );
+                const items = jobs.filter(
+                  (j) => normName(j.cliente) === normName(name),
+                );
                 const tel = phoneClean(c.telefono);
                 return (
                   '<article class="client-card" data-client-search="' +
@@ -528,7 +541,7 @@ window.vidresAppReady = (async () => {
                   '</h3><span class="muted">' +
                   items.length +
                   ' trabajo(s)</span></div><button type="button" data-client-edit="' +
-                  esc(name) +
+                  esc(c.key) +
                   '">Editar ficha</button></div><p>' +
                   esc(c.direccion || "Dirección no indicada") +
                   '</p><p class="muted">' +
@@ -543,7 +556,9 @@ window.vidresAppReady = (async () => {
                           : 0,
                       ) +
                       " %") +
-                  '</p><div class="client-actions">' +
+                  '</p><div class="client-actions"><span>' +
+                  esc(c.telefono || "Sin teléfono") +
+                  "</span>" +
                   (tel
                     ? '<a href="tel:' +
                       esc(tel) +
@@ -560,6 +575,21 @@ window.vidresAppReady = (async () => {
                   items.length +
                   ")</summary>" +
                   jobCards(items) +
+                  "</details><details><summary>Presupuestos (" +
+                  quotes.length +
+                  ")</summary>" +
+                  (quotes
+                    .map(
+                      (q) =>
+                        "<p>" +
+                        esc(q.id) +
+                        " · " +
+                        esc(q.status || "Borrador") +
+                        ' <button type="button" data-client-quote="' +
+                        esc(q.id) +
+                        '">Abrir presupuesto</button></p>',
+                    )
+                    .join("") || '<p class="muted">Sin presupuestos.</p>') +
                   "</details></article>"
                 );
               })
@@ -567,11 +597,15 @@ window.vidresAppReady = (async () => {
         '</div><p id="client-no-results" class="empty-state" hidden>No hay clientes que coincidan con la búsqueda.</p>',
     );
   }
+  document.addEventListener("click", (e) => {
+    const button = e.target.closest("[data-client-quote]");
+    if (button) window.vidresQuoteOpenSaved?.(button.dataset.clientQuote);
+  });
   function clientEditor(name) {
-    const existing =
-      clients.find((c) => normName(c.nombre) === normName(name)) || {};
+    const existing = clients.find((c) => (c.id || c.nombre) === name) || {};
     const dialog = document.querySelector("#client-editor");
-    dialog.querySelector('[name="nombre"]').value = name;
+    dialog.dataset.clientKey = name;
+    dialog.querySelector('[name="nombre"]').value = existing.nombre || name;
     dialog.querySelector('[name="telefono"]').value = existing.telefono || "";
     dialog.querySelector('[name="direccion"]').value = existing.direccion || "";
     dialog.querySelector('[name="nif"]').value =
@@ -712,6 +746,112 @@ window.vidresAppReady = (async () => {
       '<section class="panel"><h2>' + title + "</h2>" + body + "</section>"
     );
   }
+  function customizeSection() {
+    if (!VSAuth.user) return;
+    const host = $("#content");
+    const key = "vidres-section-view-v1:" + VSAuth.user.id + ":" + page;
+    const fields =
+      page === "clientes"
+        ? {
+            count: ["Número de trabajos", ".client-heading .muted"],
+            address: ["Dirección", ".client-card > p:first-of-type"],
+            price: ["Tarifa o margen", ".client-card > p:nth-of-type(2)"],
+            contact: ["Teléfono y accesos de contacto", ".client-actions"],
+            history: [
+              "Historial de trabajos",
+              ".client-card > details:first-of-type",
+            ],
+            quotes: ["Presupuestos", ".client-card > details:last-of-type"],
+          }
+        : {
+            description: ["Descripciones", ".job-card > p, .panel > p.muted"],
+            metadata: ["Fecha, responsable y tipo de cliente", ".job-meta"],
+            milestones: ["Hitos de trabajos", ".job-card > .milestones"],
+          };
+    const defaults = {
+      view: page === "clientes" ? "compact" : "cards",
+      hidden:
+        page === "clientes" ? ["address", "price", "contact", "history"] : [],
+    };
+    let prefs = defaults;
+    try {
+      const saved = JSON.parse(localStorage.getItem(key));
+      if (
+        saved &&
+        ["compact", "cards"].includes(saved.view) &&
+        Array.isArray(saved.hidden)
+      )
+        prefs = saved;
+    } catch {}
+    const toolbar = document.createElement("details");
+    toolbar.className = "section-customize";
+    toolbar.innerHTML =
+      '<summary>Personalizar vista</summary><p>Preferencias de este apartado para tu usuario en este navegador.</p><label>Vista<select data-section-view><option value="compact">Lista compacta</option><option value="cards">Tarjetas amplias</option></select></label><fieldset><legend>Información visible</legend>' +
+      Object.entries(fields)
+        .filter(([, [, selector]]) => host.querySelector(selector))
+        .map(
+          ([id, [label]]) =>
+            '<label><input type="checkbox" data-section-field="' +
+            id +
+            '"> ' +
+            label +
+            "</label>",
+        )
+        .join("") +
+      '</fieldset><button type="button" data-section-reset>Restablecer vista</button><p role="status" data-section-status></p>';
+    host.prepend(toolbar);
+    function apply() {
+      host.classList.toggle("section-compact", prefs.view === "compact");
+      toolbar.querySelector("select").value = prefs.view;
+      for (const [id, [, selector]] of Object.entries(fields)) {
+        host
+          .querySelectorAll(selector)
+          .forEach((el) =>
+            el.classList.toggle(
+              "section-field-hidden",
+              prefs.hidden.includes(id),
+            ),
+          );
+        const checkbox = toolbar.querySelector(
+          '[data-section-field="' + id + '"]',
+        );
+        if (checkbox) checkbox.checked = !prefs.hidden.includes(id);
+      }
+    }
+    function save() {
+      apply();
+      try {
+        localStorage.setItem(key, JSON.stringify(prefs));
+        toolbar.querySelector("[data-section-status]").textContent =
+          "Vista guardada.";
+      } catch {
+        toolbar.querySelector("[data-section-status]").textContent =
+          "La vista se ha aplicado, pero no se pudo guardar en este navegador.";
+      }
+    }
+    toolbar.addEventListener("change", (e) => {
+      if (e.target.matches("select"))
+        prefs = { ...prefs, view: e.target.value };
+      if (e.target.matches("[data-section-field]")) {
+        const id = e.target.dataset.sectionField;
+        prefs = {
+          ...prefs,
+          hidden: e.target.checked
+            ? prefs.hidden.filter((x) => x !== id)
+            : [...prefs.hidden, id],
+        };
+      }
+      save();
+    });
+    toolbar.querySelector("button").onclick = () => {
+      prefs = structuredClone(defaults);
+      save();
+    };
+    apply();
+  }
+  new MutationObserver(() => {
+    if (!$("#content > .section-customize")) customizeSection();
+  }).observe($("#content"), { childList: true });
   function render() {
     if (usagePanel) {
       document.querySelector("main").appendChild(usagePanel);
@@ -852,10 +992,12 @@ window.vidresAppReady = (async () => {
         usersBackPage,
       );
       window.VSUsers.renderUsers();
+      customizeSection();
       return;
     } else if (page === "ajustes-cuenta") {
       $("#content").innerHTML = window.vidresSettingsBack();
       window.VSUsers.renderAccount();
+      customizeSection();
       return;
     } else if (page === "ajustes-ia") {
       $("#content").innerHTML = window.vidresSettingsBack();
@@ -926,6 +1068,7 @@ window.vidresAppReady = (async () => {
     }
     $("#content").innerHTML = html;
     window.VSOperations?.decorate(page);
+    customizeSection();
     const advanced = $(".advanced-work-filters");
     if (advanced && Object.values(filters).some(Boolean)) advanced.open = true;
     const scope = $("#job-scope");
@@ -1753,8 +1896,11 @@ window.vidresAppReady = (async () => {
         email: String(data.get("email") || "").trim(),
       };
       const i = clients.findIndex(
-        (c) => normName(c.nombre) === normName(nombre),
+        (c) =>
+          (c.id || c.nombre) ===
+          document.querySelector("#client-editor").dataset.clientKey,
       );
+      if (clients[i]?.id) item.id = clients[i].id;
       item.priceProfile = {
         mode: String(data.get("priceMode")),
         value: Number(data.get("priceValue")),

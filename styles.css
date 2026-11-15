@@ -4568,3 +4568,96 @@ html {
 .select-search-pages {
   margin-top: 10px;
 }
+
+/* Preferencias de presentación independientes por apartado. */
+.section-customize {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border: 1px solid #dce7df;
+  border-radius: 10px;
+  background: #fff;
+}
+.section-customize summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: #15523e;
+}
+.section-customize fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 12px 0;
+}
+.section-customize fieldset label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.section-customize input[type="checkbox"] {
+  width: 20px;
+  min-height: 20px;
+}
+.section-customize select {
+  font-size: 16px;
+  min-height: 44px;
+  margin: 8px;
+}
+.section-customize p:empty {
+  display: none;
+}
+.section-field-hidden {
+  display: none !important;
+}
+.section-compact #client-results {
+  display: block;
+}
+.section-compact .client-card {
+  border: 0;
+  border-bottom: 1px solid #dce7df;
+  border-radius: 0;
+  margin: 0;
+  padding: 8px 0;
+}
+.section-compact .client-heading {
+  flex-wrap: nowrap;
+}
+.section-compact .client-heading > div {
+  min-width: 0;
+}
+.section-compact .client-heading h3 {
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+.section-compact .client-heading button {
+  flex-shrink: 0;
+  padding: 6px 10px;
+}
+.section-compact .client-heading .muted {
+  font-size: 12px;
+}
+.section-compact .client-actions {
+  align-items: center;
+  margin: 6px 0;
+}
+.section-compact .job-cards,
+.section-compact .measure-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.section-compact .job-card,
+.section-compact .measure-card {
+  padding: 10px;
+  margin: 0;
+}
+.section-compact .job-card h3,
+.section-compact .job-card p {
+  margin: 4px 0;
+}
+.section-compact .panel {
+  padding: 12px;
+}
+.section-compact table th,
+.section-compact table td {
+  padding: 6px;
+}

@@ -388,6 +388,27 @@ async function checkMobileFields(page) {
   });
   await page.evaluate(() => window.vidresNavigate("clientes"));
   await checkMobileFields(page);
+  assert.equal(await page.locator("#content.section-compact").count(), 1);
+  assert.equal(
+    await page.locator(".client-card > p").first().isVisible(),
+    false,
+  );
+  await page.locator(".section-customize summary").click();
+  await page.locator("[data-section-view]").selectOption("cards");
+  await page.locator('[data-section-field="address"]').check();
+  await page.evaluate(() => {
+    vidresNavigate("inicio");
+    vidresNavigate("clientes");
+  });
+  assert.equal(await page.locator("#content.section-compact").count(), 0);
+  assert.equal(
+    await page.locator(".client-card > p").first().isVisible(),
+    true,
+  );
+  await page.locator(".section-customize summary").click();
+  await page.locator("[data-section-reset]").click();
+  assert.equal(await page.locator("#content.section-compact").count(), 1);
+  await page.locator(".section-customize summary").click();
   for (const query of [
     "registrado",
     "fiscal 10",

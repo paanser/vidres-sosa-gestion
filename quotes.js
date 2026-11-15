@@ -35,27 +35,89 @@
     validity: true,
     ...q.pdfOptions,
   });
+  const normalizeClient = (value) =>
+    String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .toLocaleLowerCase("es");
+  const clientNameKey = (value) =>
+    String(value || "")
+      .trim()
+      .toLocaleLowerCase("es");
+  function clientOptions() {
+    const cards = VSStorage.read("vidres-clientes-v1", []);
+    const options = [...cards];
+    for (const job of window.vidresGetJobs?.() || []) {
+      if (
+        !options.some(
+          (c) => clientNameKey(c.nombre) === clientNameKey(job.cliente),
+        )
+      )
+        options.push({
+          nombre: job.cliente,
+          telefono: job.telefono || "",
+          direccion: job.direccion || "",
+        });
+    }
+    return options;
+  }
   const clientCard = (q) =>
     q.clientSource === "quote"
       ? undefined
-      : VSStorage.read("vidres-clientes-v1", []).find((c) =>
+      : clientOptions().find((c) =>
           q.clientId
             ? c.id === q.clientId
             : String(c.nombre).trim().toLocaleLowerCase("es") ===
               q.client.trim().toLocaleLowerCase("es"),
         );
   function clientPicker() {
-    return `<label>Relacionar con un cliente existente (opcional)<select id="quote-existing-client" data-search-select="Nombre, teléfono o dirección"><option value="">Crear cliente nuevo</option>${VSStorage.read(
-      "vidres-clientes-v1",
-      [],
-    )
+    return `<label>Relacionar con un cliente existente (opcional)<select id="quote-existing-client" data-search-select="Nombre, teléfono o dirección"><option value="">Crear cliente nuevo</option>${clientOptions()
       .map(
         (c, i) =>
-          `<option value="${i}" ${(draft.clientId ? draft.clientId === c.id : draft.clientSource !== "quote" && draft.client === c.nombre) ? "selected" : ""}>${esc(c.nombre)} · ${esc(c.telefono || c.direccion || "Sin datos de contacto")}</option>`,
+          `<option value="${i}" ${(draft.clientId ? draft.clientId === c.id : draft.clientSource !== "quote" && !c.id && draft.client === c.nombre) ? "selected" : ""}>${esc(c.nombre)} · ${esc(c.telefono || c.direccion || "Sin datos de contacto")}</option>`,
       )
       .join(
         "",
       )}</select></label><p class="muted">Puedes crear un cliente nuevo aunque coincida el nombre. Añade otro apellido o mote para distinguirlo.</p>`;
+  }
+  function chooseClient(c) {
+    if (c) {
+      draft.client = c.nombre;
+      draft.clientId = c.id || "";
+      delete draft.clientSource;
+    } else {
+      delete draft.clientId;
+      draft.clientSource = "quote";
+      draft.clientData = {};
+    }
+    applyClientProfile();
+    sync();
+  }
+  function showClientMatches() {
+    const host = document.querySelector("#quote-client-matches");
+    if (!host) return;
+    const query = normalizeClient(draft.client);
+    host.innerHTML = query
+      ? clientOptions()
+          .map((c, i) => ({ c, i }))
+          .filter(({ c }) =>
+            query
+              .split(/\s+/)
+              .every((word) =>
+                normalizeClient(
+                  [c.nombre, c.telefono, c.direccion].join(" "),
+                ).includes(word),
+              ),
+          )
+          .slice(0, 12)
+          .map(
+            ({ c, i }) =>
+              `<button type="button" data-quote-client-option="${i}">Usar ${esc(c.nombre)}${c.telefono || c.direccion ? ` · ${esc(c.telefono || c.direccion)}` : ""}</button>`,
+          )
+          .join("") +
+        `<button type="button" data-quote-client-new>Crear cliente nuevo: ${esc(draft.client)}</button>`
+      : "";
   }
   function clientData(q) {
     const c = clientCard(q);
@@ -303,7 +365,7 @@
     const previousMeasures = document.querySelector("#quote-measures");
     document.querySelector("#content").innerHTML =
       `<div class="quote-toolbar"><button type="button" class="quick-quote-button" id="quote-quick">⚡ Presupuesto rápido</button><button type="button" class="primary" id="quote-new">+ Nuevo presupuesto</button><button type="button" id="quote-settings">Ajustes de tarifas</button></div>
- <section class="panel quote-editor"><h2>Presupuesto · ${esc(draft.id || "Sin guardar")}</h2><div class="quote-fields">${clientPicker()}<label>Cliente<input id="quote-client" maxlength="100" value="${esc(draft.client)}"></label><datalist id="quote-clients">${(window.vidresClientNames?.() || []).map((name) => `<option value="${esc(name)}"></option>`).join("")}</datalist><label>Parte relacionado<select id="quote-job" data-search-select="Cliente, referencia o dirección"><option value="">Sin vincular</option>${jobs.map((j) => VSSelectSearch.jobOption(j, draft.job)).join("")}</select></label><label>Estado<select id="quote-status">${statuses.map((s) => `<option ${s === (draft.status || "Borrador") ? "selected" : ""}>${s}</option>`).join("")}</select></label></div>
+ <section class="panel quote-editor"><h2>Presupuesto · ${esc(draft.id || "Sin guardar")}</h2><div class="quote-fields">${clientPicker()}<label>Cliente · escribe para buscar<input id="quote-client" type="search" autocomplete="off" aria-controls="quote-client-matches" maxlength="100" value="${esc(draft.client)}"></label><div id="quote-client-matches" class="quote-client-matches" role="group" aria-label="Coincidencias de clientes"></div><datalist id="quote-clients">${(window.vidresClientNames?.() || []).map((name) => `<option value="${esc(name)}"></option>`).join("")}</datalist><label>Parte relacionado<select id="quote-job" data-search-select="Cliente, referencia o dirección"><option value="">Sin vincular</option>${jobs.map((j) => VSSelectSearch.jobOption(j, draft.job)).join("")}</select></label><label>Estado<select id="quote-status">${statuses.map((s) => `<option ${s === (draft.status || "Borrador") ? "selected" : ""}>${s}</option>`).join("")}</select></label></div>
  ${draft.id ? VSMilestones.badges(quotes().find((q) => q.id === draft.id) || draft, "quote") : ""}${minimumAreaFields()}${measurePanel()}${customerFields()}<div class="quote-margin"><label>Precio para este presupuesto<select id="quote-price-mode" data-search-select="Margen, recargo o tarifa"><option value="markup" ${pricing(draft).priceMode !== "fixed" ? "selected" : ""}>Recargo porcentual</option><option value="fixed" ${pricing(draft).priceMode === "fixed" ? "selected" : ""}>Tarifa de venta por m²</option></select></label><label>Tarifa de venta del vidrio (€/m²)<input id="quote-fixed-price" type="text" inputmode="decimal" data-price-input value="${esc(pricing(draft).fixedPrice ?? "")}"></label><p>Perfil copiado del cliente al seleccionarlo; editable solo para esta oferta. La tarifa fija sustituye el precio de venta del vidrio, con cantos, energía y extras aparte.</p><label>Margen (%)<input id="quote-margin" type="text" inputmode="decimal" data-price-input value="${esc(pricing(draft).margin || "")}"></label><p>Incremento sobre el precio del vidrio: 100 € con 20 % → 120 €. Mano de obra, cantos, recargos y conceptos adicionales sin margen. Antes del IVA; solo visible en la copia interna.</p>${pricing(draft).marginScope !== "glass" && num(pricing(draft).margin) ? "<p>Presupuesto anterior: conserva el cálculo guardado. Al editar se aplicará el incremento solo al vidrio.</p>" : ""}</div><div id="quote-lines">${draft.lines.map(row).join("")}</div><button type="button" id="quote-add">+ Añadir otro vidrio</button><button type="button" id="quote-add-aluminum">+ Añadir aluminio con dibujo</button><button type="button" id="quote-add-concept">+ Añadir concepto libre</button><div class="quote-total"><div class="quote-total-breakdown">${totalResult(breakdown)}</div></div>${documentFields()}<div class="quote-toolbar"><button type="button" class="primary" id="quote-save">Guardar presupuesto</button><button type="button" id="quote-whatsapp">Enviar por WhatsApp</button><button type="button" id="quote-pdf">PDF para cliente</button><button type="button" id="quote-pdf-internal">PDF interno · Vidres Sosa</button></div></section>
  <section class="panel"><h2>Presupuestos guardados</h2><label>Buscar presupuesto<input id="quote-search" type="search" placeholder="Cliente, referencia o fecha" value="${esc(quoteSearch)}"></label>${VSMilestones.controls("quotes")}${list.length ? list.map((q) => `<article class="quote-saved" data-saved-quote="${esc(q.id)}"><span>${esc(q.id)} · ${esc(q.client)} · ${esc(q.status || "Borrador")} · Total: ${money(sum(q).total)}</span>${VSMilestones.badges(q, "quote")}<div><button type="button" data-load="${esc(q.id)}">Abrir</button><button type="button" data-whatsapp="${esc(q.id)}">WhatsApp</button><button type="button" data-duplicate="${esc(q.id)}">Duplicar</button><button type="button" data-delete-quote="${esc(q.id)}">Eliminar</button></div></article>`).join("") : "<p>No hay presupuestos guardados.</p>"}</section>`;
     const panel = document.querySelector("#quote-measures");
@@ -771,11 +833,17 @@
       if (
         draft.client.trim() &&
         draft.client !== "Sin cliente" &&
-        !clientCard(draft)
+        !VSStorage.read("vidres-clientes-v1", []).some(
+          (c) =>
+            draft.clientSource !== "quote" &&
+            (draft.clientId
+              ? c.id === draft.clientId
+              : clientNameKey(c.nombre) === clientNameKey(draft.client)),
+        )
       ) {
         const clients = VSStorage.read("vidres-clientes-v1", []);
         const id = draft.clientId || crypto.randomUUID();
-        const data = draft.clientData || {};
+        const data = clientData(draft);
         if (!clients.some((c) => c.id === id)) {
           await VSStorage.write("vidres-clientes-v1", [
             ...clients,
@@ -943,7 +1011,17 @@
     const b = e.target.closest("button");
     if (!b) return;
     try {
-      if (b.hasAttribute("data-quote-reference")) {
+      if (
+        b.hasAttribute("data-quote-client-option") ||
+        b.hasAttribute("data-quote-client-new")
+      ) {
+        fromForm();
+        chooseClient(
+          b.hasAttribute("data-quote-client-option")
+            ? clientOptions()[b.dataset.quoteClientOption]
+            : undefined,
+        );
+      } else if (b.hasAttribute("data-quote-reference")) {
         const image = b.querySelector("img"),
           viewer = document.querySelector("#measure-photo-viewer"),
           enlarged = viewer.querySelector("img");
@@ -1128,18 +1206,7 @@
     }
     if (e.target.id === "quote-existing-client") {
       fromForm();
-      const c = VSStorage.read("vidres-clientes-v1", [])[e.target.value];
-      if (c) {
-        draft.client = c.nombre;
-        draft.clientId = c.id || "";
-        delete draft.clientSource;
-      } else {
-        delete draft.clientId;
-        draft.clientSource = "quote";
-        draft.clientData = {};
-      }
-      applyClientProfile();
-      sync();
+      chooseClient(clientOptions()[e.target.value]);
       return;
     }
     fromForm();
@@ -1189,13 +1256,17 @@
       window.vidresQuoteInput();
     }
   };
-  window.vidresQuoteInput = () => {
+  window.vidresQuoteInput = (event) => {
     if (!validPriceFields()) return;
     if (quickMode) {
       updateQuickResult();
       return;
     }
     fromForm();
+    if (event?.target?.id === "quote-client") {
+      showClientMatches();
+      document.querySelector(".quote-customer").outerHTML = customerFields();
+    }
     document.querySelectorAll(".quote-line").forEach((el) => {
       const line = draft.lines[Number(el.dataset.line)];
       if (line.kind === "aluminum")

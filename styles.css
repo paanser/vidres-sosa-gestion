@@ -4661,3 +4661,18 @@ html {
 .section-compact table td {
   padding: 6px;
 }
+
+.quote-client-matches {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  grid-column: 1 / -1;
+}
+.quote-client-matches:empty {
+  display: none;
+}
+.quote-client-matches button {
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}

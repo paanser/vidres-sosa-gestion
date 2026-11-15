@@ -574,6 +574,7 @@ async function checkMobileFields(page) {
   await page
     .locator("#quick-note-form [name=cliente]")
     .fill("Cliente registrado");
+  await page.locator("#quick-note-form [name=cliente]").press("Tab");
   await page.locator("#quick-note-form [type=submit]").click();
   await page.waitForFunction(() =>
     VSStorage.read("vidres-notas-v1", []).some(

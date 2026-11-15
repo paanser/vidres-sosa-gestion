@@ -315,6 +315,9 @@ export function checked(values) {
       if (!Number.isInteger(Number(l.qty))) fail(400, "Cantidad no válida");
       number(l.price || 0);
       number(l.edgePrice || 0);
+      if (l.thickness != null && l.thickness !== "") number(l.thickness, 0.001);
+      if (q.pricing?.energyMode === "kg" && Number(q.pricing.energy) > 0)
+        number(l.thickness, 0.001);
       strings(l, { glass: 200, tariff: 150 });
       if (l.extraAmount != null && l.extraAmount !== "") number(l.extraAmount);
       strings(l, { extraDescription: 160 });

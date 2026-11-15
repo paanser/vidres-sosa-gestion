@@ -54,8 +54,10 @@
   }
   const euro = money;
   const config = () => ({
-    ...{ unit: "m", energy: "", energyMode: "pending" },
+    ...{ unit: "m", energy: "", energyMode: "kg" },
     ...read(C, {}),
+    energy: read(C, {}).energyMode === "kg" ? read(C, {}).energy : "",
+    energyMode: "kg",
   });
   let query = "",
     selected = "all",
@@ -94,7 +96,7 @@
       [
         "ajustes-general",
         "Configuración general",
-        "Unidades, impuestos, empresa y mensajes",
+        "Medidas, IVA, energía por kg, empresa y mensajes",
       ],
       [
         "ajustes-tarifas",
@@ -138,7 +140,20 @@
       '<section class="panel settings-home"><h2>¿Qué quieres gestionar?</h2><p class="muted settings-intro">Sesión de ' +
       esc(VSAuth.user.nombre) +
       '</p><div class="tool-tiles settings-grid">' +
-      entries.map((e) => tile(...e)).join("") +
+      [
+        ["Presupuestos y precios", entries.slice(0, 2)],
+        ["Consultas y herramientas", entries.slice(2, 4)],
+        ["Cuenta y mantenimiento", entries.slice(4)],
+      ]
+        .map(
+          ([title, items]) =>
+            '<section class="settings-category"><h3>' +
+            title +
+            '</h3><div class="tool-tiles">' +
+            items.map((e) => tile(...e)).join("") +
+            "</div></section>",
+        )
+        .join("") +
       '</div></section><section class="panel text-settings-panel"><h2>Tamaño de letra</h2><p>Ajusta el tamaño del texto de toda la app.</p><div class="text-settings-actions"><button type="button" data-text-scale="-1" aria-label="Reducir letra">A−</button><button type="button" data-text-scale="0" aria-label="Restablecer tamaño de letra">' +
       Math.round(
         (Number(
@@ -268,7 +283,7 @@
       company = c.company || {},
       pdfs = read(P, []);
     return (
-      '<section class="panel" data-settings-section="general"><h2>Configuración general</h2><div class="quote-fields"><label>Unidad de entrada<select id="cfg-unit"><option value="cm" ' +
+      '<section class="panel" data-settings-section="general"><h2>Configuración general</h2><fieldset class="settings-group"><legend>Medidas y seguimiento</legend><div class="quote-fields"><label>Unidad de entrada<select id="cfg-unit"><option value="cm" ' +
       (c.unit === "cm" ? "selected" : "") +
       '>Centímetros</option><option value="mm" ' +
       (c.unit === "mm" ? "selected" : "") +
@@ -276,28 +291,11 @@
       (c.unit === "m" ? "selected" : "") +
       '>Metros con milímetros (1.234)</option></select></label><label>Días hasta reclamar un presupuesto<input id="cfg-followup-days" type="number" min="1" max="365" step="1" value="' +
       esc(c.followupDays || 4) +
-      '"></label><label>IVA (%)<input id="cfg-vat" type="number" min="0" max="100" step="0.01" value="' +
+      '"></label></div></fieldset><fieldset class="settings-group"><legend>Impuestos y energía</legend><div class="quote-fields"><label>IVA (%)<input id="cfg-vat" type="number" min="0" max="100" step="0.01" value="' +
       esc(c.vat ?? 21) +
-      '"></label><label>Recargo energético<input id="cfg-energy" type="number" min="0" step="0.01" value="' +
+      '"></label><label>Recargo energético (€/kg)<input id="cfg-energy" type="number" min="0" step="0.01" value="' +
       esc(c.energy || "") +
-      '"></label><label>Aplicar recargo como<select id="cfg-energy-mode">' +
-      [
-        ["pending", "Sin aplicar"],
-        ["percent", "Porcentaje"],
-        ["m2", "Euros por m²"],
-      ]
-        .map(
-          ([v, t]) =>
-            '<option value="' +
-            v +
-            '" ' +
-            (c.energyMode === v ? "selected" : "") +
-            ">" +
-            t +
-            "</option>",
-        )
-        .join("") +
-      '</select></label></div><details open><summary>Datos de empresa, logo y condiciones del presupuesto</summary><p class="muted">Estos datos aparecen en la cabecera de los PDF. Sin imagen se utiliza la marca de texto Vidres Sosa.</p><label>Logo de Vidres Sosa<input id="cfg-logo-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></label><input type="hidden" data-company="logo" value="' +
+      '"></label></div><p class="muted">Introduce la tarifa en €/kg; las tarifas anteriores en porcentaje o €/m² deben configurarse de nuevo. Recargo = peso real del vidrio (kg) × tarifa (€/kg). El peso usa la superficie real, el espesor total y 2,5 kg/m² por mm; no el metraje mínimo.</p></fieldset><details open><summary>Datos de empresa, logo y condiciones del presupuesto</summary><p class="muted">Estos datos aparecen en la cabecera de los PDF. Sin imagen se utiliza la marca de texto Vidres Sosa.</p><label>Logo de Vidres Sosa<input id="cfg-logo-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></label><input type="hidden" data-company="logo" value="' +
       esc(VSUtils.isCompanyLogo(company.logo) ? company.logo : "") +
       '"><div id="cfg-logo-preview">' +
       (VSUtils.isCompanyLogo(company.logo)
@@ -328,7 +326,7 @@
       esc(company.validity || 30) +
       '"></label></div><label>Condiciones<textarea data-company="conditions" rows="4">' +
       esc(company.conditions || "") +
-      '</textarea></label><label>Plantilla de WhatsApp<textarea id="cfg-whatsapp-template" rows="7" maxlength="3000">' +
+      '</textarea></label></details><details><summary>Mensajes de WhatsApp</summary><label>Plantilla de WhatsApp<textarea id="cfg-whatsapp-template" rows="7" maxlength="3000">' +
       esc(
         c.whatsappTemplate ||
           "Hola{cliente}, te paso el precio:\n\n{detalle}\n\nBase: {base}\nIVA: {iva}\nTotal: {total}\n\n{empresa}. Presupuesto válido {validez} días.",
@@ -424,7 +422,7 @@
       const unit = document.querySelector("#cfg-unit").value,
         energy = document.querySelector("#cfg-energy").value,
         vat = document.querySelector("#cfg-vat").value,
-        energyMode = document.querySelector("#cfg-energy-mode").value,
+        energyMode = "kg",
         followupDays = Number(
           document.querySelector("#cfg-followup-days").value,
         );

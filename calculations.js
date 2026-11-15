@@ -29,7 +29,12 @@
       ),
       real = (w * h) / 10000;
     const subtotal = (area * num(line.price) + ml * num(line.edgePrice)) * qty;
+    const thickness = num(line.thickness);
+    const weight = ["concept", "aluminum"].includes(line.kind)
+      ? 0
+      : real * qty * thickness * 2.5;
     let energy = 0;
+    if (config.energyMode === "kg") energy = weight * num(config.energy);
     if (config.energyMode === "percent")
       energy = (subtotal * num(config.energy)) / 100;
     if (config.energyMode === "m2") energy = area * qty * num(config.energy);
@@ -42,6 +47,8 @@
       area,
       ml,
       qty,
+      weight,
+      thickness,
       energy,
       total: subtotal + energy,
     };

@@ -58,12 +58,19 @@ jobs:
       - name: Comprobar versión publicada y API privada
         run: |
           node --input-type=module <<'JS'
+          import { execFileSync } from "node:child_process";
+          import { readFileSync } from "node:fs";
           const base = "https://paanser.github.io/vidres-sosa-gestion/";
           const revision = process.env.GITHUB_SHA;
+          const branchVersion = JSON.parse(execFileSync("git", ["show", "HEAD:version.json"], {encoding: "utf8"})).version;
+          const appModule = readFileSync("public/facturadirecta.js");
           let published = false;
           for (let attempt = 0; attempt < 12; attempt++) {
             const response = await fetch(base + "version.json?v=" + revision, { cache: "no-store", signal: AbortSignal.timeout(15000) });
-            if (response.ok && (await response.json()).version === revision) { published = true; break; }
+            if (response.ok && [revision, branchVersion].includes((await response.json()).version)) {
+              const integration = await fetch(base + "facturadirecta.js?v=" + revision, { cache: "no-store", signal: AbortSignal.timeout(15000) });
+              if (integration.ok && appModule.equals(Buffer.from(await integration.arrayBuffer()))) { published = true; break; }
+            }
             await new Promise(resolve => setTimeout(resolve, 3000));
           }
           if (!published) throw Error("La versión pública todavía no coincide con el despliegue");

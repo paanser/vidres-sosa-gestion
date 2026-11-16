@@ -127,9 +127,41 @@ async function checkMobileFields(page) {
     .first()
     .waitFor({ state: "detached" });
   assert.equal(await page.locator(".operations-summary").count(), 0);
-  await page.locator('#nav [data-page="calendario"]').click();
+  assert.equal(await page.locator('#nav [data-page="calendario"]').count(), 0);
+  await page.locator('[data-home-view="calendar"]').click();
   await page.locator(".operations-summary").waitFor();
+  assert.equal(await page.locator("#title").textContent(), "Inicio");
+  assert.equal(
+    await page
+      .locator('#nav [data-page="inicio"]')
+      .getAttribute("aria-current"),
+    "page",
+  );
+  assert.equal(
+    await page
+      .locator('[data-home-view="calendar"]')
+      .getAttribute("aria-pressed"),
+    "true",
+  );
+  await page.locator('[data-month="1"]').click();
+  await page.locator('[data-month="0"]').click();
+  await page.locator('#nav [data-page="clientes"]').click();
+  assert.equal(await page.locator("#title").textContent(), "Clientes");
+  assert.equal(
+    await page
+      .locator('#nav [data-page="clientes"]')
+      .getAttribute("aria-current"),
+    "page",
+  );
+  assert.equal(
+    await page
+      .locator('.header-actions [data-page="ajustes"]')
+      .getAttribute("aria-current"),
+    null,
+  );
+  assert.equal(await page.locator('[data-go="herramientas"]').count(), 0);
   await page.locator('#nav [data-page="inicio"]').click();
+  await page.locator('[data-home-view="dashboard"]').click();
   assert.equal(await page.locator(".operations-summary").count(), 0);
   assert.equal(await page.locator("#home-customize").isVisible(), false);
   const personalizeIcon = await page
@@ -178,7 +210,7 @@ async function checkMobileFields(page) {
     await page
       .locator("#nav [data-page]")
       .evaluateAll((nodes) => nodes.map((node) => node.dataset.page)),
-    ["inicio", "trabajos", "presupuestos", "calendario"],
+    ["inicio", "trabajos", "presupuestos", "clientes"],
   );
   assert.equal(await page.locator(".global-text-controls").count(), 0);
   assert.equal(await page.locator("[data-text-scale]").count(), 0);
@@ -956,7 +988,7 @@ async function checkMobileFields(page) {
   assert.equal(await page.locator(".cal-panel").isVisible(), true);
   assert.equal(
     await page
-      .locator('#nav [data-page="calendario"]')
+      .locator('#nav [data-page="inicio"]')
       .getAttribute("aria-current"),
     "page",
   );
@@ -1008,15 +1040,16 @@ async function checkMobileFields(page) {
     .click();
   await page.locator('[data-tool-go="clientes"]').click();
   assert.equal(await page.locator("#title").textContent(), "Clientes");
-  await page
-    .getByRole("button", { name: "← Volver a Herramientas", exact: true })
-    .click();
-  await page
-    .getByRole("button", { name: "← Volver a Ajustes", exact: true })
-    .click();
+  assert.equal(
+    await page
+      .locator('#nav [data-page="clientes"]')
+      .getAttribute("aria-current"),
+    "page",
+  );
+  await page.locator('.header-actions [data-page="ajustes"]').click();
   assert.equal(await page.locator(".settings-home").isVisible(), true);
   console.log(
-    "PASS ajustes: herramientas integradas, calendario en menú, plantillas ocultas, usuarios, configuración, tarifas, copias e IA",
+    "PASS ajustes: herramientas integradas, calendario en Inicio y clientes en menú, plantillas ocultas, usuarios, configuración, tarifas, copias e IA",
   );
   await page.locator("[data-page=ajustes]").click();
   await page.locator('[data-tool-go="ajustes-cuenta"]').click();

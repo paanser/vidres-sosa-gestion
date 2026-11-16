@@ -1,7 +1,7 @@
 "use strict";
 const RELEASE = "__BUILD_VERSION__";
 const VERSION = RELEASE.startsWith("__")
-  ? "20261116-facturadirecta-presupuestos"
+  ? "20261116-clientes-calendario-inicio"
   : RELEASE;
 const PREFIX = "vidres-sosa:" + self.registration.scope + ":",
   CACHE = PREFIX + VERSION;

@@ -344,3 +344,13 @@ CHROMIUM_PATH=/usr/bin/chromium npm run test:browser` (en una sola línea).
   la URL del PDF. Versión PWA actualizada.
 - Verificación: 69 pruebas unitarias y navegador: generación y descarga,
   pestañas sin desplazamiento, cierre y Escape, y acceso a 390/768/1440 px.
+
+## Nombre editable en fichas de clientes · 16 de noviembre de 2026
+
+- Retirado `readonly` del nombre en la ficha de cliente, que impedía escribir
+  y abrir el teclado móvil.
+- El cambio de nombre guarda en una sola operación la ficha, los partes enlazados
+  por nombre y los presupuestos vinculados, conservando el ID del cliente y los
+  presupuestos de otros clientes homónimos.
+- Actualizada la versión de caché PWA. Prueba de navegador con escritura,
+  guardado, recarga y comprobación de enlaces; 78 pruebas Node superadas.

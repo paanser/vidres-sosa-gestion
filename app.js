@@ -880,7 +880,7 @@ window.vidresAppReady = (async () => {
     }
     const mainPage =
       isSettingsPage(page) ||
-      ["herramientas", "consultor", "clientes", "mediciones"].includes(page)
+      ["herramientas", "consultor", "mediciones"].includes(page)
         ? "ajustes"
         : page;
     document
@@ -926,6 +926,17 @@ window.vidresAppReady = (async () => {
         (VSBackup.overdue()
           ? '<p role="status" class="backup-reminder">Hace más de 14 días que no exportas una copia. <button type="button" data-go="ajustes-copias">Hacer copia</button></p>'
           : "") +
+        '<div class="home-switch" role="group" aria-label="Vista de Inicio">' +
+        '<button type="button" data-home-view="dashboard" class="' +
+        (homeView === "dashboard" ? "chosen" : "") +
+        '" aria-pressed="' +
+        (homeView === "dashboard") +
+        '">Panel de gestión</button>' +
+        '<button type="button" data-home-view="calendar" class="' +
+        (homeView === "calendar" ? "chosen" : "") +
+        '" aria-pressed="' +
+        (homeView === "calendar") +
+        '">Calendario</button></div>' +
         (homeView === "calendar" ? calendarHtml() : dashboardHtml()) +
         homeSettingsHtml();
     } else if (page === "trabajos") {
@@ -998,9 +1009,7 @@ window.vidresAppReady = (async () => {
           ? jobCards(criticalJobs)
           : '<div class="empty-state"><strong>No hay trabajos críticos</strong><p>Para incluir un trabajo aquí, selecciona Crítico en su estado y guarda los cambios.</p></div>');
     } else if (page === "clientes") {
-      html =
-        '<div class="settings-subpage-head"><button type="button" data-go="herramientas">← Volver a Herramientas</button></div>' +
-        clientsHtml();
+      html = clientsHtml();
     } else if (page === "calendario") {
       html = calendarHtml();
     } else if (page === "mediciones") {
@@ -1088,7 +1097,9 @@ window.vidresAppReady = (async () => {
       );
     }
     $("#content").innerHTML = html;
-    window.VSOperations?.decorate(page);
+    window.VSOperations?.decorate(
+      page === "inicio" && homeView === "calendar" ? "calendario" : page,
+    );
     customizeSection();
     const advanced = $(".advanced-work-filters");
     if (advanced && Object.values(filters).some(Boolean)) advanced.open = true;
@@ -1131,6 +1142,10 @@ window.vidresAppReady = (async () => {
   }
   const navigationStack = [];
   window.vidresNavigate = (p) => {
+    if (p === "calendario") {
+      homeView = "calendar";
+      p = "inicio";
+    }
     if (p === "ajustes-plantillas") p = "ajustes";
     if (p === "usuarios")
       usersBackPage = page === "herramientas" ? "herramientas" : "ajustes";
@@ -1662,6 +1677,13 @@ window.vidresAppReady = (async () => {
     }
   });
   $("#content").addEventListener("click", async (e) => {
+    const homeViewButton = e.target.closest("[data-home-view]");
+    if (homeViewButton) {
+      homeView = homeViewButton.dataset.homeView;
+      render();
+      $("[data-home-view='" + homeView + "']")?.focus();
+      return;
+    }
     if (e.target.closest("[data-home-customize]")) {
       $("#home-customize").showModal();
       return;

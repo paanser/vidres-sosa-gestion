@@ -414,6 +414,10 @@ textarea:focus-visible {
   min-height: 42px;
   font-size: 19px;
 }
+.home-switch button {
+  padding: 8px 12px;
+  font-size: 14px;
+}
 .home-switch button.chosen {
   background: #116243;
   color: white;

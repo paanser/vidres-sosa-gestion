@@ -1,7 +1,7 @@
 "use strict";
 const RELEASE = "__BUILD_VERSION__";
 const VERSION = RELEASE.startsWith("__")
-  ? "20261115-logo-carga-horizontal"
+  ? "20261116-facturadirecta-presupuestos"
   : RELEASE;
 const PREFIX = "vidres-sosa:" + self.registration.scope + ":",
   CACHE = PREFIX + VERSION;

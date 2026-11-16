@@ -403,15 +403,15 @@
         .filter(Boolean)
         .join(" / ");
     return `<tr class="quote-saved" data-saved-quote="${esc(q.id)}">
+      <td class="quote-saved-client"><div class="quote-saved-detail" title="${esc(detail)}">${esc(detail)}</div><details class="quote-saved-options"><summary aria-label="Opciones del presupuesto ${esc(q.id)}" title="Opciones del presupuesto">···</summary><div class="quote-saved-actions">${VSMilestones.badges(q, "quote")}<div><button type="button" data-whatsapp="${esc(q.id)}">WhatsApp</button><button type="button" data-duplicate="${esc(q.id)}">Duplicar</button><button type="button" data-delete-quote="${esc(q.id)}">Eliminar</button></div></div></details></td>
       <td class="quote-saved-state"><span class="quote-state-icon quote-state-${state[0]}" role="img" aria-label="${esc(state[1])}" title="${esc(state[1])}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6Z"/><path d="M14 3v4h4"/>${state[2]}</svg></span></td>
       <td><button type="button" class="quote-saved-number" data-load="${esc(q.id)}" aria-label="Abrir presupuesto ${esc(q.id)}">${esc(q.id)}</button></td>
       <td class="quote-saved-date">${esc(dateText)}</td>
-      <td class="quote-saved-client"><div class="quote-saved-detail" title="${esc(detail)}">${esc(detail)}</div><details class="quote-saved-options"><summary aria-label="Opciones del presupuesto ${esc(q.id)}" title="Opciones del presupuesto">···</summary><div class="quote-saved-actions">${VSMilestones.badges(q, "quote")}<div><button type="button" data-whatsapp="${esc(q.id)}">WhatsApp</button><button type="button" data-duplicate="${esc(q.id)}">Duplicar</button><button type="button" data-delete-quote="${esc(q.id)}">Eliminar</button></div></div></details></td>
       <td class="quote-saved-amount">${money(total.base)}</td><td class="quote-saved-amount">${money(total.total)}</td>
     </tr>`;
   }
   function savedQuotesTable(list) {
-    return `<div class="quote-list-scroll" role="region" aria-label="Listado de presupuestos guardados" tabindex="0"><table class="quote-saved-table" aria-label="Presupuestos guardados"><colgroup><col class="quote-col-state"><col class="quote-col-number"><col class="quote-col-date"><col><col class="quote-col-amount"><col class="quote-col-amount"></colgroup><thead><tr><th scope="col">Estado</th><th scope="col">Número<br>presupuesto</th><th scope="col">Fecha</th><th scope="col">Cliente / Detalle</th><th scope="col" class="quote-saved-amount" title="Importe neto sin IVA">T. neto</th><th scope="col" class="quote-saved-amount" title="Total con IVA">Total</th></tr></thead><tbody>${list.map(savedQuoteRow).join("")}</tbody></table></div>`;
+    return `<div class="quote-list-scroll" role="region" aria-label="Listado de presupuestos guardados" tabindex="0"><table class="quote-saved-table" aria-label="Presupuestos guardados"><colgroup><col class="quote-col-client"><col class="quote-col-state"><col class="quote-col-number"><col class="quote-col-date"><col class="quote-col-amount"><col class="quote-col-amount"></colgroup><thead><tr><th scope="col">Cliente / Detalle</th><th scope="col">Estado</th><th scope="col">Número<br>presupuesto</th><th scope="col">Fecha</th><th scope="col" class="quote-saved-amount" title="Importe neto sin IVA">T. neto</th><th scope="col" class="quote-saved-amount" title="Total con IVA">Total</th></tr></thead><tbody>${list.map(savedQuoteRow).join("")}</tbody></table></div>`;
   }
   function savedQuotesView(list, view) {
     if (!list.length) return "<p>No hay presupuestos guardados.</p>";

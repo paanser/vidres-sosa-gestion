@@ -125,6 +125,37 @@ module.exports = async (page) => {
     assert.equal(await page.locator("#quote-job").inputValue(), "");
     await page.evaluate(() => vidresNavigate("clientes"));
   }
+  // Escritura real en móvil, guardado y persistencia del nombre y sus enlaces.
+  await page.locator(`[data-client-edit="${linked.clientId}"]`).click();
+  const nameInput = page.locator('#client-form [name="nombre"]');
+  await nameInput.fill("");
+  await nameInput.pressSequentially("Ana Garcia Corregida");
+  assert.equal(await nameInput.inputValue(), "Ana Garcia Corregida");
+  await page.locator('#client-form button[type="submit"]').click();
+  await page.locator("#client-editor").waitFor({ state: "hidden" });
+  await page.reload();
+  await page.locator("#title").filter({ hasText: "Inicio" }).waitFor();
+  await page.evaluate(() => vidresNavigate("clientes"));
+  await page.locator(`[data-client-edit="${linked.clientId}"]`).click();
+  assert.equal(await nameInput.inputValue(), "Ana Garcia Corregida");
+  const renamed = await page.evaluate(() => VSStorage.values());
+  assert.equal(
+    renamed["vidres-sosa-demo-v01"]?.find(
+      (job) => job.id === "T-CLIENTE-SIN-FICHA",
+    )?.cliente,
+    "Ana Garcia Corregida",
+  );
+  assert.equal(
+    renamed["vs-quote-prototype-v1"].find((quote) => quote.id === linked.id)
+      .client,
+    "Ana Garcia Corregida",
+  );
+  assert.equal(
+    renamed["vs-quote-prototype-v1"].find((quote) => quote.id === second.id)
+      .client,
+    "Ana García",
+  );
+  await page.locator("#client-editor [data-dialog-close]").click();
   await page.evaluate(async (values) => {
     await VSStorage.replaceValues(values);
     vidresReloadData();

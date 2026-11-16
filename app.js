@@ -1951,13 +1951,37 @@ window.vidresAppReady = (async () => {
       const nextClients = [...clients];
       if (i < 0) nextClients.push(item);
       else nextClients[i] = item;
+      const previousName =
+        clients[i]?.nombre ||
+        document.querySelector("#client-editor").dataset.clientKey;
       try {
-        await VSStorage.local.setItem(CLIENT_KEY, JSON.stringify(nextClients));
+        await VSStorage.updateValues((state) => {
+          state[CLIENT_KEY] = nextClients;
+          if (previousName === nombre) return;
+          // Los partes antiguos enlazan por nombre; los presupuestos con ID
+          // conservan su identidad, incluso entre clientes homónimos.
+          state[KEY] = (state[KEY] || []).map((job) =>
+            normName(job.cliente) === normName(previousName)
+              ? { ...job, cliente: nombre }
+              : job,
+          );
+          const quoteKey = VSStorage.keys.presupuestos;
+          state[quoteKey] = (state[quoteKey] || []).map((quote) =>
+            (
+              quote.clientId
+                ? quote.clientId === item.id
+                : !item.id && normName(quote.client) === normName(previousName)
+            )
+              ? { ...quote, client: nombre }
+              : quote,
+          );
+        });
       } catch {
         alert("No se pudo guardar la ficha. Revisa el espacio disponible.");
         return;
       }
       clients = nextClients;
+      jobs = VSStorage.read(KEY, []);
       document.querySelector("#client-editor").close();
       render();
     }),

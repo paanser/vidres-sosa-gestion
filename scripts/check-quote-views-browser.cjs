@@ -58,10 +58,10 @@ module.exports = async (page, context, root) => {
   assert.deepEqual(
     await page.locator(".quote-saved-table th").allTextContents(),
     [
+      "Cliente / Detalle",
       "Estado",
       "Númeropresupuesto",
       "Fecha",
-      "Cliente / Detalle",
       "T. neto",
       "Total",
     ],

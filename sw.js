@@ -26,6 +26,7 @@ const ASSETS = [
   "brand-logo.js",
   "quote-pdf.js",
   "milestones.js",
+  "facturadirecta.js",
   "quotes.js",
   "sketch.js",
   "job-measures.js",

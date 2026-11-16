@@ -86,7 +86,92 @@ module.exports = async (page, context, root) => {
     "Presupuesto no enviado",
   );
 
+  const fdUrl =
+    /\/api\/facturadirecta\/quotes\/VISTA-2\?kind=(estimate|invoice)$/;
+  let estimateRequests = 0;
+  const fdMock = async (route) => {
+    if (new URL(route.request().url()).searchParams.get("kind") === "invoice") {
+      assert.equal(route.request().method(), "GET");
+      return route.fulfill({
+        status: 503,
+        json: {
+          error: "La creación de facturas en FacturaDirecta está desactivada",
+        },
+      });
+    }
+    if (route.request().method() === "POST") {
+      estimateRequests++;
+      assert.deepEqual(route.request().postDataJSON(), {
+        confirmation: "fixture",
+      });
+    }
+    await route.fulfill({
+      json: estimateRequests
+        ? { status: { status: "created", draft: 0, number: "00001" } }
+        : {
+            review: {
+              customer: { name: "Ficha local", taxCode: "12345678X" },
+              existing: { name: "Cliente de vistas", taxCode: "12345678X" },
+              confirmation: "fixture",
+              invoice: {
+                sourceReference: "Vidres Sosa VISTA-2",
+                vatRate: 21,
+                lines: [
+                  { description: "Montaje <script>", unitPrice: "100.00" },
+                ],
+                totals: { base: "100.00", vat: "21.00", total: "121.00" },
+              },
+            },
+          },
+    });
+  };
+  await page.route(fdUrl, fdMock);
+  await row.locator(".quote-saved-options summary").click();
+  await row.getByRole("button", { name: "Emigrar a FacturaDirecta" }).click();
+  const review = page.getByRole("dialog", { name: "FacturaDirecta · VISTA-2" });
+  await review.getByRole("button", { name: "Crear presupuesto" }).waitFor();
+  assert.match(await review.innerText(), /Cliente de vistas/);
+  assert.match(await review.innerText(), /121,00/);
+  assert.equal(await review.locator("script").count(), 0);
+  assert.equal(
+    await review.evaluate(
+      (dialog) =>
+        dialog.getBoundingClientRect().right <= innerWidth &&
+        dialog.scrollWidth <= dialog.clientWidth,
+    ),
+    true,
+  );
+  assert.equal(estimateRequests, 0);
+  await review.getByRole("button", { name: "Cerrar" }).click();
+
   await row.locator("[data-load]").click();
+  const mobileViewport = page.viewportSize();
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page
+    .locator(".quote-editor")
+    .getByRole("button", { name: "Emigrar a FacturaDirecta" })
+    .click();
+  const documentType = review.getByLabel("Documento en FacturaDirecta");
+  await documentType.selectOption("invoice");
+  await review
+    .getByText("La creación de facturas en FacturaDirecta está desactivada")
+    .waitFor();
+  assert.equal(
+    await review.getByRole("button", { name: /Emitir|Crear/ }).count(),
+    0,
+  );
+  await documentType.selectOption("estimate");
+  await review.getByRole("button", { name: "Crear presupuesto" }).click();
+  await review
+    .getByText("Presupuesto creado en FacturaDirecta. Número: 00001.")
+    .waitFor();
+  assert.equal(estimateRequests, 1);
+  await review.getByRole("button", { name: "Cerrar" }).click();
+  await page.unroute(fdUrl, fdMock);
+  await page.setViewportSize(mobileViewport);
+  console.log(
+    "PASS FacturaDirecta: presupuestos en móvil y escritorio, referencia simulada y facturas desactivadas",
+  );
   assert.equal(
     await page.locator("#quote-client").inputValue(),
     "Cliente de vistas",

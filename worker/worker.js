@@ -10,6 +10,7 @@ import {
 import { D1Files } from "./d1-files.js";
 import { maintenance } from "./maintenance.js";
 import { interpret } from "./ai.js";
+import { facturadirectaRoute } from "./facturadirecta.js";
 export default {
   async scheduled(controller, env, ctx) {
     const db = env.DB?.withSession
@@ -107,6 +108,11 @@ export default {
       }
       if (path === "/api/quote-number" && req.method === "POST")
         return json(await reserveQuoteNumber(req, db, auth));
+      if (
+        path === "/api/facturadirecta/connection" ||
+        path.startsWith("/api/facturadirecta/quotes/")
+      )
+        return json(await facturadirectaRoute(req, db, auth, env, path));
       if (path === "/api/state") {
         if (req.method === "GET") return json(await state(db));
         if (req.method === "PUT") return json(await saveState(req, db, auth));

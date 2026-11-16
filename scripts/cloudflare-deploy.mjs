@@ -107,7 +107,17 @@ async function main() {
     workers_dev: true,
     compatibility_flags: ["nodejs_compat"],
     triggers: { crons: ["0 3 * * *"] },
-    vars: { ALLOWED_ORIGIN: "https://paanser.github.io" },
+    vars: {
+      ALLOWED_ORIGIN: "https://paanser.github.io",
+      FACTURADIRECTA_CLASSIC_ESTIMATES_ENABLED:
+        process.env.FACTURADIRECTA_CLASSIC_ESTIMATES_ENABLED === "true"
+          ? "true"
+          : "false",
+      FACTURADIRECTA_CLASSIC_ENABLED:
+        process.env.FACTURADIRECTA_CLASSIC_ENABLED === "true"
+          ? "true"
+          : "false",
+    },
     d1_databases: [
       {
         binding: "DB",

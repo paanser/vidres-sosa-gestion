@@ -4876,3 +4876,50 @@ html {
   padding: 0 8px;
   font-weight: 650;
 }
+
+.facturadirecta-review {
+  box-sizing: border-box;
+  width: min(42rem, calc(100% - 1.5rem));
+  max-height: min(88dvh, 55rem);
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 1rem;
+}
+.facturadirecta-review > header,
+.facturadirecta-review li,
+.facturadirecta-totals > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+.facturadirecta-review h2,
+.facturadirecta-review dd {
+  margin: 0;
+}
+.facturadirecta-review form,
+.facturadirecta-review dl,
+.facturadirecta-lines {
+  display: grid;
+  gap: 0.5rem;
+  overflow-wrap: anywhere;
+}
+.facturadirecta-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.facturadirecta-lines strong,
+.facturadirecta-totals dd {
+  white-space: nowrap;
+}
+.facturadirecta-review input,
+.facturadirecta-review select {
+  box-sizing: border-box;
+  width: 100%;
+  font-size: 1rem;
+}
+
+.facturadirecta-notes {
+  white-space: pre-wrap;
+}

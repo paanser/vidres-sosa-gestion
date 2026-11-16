@@ -16,6 +16,7 @@ document.querySelectorAll("#nav button").forEach((b) => (b.disabled = true));
     "brand-logo",
     "quote-pdf",
     "milestones",
+    "facturadirecta",
     "quotes",
     "sketch",
     "job-measures",

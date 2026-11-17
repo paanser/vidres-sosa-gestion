@@ -28,7 +28,7 @@
     { op: "h", c: [] },
   ];
   // Vector lines stay visible even when printing without background graphics.
-  function build(job, client = {}, company = {}) {
+  function build(job, client = {}, company = {}, measurements = []) {
     const doc = new jspdf.jsPDF({ unit: "mm", format: "a4", compress: true });
     const left = 15,
       width = 180,
@@ -92,40 +92,102 @@
     if (text(job.notas).trim()) field("Observaciones", job.notas);
     // Keep at least 12 cm of uninterrupted grid for measurements and sketches.
     if (bottom - y < 142) next();
-    y += 2;
-    doc.text(
-      "Fecha visita: ____ / ____ / ______    Operario: __________________________",
-      left,
-      y,
-    );
-    y += 8;
-    doc.setFont("helvetica", "bold");
-    doc.text("MEDIDAS, CROQUIS Y ANOTACIONES", left, y);
-    doc.setFont("helvetica", "normal");
-    y += 5;
-    const height = Math.floor((bottom - y) / 5) * 5;
-    const scale = Math.min(100 / 299, (height - 10) / 233);
-    const logoX = left + (width - 299 * scale) / 2;
-    const logoY = y + (height - 233 * scale) / 2;
-    doc.saveGraphicsState();
-    doc.setGState(new doc.GState({ opacity: 0.06 }));
-    doc.setFillColor(100);
-    doc.path(
-      logoPath.map(({ op, c }) => ({
-        op,
-        c: c.map((v, i) => v * scale + (i % 2 ? logoY : logoX)),
-      })),
-    );
-    doc.fill();
-    doc.restoreGraphicsState();
-    doc.setDrawColor(190);
-    doc.setLineWidth(0.1);
-    for (let x = left; x <= left + width; x += 5) doc.line(x, y, x, y + height);
-    for (let row = 0; row <= height; row += 5)
-      doc.line(left, y + row, left + width, y + row);
-    doc.setDrawColor(100);
-    doc.setLineWidth(0.25);
-    doc.rect(left, y, width, height);
+    function grid() {
+      y += 2;
+      doc.text(
+        "Fecha visita: ____ / ____ / ______    Operario: __________________________",
+        left,
+        y,
+      );
+      y += 8;
+      doc.setFont("helvetica", "bold");
+      doc.text("MEDIDAS, CROQUIS Y ANOTACIONES", left, y);
+      doc.setFont("helvetica", "normal");
+      y += 5;
+      const height = Math.floor((bottom - y) / 5) * 5;
+      const scale = Math.min(100 / 299, (height - 10) / 233);
+      const logoX = left + (width - 299 * scale) / 2;
+      const logoY = y + (height - 233 * scale) / 2;
+      doc.saveGraphicsState();
+      doc.setGState(new doc.GState({ opacity: 0.06 }));
+      doc.setFillColor(100);
+      doc.path(
+        logoPath.map(({ op, c }) => ({
+          op,
+          c: c.map((v, i) => v * scale + (i % 2 ? logoY : logoX)),
+        })),
+      );
+      doc.fill();
+      doc.restoreGraphicsState();
+      doc.setDrawColor(190);
+      doc.setLineWidth(0.1);
+      for (let x = left; x <= left + width; x += 5)
+        doc.line(x, y, x, y + height);
+      for (let row = 0; row <= height; row += 5)
+        doc.line(left, y + row, left + width, y + row);
+      doc.setDrawColor(100);
+      doc.setLineWidth(0.25);
+      doc.rect(left, y, width, height);
+      return { top: y, height };
+    }
+    let area = grid();
+    let cursor = area.top + 6;
+    function continueGrid() {
+      next();
+      area = grid();
+      cursor = area.top + 6;
+    }
+    function writeLines(value, bold = false) {
+      doc.setFont("helvetica", bold ? "bold" : "normal");
+      doc.setFontSize(10);
+      doc.setTextColor(30);
+      for (const line of doc.splitTextToSize(text(value), width - 10)) {
+        if (cursor + 2 > area.top + area.height - 4) continueGrid();
+        doc.text(line, left + 5, cursor);
+        cursor += 5;
+      }
+    }
+    measurements.forEach((piece, index) => {
+      if (cursor + 15 > area.top + area.height - 4) continueGrid();
+      writeLines(`Pieza ${index + 1}`, true);
+      const details = [
+        piece.ancho != null && piece.ancho !== ""
+          ? `Ancho: ${piece.ancho} cm`
+          : "",
+        piece.alto != null && piece.alto !== "" ? `Alto: ${piece.alto} cm` : "",
+        piece.cantidad ? `Cantidad: ${piece.cantidad}` : "",
+        piece.tipo,
+        piece.espesor ? `Espesor: ${piece.espesor} mm` : "",
+      ]
+        .filter(Boolean)
+        .join(" · ");
+      if (details) writeLines(details);
+      if (piece.observaciones) writeLines(piece.observaciones);
+      const sketch = piece.croquis;
+      if (sketch?.strokes?.length || sketch?.dims?.length) {
+        const image = window.vidresSketch.preview(sketch);
+        const size = doc.getImageProperties(image);
+        // Keep each drawing proportional and together on a gridded page.
+        let imageWidth = width - 10;
+        let imageHeight = (imageWidth * size.height) / size.width;
+        if (imageHeight > area.height - 12) {
+          imageHeight = area.height - 12;
+          imageWidth = (imageHeight * size.width) / size.height;
+        }
+        if (cursor + imageHeight > area.top + area.height - 4) continueGrid();
+        doc.addImage(
+          image,
+          "PNG",
+          left + (width - imageWidth) / 2,
+          cursor,
+          imageWidth,
+          imageHeight,
+        );
+        cursor += imageHeight + 5;
+      }
+      if (sketch?.notes?.trim()) writeLines(sketch.notes);
+      cursor += 4;
+    });
     const pages = doc.getNumberOfPages();
     for (let page = 1; page <= pages; page++) {
       doc.setPage(page);

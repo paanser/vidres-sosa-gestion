@@ -213,27 +213,9 @@
     save.href = currentUrl;
     save.download = filename;
     panel.append(status, open, save);
-    let canShare = false;
-    try {
-      canShare = Boolean(
-        navigator.share && navigator.canShare?.({ files: [file] }),
-      );
-    } catch {}
-    if (canShare) {
-      const share = document.createElement("button");
-      share.type = "button";
-      share.textContent = "Compartir PDF";
-      share.addEventListener("click", async () => {
-        try {
-          await navigator.share({ files: [file], title: "Presupuesto" });
-        } catch (error) {
-          if (error.name !== "AbortError")
-            status.textContent =
-              "No se pudo compartir. Usa Abrir PDF o Guardar PDF.";
-        }
-      });
-      panel.append(share);
-    }
+    status.textContent +=
+      " Para enviarlo como archivo adjunto, pulsa Compartir PDF y elige la aplicación.";
+    panel.insertBefore(VSSharePDF(file, save, status), open);
     panel.scrollIntoView({ block: "nearest" });
     window.dispatchEvent(
       new CustomEvent("vidres-pdf-ready", {

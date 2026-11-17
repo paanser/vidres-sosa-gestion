@@ -60,17 +60,14 @@
         sheetUrl +
         '">Guardar PDF</a>';
       const file = new File([blob], filename, { type: "application/pdf" });
-      if (navigator.canShare?.({ files: [file] })) {
-        const share = document.createElement("button");
-        share.type = "button";
-        share.textContent = "Compartir PDF";
-        share.onclick = () =>
-          navigator.share({ files: [file] }).catch((error) => {
-            if (error.name !== "AbortError")
-              alert("No se pudo compartir el PDF: " + error.message);
-          });
-        sheetResult.append(share);
-      }
+      const status = sheetResult.querySelector("p");
+      status.setAttribute("role", "status");
+      status.textContent =
+        "Tu hoja de visita está lista. Pulsa Compartir PDF para enviarla como archivo adjunto por la aplicación que elijas.";
+      sheetResult.insertBefore(
+        VSSharePDF(file, sheetResult.querySelector("a[download]"), status),
+        sheetResult.querySelector("a"),
+      );
     } catch (error) {
       sheetResult.textContent = "No se pudo preparar la hoja: " + error.message;
     }

@@ -356,15 +356,14 @@
     const host = dialog.querySelector("#operations-pdf");
     host.innerHTML = `<p>PDF preparado</p><a target="_blank" rel="noopener" href="${pdfUrl}">Abrir PDF</a> <a download="${esc(name)}" href="${pdfUrl}">Guardar PDF</a>`;
     const file = new File([blob], name, { type: "application/pdf" });
-    if (navigator.canShare?.({ files: [file] })) {
-      const b = document.createElement("button");
-      b.textContent = "Compartir PDF";
-      b.onclick = () =>
-        navigator.share({ files: [file] }).catch((e) => {
-          if (e.name !== "AbortError") notify(e.message);
-        });
-      host.append(b);
-    }
+    const status = host.querySelector("p");
+    status.setAttribute("role", "status");
+    status.textContent =
+      "PDF preparado. Pulsa Compartir PDF para enviarlo como archivo adjunto por la aplicación que elijas.";
+    host.insertBefore(
+      VSSharePDF(file, host.querySelector("a[download]"), status),
+      host.querySelector("a"),
+    );
     host.scrollIntoView({ block: "nearest" });
   }
   function orderPdf(id) {

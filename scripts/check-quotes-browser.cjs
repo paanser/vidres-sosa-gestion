@@ -70,10 +70,18 @@ module.exports = async function checkQuotes(page, context, root) {
   );
   await page.locator('[data-field="doubleGlazing"]').check();
   assert.equal(await page.locator('[data-field="price"]').inputValue(), "27");
+  assert.match(
+    await page.locator('[data-field="glass"]').inputValue(),
+    /4\/16\/4/,
+  );
   await selectBySearch(page, '[data-field="faceOne"]', "reuglass-3-1");
   assert.equal(
     await page.locator('[data-field="price"]').inputValue(),
     "35.98",
+  );
+  assert.match(
+    await page.locator('[data-field="glass"]').inputValue(),
+    /5\/16\/4/,
   );
   await selectBySearch(page, '[data-field="faceTwo"]', "reuglass-4-1");
   assert.equal(
@@ -88,11 +96,22 @@ module.exports = async function checkQuotes(page, context, root) {
   await page.locator("#quote-pdf").click();
   assert.match(
     await page.locator("#quote-print").textContent(),
-    /Doble acristalamiento.*Float 5 \/ Float 6/,
+    /Doble acristalamiento 5\/16\/6 · Float 5 \/ Float 6/,
   );
   assert.doesNotMatch(
     await page.locator("#quote-print").textContent(),
     /Tarifa|Reuglass|Sustituciones/,
+  );
+  await set('[data-field="doubleComposition"]', "4/20/4");
+  await selectBySearch(page, '[data-field="faceOne"]', "reuglass-44-1");
+  assert.match(
+    await page.locator('[data-field="glass"]').inputValue(),
+    /44\.2\/20\/6 · Guardian Sun 44\.2 P2A/,
+  );
+  await selectBySearch(page, '[data-field="faceOne"]', "");
+  assert.match(
+    await page.locator('[data-field="glass"]').inputValue(),
+    /4\/20\/6/,
   );
   await page.locator('[data-field="doubleGlazing"]').uncheck();
   await selectBySearch(page, '[data-field="tariff"]', "");
@@ -314,6 +333,10 @@ module.exports = async function checkQuotes(page, context, root) {
   assert.equal(
     await page.locator('[data-field="doubleGlazing"]').isChecked(),
     true,
+  );
+  assert.match(
+    await page.locator('[data-field="glass"]').inputValue(),
+    /5\/16\/6/,
   );
   console.log(
     "PASS doble acristalamiento en presupuesto rápido: base, ambas sustituciones y guardado",

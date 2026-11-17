@@ -203,6 +203,7 @@ async function checkMobileFields(page) {
     await require("./check-operations-browser.cjs")(page, context, root);
     assert.deepEqual(errors, []);
     await require("./check-milestones-browser.cjs")(page);
+    await require("./check-quote-share-browser.cjs")(page);
     await browser.close();
     return;
   }
@@ -1253,6 +1254,7 @@ async function checkMobileFields(page) {
   await require("./check-operations-browser.cjs")(page, context, root);
   assert.deepEqual(errors, []);
   await require("./check-milestones-browser.cjs")(page);
+  await require("./check-quote-share-browser.cjs")(page);
   await browser.close();
 })().catch((e) => {
   console.error(e);

@@ -233,5 +233,8 @@
       if (e.target.closest(".quote-editor, .quick-quote-editor")) invalidate();
     });
   window.addEventListener("vidres-data-restored", invalidate);
-  window.VSQuotePDF = { show };
+  function create(host, filename) {
+    return new File([build(host).blob], filename, { type: "application/pdf" });
+  }
+  window.VSQuotePDF = { show, create };
 })();

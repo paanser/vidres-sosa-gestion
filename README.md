@@ -199,3 +199,8 @@ estado, número, fecha, cliente/detalle, neto sin IVA y total con IVA. La lista 
 la vista inicial; sus opciones por fila incluyen hitos, WhatsApp, duplicar y eliminar.
 Cambiar de vista conserva el formulario y los filtros. La elección se recuerda
 para cada usuario en ese navegador, independientemente de los demás apartados.
+
+El botón «Enviar por WhatsApp» conserva el envío del mensaje de texto.
+Para enviar el archivo, pulsa «PDF para cliente» y después «Compartir PDF»:
+elige la aplicación y el contacto en el menú del dispositivo. Si el navegador
+no permite compartir archivos, se descarga el PDF para adjuntarlo manualmente.

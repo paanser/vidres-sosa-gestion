@@ -42,7 +42,12 @@
       );
       const company =
         VSStorage.read(VSStorage.keys.configuracion, {}).company || {};
-      const blob = VSJobSheetPDF.build(job, client, company).output("blob");
+      const blob = VSJobSheetPDF.build(
+        job,
+        client,
+        company,
+        VSStorage.measurements.get().filter((m) => m.trabajo === job.id),
+      ).output("blob");
       sheetUrl = URL.createObjectURL(blob);
       const filename =
         "visita-" + String(job.id).replace(/[^a-z0-9_-]/gi, "-") + ".pdf";

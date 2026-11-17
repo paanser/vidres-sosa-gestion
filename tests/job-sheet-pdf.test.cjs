@@ -57,3 +57,87 @@ test("El logo VS se imprime bajo la cuadrícula con opacidad suave", () => {
   assert.ok(!pdf.includes("/Subtype /Image"));
   assert.ok(!commands.includes("Cuadr"));
 });
+
+test("Las medidas y notas guardadas aparecen dentro de la cuadrícula", () => {
+  const pieces = [
+    {
+      ancho: 120,
+      alto: 80,
+      cantidad: 2,
+      tipo: "Templado",
+      espesor: 6,
+      observaciones: "Canto pulido",
+      croquis: { notes: "NOTA_DEL_BLOC" },
+    },
+  ];
+  const before = JSON.stringify(pieces);
+  const doc = build({ id: "MEDIDO" }, {}, {}, pieces);
+  const commands = doc.internal.pages.flat().join("\n");
+  for (const value of [
+    "Pieza 1",
+    "120 cm",
+    "80 cm",
+    "Cantidad: 2",
+    "Templado",
+    "6 mm",
+    "Canto pulido",
+    "NOTA_DEL_BLOC",
+  ])
+    assert.ok(commands.includes(value), value);
+  assert.equal(JSON.stringify(pieces), before);
+});
+
+test("Los trazos y las cotas se imprimen como imagen y las notas largas continúan", () => {
+  const seen = [];
+  global.window = {
+    vidresSketch: {
+      preview(sketch) {
+        seen.push(sketch);
+        return (
+          "data:image/png;base64," +
+          require("node:fs")
+            .readFileSync(
+              require("node:path").join(__dirname, "../icons/icon-192.png"),
+            )
+            .toString("base64")
+        );
+      },
+    },
+  };
+  try {
+    const sketches = [
+      {
+        strokes: [
+          {
+            points: [
+              [1, 1],
+              [2, 2],
+            ],
+          },
+        ],
+      },
+      {
+        dims: [{ valor: "125" }],
+        notes: "Nota extensa ".repeat(2200) + "FIN_BLOC",
+      },
+    ];
+    const doc = build(
+      { id: "DIBUJADO" },
+      {},
+      {},
+      sketches.map((croquis) => ({ croquis })),
+    );
+    assert.deepEqual(seen, sketches);
+    assert.ok(doc.output().includes("/Subtype /Image"));
+    assert.ok(doc.getNumberOfPages() > 2);
+    const pages = doc.internal.pages.slice(1);
+    assert.ok(pages.at(-1).join("\n").includes("FIN_BLOC"));
+    assert.ok(
+      pages.every((p) =>
+        p.join("\n").includes("MEDIDAS, CROQUIS Y ANOTACIONES"),
+      ),
+    );
+  } finally {
+    delete global.window;
+  }
+});

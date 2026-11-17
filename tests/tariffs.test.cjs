@@ -31,3 +31,31 @@ test("Reuglass coexists with imported tariffs without mutating them", () => {
   assert.match(tariffs.documentPanel(), /recargos/);
   assert.ok(fs.existsSync("documents/tarifa-reuglass.pdf"));
 });
+test("Reuglass finds Guardian Sun and the full 44 range by composition and accents", () => {
+  const find = (query) =>
+    tariffs.catalog().filter((item) => tariffs.matches(item, query));
+  const guardian = find("4 + 4 guardián sun");
+  assert.equal(guardian.length, 3);
+  assert.deepEqual(
+    Array.from(guardian, (item) => item.price),
+    [33.33, 53.88, 58.86],
+  );
+  assert.equal(find("44 Guardian Sun").length, guardian.length);
+  for (const variant of [
+    "44.1",
+    "44.2",
+    "44.1 mate",
+    "44.1 acústico",
+    "44.2 acústico P2A",
+    "44.1 color",
+    "44.1 mate gris",
+    "Espejo Espia 44.1",
+    "44.4 P4A",
+    "44.6 P5A",
+  ]) {
+    assert.ok(find(`laminado ${variant}`).length, variant);
+  }
+  assert.equal(find("4+4").length, find("44").length);
+  assert.equal(find("guardian sun 44.1 MF").length, 0);
+  assert.equal(find("4+4 inexistente").length, 0);
+});

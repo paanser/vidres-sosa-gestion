@@ -178,10 +178,7 @@
     const filtered = list.filter(
       (t) =>
         (selected === "all" || t.id === selected) &&
-        [t.name, t.price, t.edge]
-          .join(" ")
-          .toLocaleLowerCase("es")
-          .includes(query.toLocaleLowerCase("es")),
+        window.vidresTariffs.matches(t, query),
     );
     return (
       '<section class="panel"><h2>Consultor de tarifas</h2><p class="muted">Consulta rápida de Tarifa Reuglass y de los artículos importados en CSV. No crea presupuestos.</p><div class="quote-fields"><label>Tarifa<select id="consult-filter" data-search-select="Vidrio, tarifa o precio"><option value="all">Todas las tarifas</option>' +
@@ -507,10 +504,7 @@
       const f = catalog().filter(
         (t) =>
           (selected === "all" || t.id === selected) &&
-          [t.name, t.price, t.edge]
-            .join(" ")
-            .toLocaleLowerCase("es")
-            .includes(query.toLocaleLowerCase("es")),
+          window.vidresTariffs.matches(t, query),
       );
       document.querySelector("#consult-results").innerHTML = results(f);
     }

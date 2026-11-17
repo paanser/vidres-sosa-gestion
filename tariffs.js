@@ -180,8 +180,21 @@
   function catalog(current = []) {
     return merge(builtin, current);
   }
-  function documentPanel() {
-    return '<section class="panel"><h2>Tarifa Reuglass</h2><p>Precios netos de vidrio en €/m², separados por MF, Sustituciones y Templado. El guion del documento indica precio no disponible. Cantos no incluidos.</p><p>Los tratamientos, encolados, recargos por forma o tamaño y mínimos de facturación se consultan en el PDF y se añaden manualmente al presupuesto. EVA no incluye el vidrio float. No se aplican automáticamente.</p><p>UVA 4 / TPS 16 / 4: 27,00 €/m² · Cámaras 22 / 24 / 27: +2,00 €/m² · Gas: +1,25 €/m².</p><p>Documento: TARIFA 2025 · NAVAS_10 · 01.07.2026.</p><a href="documents/tarifa-reuglass.pdf" target="_blank" rel="noopener">Abrir PDF completo de Tarifa Reuglass</a></section>';
+  function matches(item, query) {
+    const normalize = (value) =>
+      String(value ?? "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLocaleLowerCase("es")
+        .replace(/(\d)\s*\+\s*(?=\d)/g, "$1");
+    const text = normalize([item.name, item.price, item.edge].join(" "));
+    return normalize(query)
+      .trim()
+      .split(/\s+/)
+      .every((term) => text.includes(term));
   }
-  window.vidresTariffs = { merge, key, catalog, documentPanel };
+  function documentPanel() {
+    return '<section class="panel"><h2>Tarifa Reuglass</h2><p>Precios netos de vidrio en €/m², separados por MF, Sustituciones y Templado. El guion del documento indica precio no disponible. Cantos no incluidos.</p><p>Los tratamientos, encolados, recargos por forma o tamaño y mínimos de facturación se consultan en el PDF y se añaden manualmente al presupuesto. EVA no incluye el vidrio float. No se aplican automáticamente.</p><p>UVA 4 / TPS 16 / 4: 27,00 €/m² · Cámaras 22 / 24 / 27: +2,00 €/m² · Gas: +1,25 €/m².</p><p>Busca los laminados por 4+4 o 44. Guardian Sun 44.1, 44.2 P2A y 44.2 acústico P2A figuran en Sustituciones.</p><p>Documento: TARIFA 2025 · NAVAS_10 · 01.07.2026.</p><a href="documents/tarifa-reuglass.pdf" target="_blank" rel="noopener">Abrir PDF completo de Tarifa Reuglass</a></section>';
+  }
+  window.vidresTariffs = { merge, key, catalog, matches, documentPanel };
 })();

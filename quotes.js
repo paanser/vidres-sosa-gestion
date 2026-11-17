@@ -641,9 +641,15 @@
     if (/^\d{9}$/.test(phone)) phone = "34" + phone;
     return phone;
   }
+  let messageFile = null;
   let messageTarget = null,
     messageKind = "quote";
   function openQuoteMessage(q, kind = "quote") {
+    messageFile = null;
+    if (kind === "quote") {
+      messageFile = printQuote(false, q);
+      if (!messageFile) return;
+    }
     messageTarget = q;
     messageKind = kind;
     const dialog = document.querySelector("#quote-message-dialog");
@@ -651,6 +657,12 @@
       kind === "followup"
         ? `Hola${q.client && q.client !== "Sin cliente" ? " " + q.client : ""}, ¿has podido revisar el presupuesto ${q.id}? Si tienes cualquier duda, estamos a tu disposición.\n\n${config().company?.name || "Vidres Sosa"}`
         : messageQuote(q);
+    dialog.querySelector(".muted").textContent =
+      kind === "quote"
+        ? "Se compartirá el PDF adjunto. Elige WhatsApp y el contacto. Si tu dispositivo no permite compartir archivos, se descargará para que lo adjuntes manualmente."
+        : "Puedes corregir el texto antes de enviarlo.";
+    dialog.querySelector('[type="submit"]').textContent =
+      kind === "quote" ? "Compartir PDF" : "Abrir WhatsApp";
     dialog.showModal();
     requestAnimationFrame(() =>
       dialog.querySelector('[name="mensaje"]').focus(),
@@ -1024,23 +1036,26 @@
       alert("No se pudo guardar el presupuesto: " + e.message);
     }
   }
-  function printQuote(internal = false) {
-    if (quickMode) readQuickForm();
-    else fromForm();
-    if (!valid(true)) return;
+  function printQuote(internal = false, quote = null) {
+    if (!quote) {
+      if (quickMode) readQuickForm();
+      else fromForm();
+      if (!valid(true)) return;
+    }
+    const quoteData = quote || draft;
     const c = config(),
       company = c.company || {},
-      job = window.vidresGetJobs?.().find((j) => j.id === draft.job),
-      client = clientData(draft);
+      job = window.vidresGetJobs?.().find((j) => j.id === quoteData.job),
+      client = clientData(quoteData);
     let host = document.querySelector("#quote-print");
     if (!host) {
       host = document.createElement("section");
       host.id = "quote-print";
       document.body.appendChild(host);
     }
-    const breakdown = details(draft),
+    const breakdown = details(quoteData),
       t = breakdown.totals;
-    const rows = draft.lines
+    const rows = quoteData.lines
       .map((l, i) => {
         const a = breakdown.lines[i];
         if (["concept", "aluminum"].includes(l.kind))
@@ -1051,8 +1066,8 @@
         return `<tr><td>${label}</td><td>${money(a.glassSale)}</td></tr>${a.separate && a.extraCost ? `<tr><td>${esc(l.extraDescription || "Otros conceptos")}</td><td>${money(a.extraSale)}</td></tr>` : ""}`;
       })
       .join("");
-    const options = pdfOptions(draft),
-      hasGlass = draft.lines.some(
+    const options = pdfOptions(quoteData),
+      hasGlass = quoteData.lines.some(
         (line) => !["concept", "aluminum"].includes(line.kind),
       ),
       number = (n, digits = 2) =>
@@ -1071,7 +1086,7 @@
         ["unitPrice", "Precio €/m²"],
       ].filter(([key]) => hasGlass && options[key]),
       emptyCells = columns.map(() => "<td></td>").join(""),
-      customerRows = draft.lines
+      customerRows = quoteData.lines
         .map((line, i) => {
           const a = breakdown.lines[i];
           if (["concept", "aluminum"].includes(line.kind))
@@ -1100,7 +1115,7 @@
       .map((v) => `<br>${lines(v)}`)
       .join(
         "",
-      )}</div></div><div><h1>PRESUPUESTO</h1><p class="quote-doc-reference">Nº ${esc(draft.id || "Borrador sin referencia")}</p>${internal ? '<p class="quote-doc-internal">Presupuesto interno · No entregar al cliente</p>' : ""}<section class="quote-doc-client"><h2>CLIENTE</h2><strong>${esc(draft.client || "Sin cliente")}</strong>${client.taxId ? `<br>CIF/NIF: ${esc(client.taxId)}` : ""}${[
+      )}</div></div><div><h1>PRESUPUESTO</h1><p class="quote-doc-reference">Nº ${esc(quoteData.id || "Borrador sin referencia")}</p>${internal ? '<p class="quote-doc-internal">Presupuesto interno · No entregar al cliente</p>' : ""}<section class="quote-doc-client"><h2>CLIENTE</h2><strong>${esc(quoteData.client || "Sin cliente")}</strong>${client.taxId ? `<br>CIF/NIF: ${esc(client.taxId)}` : ""}${[
       client.address || job?.direccion,
       client.phone,
       client.email,
@@ -1109,13 +1124,13 @@
       .map((v) => `<br>${lines(v)}`)
       .join(
         "",
-      )}</section></div></header><div class="quote-doc-dates"><p><strong>Fecha oferta:</strong> ${esc(dateLabel(draft.date))}</p>${showValidity ? `<p><strong>Fecha validez:</strong> ${esc(dateLabel(addDays(draft.date, Number(company.validity) || 30)))}</p>` : ""}${draft.job ? `<p><strong>Parte relacionado:</strong> ${esc(draft.job)}</p>` : ""}</div><table class="quote-doc-items"><thead><tr><th>Concepto</th>${internal ? "<th>Coste</th><th>Margen añadido</th>" : columns.map(([, label]) => `<th>${label}</th>`).join("")}<th>Importe sin IVA</th></tr></thead><tbody>${internal ? rows : customerRows}</tbody></table>${(internal || options.observations) && draft.observations ? `<section class="quote-doc-notes"><h2>OBSERVACIONES</h2><p>${lines(draft.observations)}</p></section>` : ""}${(internal || options.conditions) && company.conditions ? `<section class="quote-doc-notes"><h2>CONDICIONES</h2><p>${lines(company.conditions)}</p></section>` : ""}${internal && pricing(draft).priceMode === "fixed" ? `<p>Tarifa de venta del vidrio: ${money(num(pricing(draft).fixedPrice))}/m²</p>` : ""}${internal ? `<p>Coste interno: ${money(breakdown.cost)}<br>${draft.lines.some((l) => l.kind === "aluminum") ? "El aluminio aplica su incremento propio por línea. " : ""}${pricing(draft).priceMode === "fixed" ? "Diferencia entre venta y coste" : `Margen sobre ${pricing(draft).marginScope === "glass" ? "precio del vidrio" : pricing(draft).marginMode === "sale" ? "venta sin IVA" : "coste"} (${esc(pricing(draft).margin || 0)} %)`}: ${money(breakdown.margin)}</p>` : ""}<footer class="quote-doc-footer"><div class="quote-doc-summary">${hasGlass && (internal || options.quantity) ? `<span>Total unidades: ${breakdown.lines.reduce((n, a, i) => n + (["concept", "aluminum"].includes(draft.lines[i].kind) ? 0 : a.qty), 0)}</span>` : ""}${
+      )}</section></div></header><div class="quote-doc-dates"><p><strong>Fecha oferta:</strong> ${esc(dateLabel(quoteData.date))}</p>${showValidity ? `<p><strong>Fecha validez:</strong> ${esc(dateLabel(addDays(quoteData.date, Number(company.validity) || 30)))}</p>` : ""}${quoteData.job ? `<p><strong>Parte relacionado:</strong> ${esc(quoteData.job)}</p>` : ""}</div><table class="quote-doc-items"><thead><tr><th>Concepto</th>${internal ? "<th>Coste</th><th>Margen añadido</th>" : columns.map(([, label]) => `<th>${label}</th>`).join("")}<th>Importe sin IVA</th></tr></thead><tbody>${internal ? rows : customerRows}</tbody></table>${(internal || options.observations) && quoteData.observations ? `<section class="quote-doc-notes"><h2>OBSERVACIONES</h2><p>${lines(quoteData.observations)}</p></section>` : ""}${(internal || options.conditions) && company.conditions ? `<section class="quote-doc-notes"><h2>CONDICIONES</h2><p>${lines(company.conditions)}</p></section>` : ""}${internal && pricing(quoteData).priceMode === "fixed" ? `<p>Tarifa de venta del vidrio: ${money(num(pricing(quoteData).fixedPrice))}/m²</p>` : ""}${internal ? `<p>Coste interno: ${money(breakdown.cost)}<br>${quoteData.lines.some((l) => l.kind === "aluminum") ? "El aluminio aplica su incremento propio por línea. " : ""}${pricing(quoteData).priceMode === "fixed" ? "Diferencia entre venta y coste" : `Margen sobre ${pricing(quoteData).marginScope === "glass" ? "precio del vidrio" : pricing(quoteData).marginMode === "sale" ? "venta sin IVA" : "coste"} (${esc(pricing(quoteData).margin || 0)} %)`}: ${money(breakdown.margin)}</p>` : ""}<footer class="quote-doc-footer"><div class="quote-doc-summary">${hasGlass && (internal || options.quantity) ? `<span>Total unidades: ${breakdown.lines.reduce((n, a, i) => n + (["concept", "aluminum"].includes(quoteData.lines[i].kind) ? 0 : a.qty), 0)}</span>` : ""}${
       hasGlass && (internal || options.area)
         ? `<span>Total m²: ${number(
             breakdown.lines.reduce(
               (n, a, i) =>
                 n +
-                (["concept", "aluminum"].includes(draft.lines[i].kind)
+                (["concept", "aluminum"].includes(quoteData.lines[i].kind)
                   ? 0
                   : a.area * a.qty),
               0,
@@ -1123,13 +1138,13 @@
             4,
           )}</span>`
         : ""
-    }</div><table class="quote-doc-totals"><thead><tr><th>Base imponible</th><th>IVA ${esc(pricing(draft).vat ?? 21)} %</th><th>TOTAL PRESUPUESTO</th></tr></thead><tbody><tr><td>${money(t.base)}</td><td>${money(t.iva)}</td><td><strong>${money(t.total)}</strong></td></tr></tbody></table>${showValidity ? `<p>Validez: ${esc(company.validity || 30)} días desde la fecha del presupuesto.</p>` : ""}</footer>`;
+    }</div><table class="quote-doc-totals"><thead><tr><th>Base imponible</th><th>IVA ${esc(pricing(quoteData).vat ?? 21)} %</th><th>TOTAL PRESUPUESTO</th></tr></thead><tbody><tr><td>${money(t.base)}</td><td>${money(t.iva)}</td><td><strong>${money(t.total)}</strong></td></tr></tbody></table>${showValidity ? `<p>Validez: ${esc(company.validity || 30)} días desde la fecha del presupuesto.</p>` : ""}</footer>`;
     try {
-      const reference = String(draft.id || "borrador").replace(
+      const reference = String(quoteData.id || "borrador").replace(
         /[^a-zA-Z0-9_-]/g,
         "_",
       );
-      VSQuotePDF.show(
+      return VSQuotePDF[quote ? "create" : "show"](
         host,
         `Presupuesto-${reference}-${internal ? "interno" : "cliente"}.pdf`,
       );
@@ -1486,11 +1501,48 @@
       const text = messageForm.elements.mensaje.value.trim(),
         phone = phoneForQuote(messageTarget),
         targetId = messageTarget.id;
-      window.open(
-        "https://wa.me/" + phone + "?text=" + encodeURIComponent(text),
-        "_blank",
-        "noopener,noreferrer",
-      );
+      if (messageKind === "quote") {
+        if (!messageFile) return;
+        let supported = false;
+        try {
+          supported = Boolean(
+            navigator.share && navigator.canShare?.({ files: [messageFile] }),
+          );
+        } catch {}
+        if (!supported) {
+          const url = URL.createObjectURL(messageFile);
+          const download = document.createElement("a");
+          download.href = url;
+          download.download = messageFile.name;
+          document.body.appendChild(download);
+          download.click();
+          download.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 60000);
+          alert(
+            "PDF descargado. Abre WhatsApp, elige el contacto y adjunta el archivo desde Documentos. El envío no se ha realizado automáticamente.",
+          );
+          return;
+        }
+        try {
+          await navigator.share({
+            files: [messageFile],
+            title: "Presupuesto",
+            text,
+          });
+        } catch (error) {
+          if (error.name !== "AbortError")
+            alert(
+              "No se pudo compartir el PDF. Puedes descargarlo desde PDF para cliente y adjuntarlo en WhatsApp.",
+            );
+          return;
+        }
+      } else {
+        window.open(
+          "https://wa.me/" + phone + "?text=" + encodeURIComponent(text),
+          "_blank",
+          "noopener,noreferrer",
+        );
+      }
       messageDialog.close();
       if (
         messageKind === "quote" &&

@@ -1,8 +1,6 @@
 "use strict";
 const RELEASE = "__BUILD_VERSION__";
-const VERSION = RELEASE.startsWith("__")
-  ? "20261116-client-name-edit"
-  : RELEASE;
+const VERSION = RELEASE.startsWith("__") ? "20261117-whatsapp-pdf" : RELEASE;
 const PREFIX = "vidres-sosa:" + self.registration.scope + ":",
   CACHE = PREFIX + VERSION;
 const ASSETS = [

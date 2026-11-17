@@ -217,6 +217,24 @@
   };
   const substitutions = () =>
     tariffs().filter((t) => /· Sustituciones$/.test(t.name));
+  function doubleComposition(line) {
+    const base = (line.doubleComposition || "4/16/4").split("/");
+    const face = (selected, name, original) => {
+      if (!selected) return original;
+      // El último número independiente es el espesor, no el código de
+      // una capa (SN 70/35, SNX60) ni su clase de seguridad (P2A).
+      const thickness = (name || "")
+        .split(/\s+/)
+        .filter((part) => /^\d+(?:[.,]\d+)?(?:mm)?$/i.test(part))
+        .pop();
+      return thickness ? thickness.replace(/mm$/i, "") : name || original;
+    };
+    if (base.length !== 3)
+      return `${line.faceOneName || "Float 4"} / ${line.faceTwoName || "Float 4"}`;
+    base[0] = face(line.faceOne, line.faceOneName, base[0]);
+    base[2] = face(line.faceTwo, line.faceTwoName, base[2]);
+    return base.join("/");
+  }
   function doublePrice(line) {
     if (!line.doubleGlazing) return;
     line.price =
@@ -227,7 +245,7 @@
           100,
       ) / 100;
     line.tariff = "";
-    line.glass = `Doble acristalamiento ${line.doubleComposition || "4/16/4"} · ${line.faceOneName || "Float 4"} / ${line.faceTwoName || "Float 4"}`;
+    line.glass = `Doble acristalamiento ${doubleComposition(line)} · ${line.faceOneName || "Float 4"} / ${line.faceTwoName || "Float 4"}`;
   }
   function readDouble(line) {
     line.doubleBase ??= 27;

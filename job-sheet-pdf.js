@@ -72,9 +72,9 @@
       for (const line of lines) {
         if (y > bottom - 5) next();
         doc.text(line, left, y);
-        y += 4.7;
+        y += 4.2;
       }
-      y += 2;
+      y += 1;
     }
     doc.setProperties({ title: "Hoja de visita · " + text(job.id) });
     header();
@@ -90,8 +90,8 @@
     y += 2;
     field("Trabajo a realizar", job.descripcion);
     if (text(job.notas).trim()) field("Observaciones", job.notas);
-    // Keep at least 12 cm of uninterrupted grid for measurements and sketches.
-    if (bottom - y < 142) next();
+    // A filled sheet uses the available first-page space; blank sheets retain room to write.
+    if (bottom - y < (measurements.length ? 75 : 142)) next();
     function grid() {
       y += 2;
       doc.text(
@@ -137,19 +137,10 @@
       area = grid();
       cursor = area.top + 6;
     }
-    function writeLines(value, bold = false) {
-      doc.setFont("helvetica", bold ? "bold" : "normal");
-      doc.setFontSize(10);
-      doc.setTextColor(30);
-      for (const line of doc.splitTextToSize(text(value), width - 10)) {
-        if (cursor + 2 > area.top + area.height - 4) continueGrid();
-        doc.text(line, left + 5, cursor);
-        cursor += 5;
-      }
-    }
-    measurements.forEach((piece, index) => {
-      if (cursor + 15 > area.top + area.height - 4) continueGrid();
-      writeLines(`Pieza ${index + 1}`, true);
+    const fontSize = 9;
+    const lineHeight = 4;
+    doc.setFontSize(fontSize);
+    const pieces = measurements.map((piece, index) => {
       const details = [
         piece.ancho != null && piece.ancho !== ""
           ? `Ancho: ${piece.ancho} cm`
@@ -161,33 +152,71 @@
       ]
         .filter(Boolean)
         .join(" · ");
-      if (details) writeLines(details);
-      if (piece.observaciones) writeLines(piece.observaciones);
       const sketch = piece.croquis;
-      if (sketch?.strokes?.length || sketch?.dims?.length) {
-        const image = window.vidresSketch.preview(sketch);
-        const size = doc.getImageProperties(image);
-        // Keep each drawing proportional and together on a gridded page.
-        let imageWidth = width - 10;
-        let imageHeight = (imageWidth * size.height) / size.width;
-        if (imageHeight > area.height - 12) {
-          imageHeight = area.height - 12;
-          imageWidth = (imageHeight * size.width) / size.height;
+      const lines = [
+        `Pieza ${index + 1}`,
+        details,
+        piece.observaciones,
+        sketch?.notes,
+      ]
+        .filter((value) => text(value).trim())
+        .map((value) => doc.splitTextToSize(text(value), width - 10));
+      const image =
+        sketch?.strokes?.length || sketch?.dims?.length
+          ? window.vidresSketch.preview(sketch)
+          : null;
+      const size = image ? doc.getImageProperties(image) : null;
+      return {
+        lines,
+        image,
+        imageHeight: size ? ((width - 10) * size.height) / size.width : 0,
+      };
+    });
+    const textHeight = pieces.reduce(
+      (sum, p) => sum + p.lines.flat().length * lineHeight + 3,
+      0,
+    );
+    const imagesHeight = pieces.reduce(
+      (sum, p) => sum + (p.image ? p.imageHeight + 2 : 0),
+      0,
+    );
+    // Share the remaining space among drawings instead of moving a full-size drawing to page two.
+    const imageScale = imagesHeight
+      ? Math.min(1, Math.max(0, area.height - 12 - textHeight) / imagesHeight)
+      : 1;
+    for (const piece of pieces) {
+      for (const [index, lines] of piece.lines.entries()) {
+        for (const line of lines) {
+          if (cursor + 2 > area.top + area.height - 4) continueGrid();
+          doc.setFont("helvetica", index === 0 ? "bold" : "normal");
+          doc.setFontSize(fontSize);
+          doc.setTextColor(30);
+          doc.text(line, left + 5, cursor);
+          cursor += lineHeight;
         }
-        if (cursor + imageHeight > area.top + area.height - 4) continueGrid();
+      }
+      if (piece.image) {
+        const height = Math.min(
+          area.height - 12,
+          Math.max(
+            Math.min(30, piece.imageHeight),
+            piece.imageHeight * imageScale,
+          ),
+        );
+        const imageWidth = ((width - 10) * height) / piece.imageHeight;
+        if (cursor + height > area.top + area.height - 4) continueGrid();
         doc.addImage(
-          image,
+          piece.image,
           "PNG",
           left + (width - imageWidth) / 2,
           cursor,
           imageWidth,
-          imageHeight,
+          height,
         );
-        cursor += imageHeight + 5;
+        cursor += height + 2;
       }
-      if (sketch?.notes?.trim()) writeLines(sketch.notes);
-      cursor += 4;
-    });
+      cursor += 3;
+    }
     const pages = doc.getNumberOfPages();
     for (let page = 1; page <= pages; page++) {
       doc.setPage(page);

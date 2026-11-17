@@ -191,8 +191,8 @@ export function checked(values) {
     jobs = new Set(out[KEYS.trabajos].map((j) => j.id));
   for (const m of out[KEYS.mediciones]) {
     if (!jobs.has(m.trabajo)) fail(400, "Medición sin trabajo");
-    number(m.ancho, 0.001);
-    number(m.alto, 0.001);
+    for (const key of ["ancho", "alto"])
+      if (m[key] != null && m[key] !== "") number(m[key], 0.001);
     number(m.cantidad, 1, 100000);
     if (!Number.isInteger(Number(m.cantidad))) fail(400, "Cantidad no válida");
     strings(m, { tipo: 100, espesor: 50, observaciones: 1000 });

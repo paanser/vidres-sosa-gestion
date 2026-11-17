@@ -416,6 +416,62 @@ test("datos compartidos, validación, conflictos sin sobrescritura y transacció
     1,
   );
 });
+test("las piezas admiten croquis sin medidas escritas y rechazan medidas inválidas", async () => {
+  const env = setup(),
+    a = await admin(env),
+    values = empty();
+  values["vidres-sosa-demo-v01"] = [job];
+  const piece = {
+    id: "M-CROQUIS",
+    trabajo: job.id,
+    ancho: null,
+    alto: null,
+    cantidad: "1",
+    croquis: {
+      strokes: [
+        {
+          points: [
+            [10, 10],
+            [100, 100],
+          ],
+        },
+      ],
+      notes: "Solo dibujo",
+    },
+  };
+  values["vidres-mediciones-servidor-v1"] = [piece];
+  let revision = 0;
+  for (const dims of [
+    [null, null],
+    ["", ""],
+    [120, null],
+    [null, 80],
+  ]) {
+    [piece.ancho, piece.alto] = dims;
+    const r = await call(
+      env,
+      "/api/state",
+      "PUT",
+      { revision, values },
+      a.token,
+    );
+    assert.equal(r.status, 200, JSON.stringify(r.data));
+    revision++;
+    const saved = await call(env, "/api/state", "GET", undefined, a.token);
+    assert.deepEqual(
+      saved.data.values["vidres-mediciones-servidor-v1"][0],
+      piece,
+    );
+  }
+  for (const bad of [0, -1, "abc"]) {
+    piece.ancho = bad;
+    assert.equal(
+      (await call(env, "/api/state", "PUT", { revision, values }, a.token))
+        .status,
+      400,
+    );
+  }
+});
 test("archivos privados, versión contra sobrescritura e importación verificada", async () => {
   const env = setup(),
     a = await admin(env),

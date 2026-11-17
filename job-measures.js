@@ -27,8 +27,8 @@
     row.className = "new-measure-piece";
     row.innerHTML = `<legend>Pieza ${++sequence}</legend>
       <div class="measure-fields">
-        <label>Ancho (${VSMeasureInput.unit()})<input data-measure data-new-measure="ancho" type="text" inputmode="decimal" required></label>
-        <label>Alto (${VSMeasureInput.unit()})<input data-measure data-new-measure="alto" type="text" inputmode="decimal" required></label>
+        <label>Ancho (${VSMeasureInput.unit()})<input data-measure data-measure-optional data-new-measure="ancho" type="text" inputmode="decimal"></label>
+        <label>Alto (${VSMeasureInput.unit()})<input data-measure data-measure-optional data-new-measure="alto" type="text" inputmode="decimal"></label>
         <label>Cantidad<input data-new-measure="cantidad" type="number" inputmode="numeric" min="1" step="1" value="1" required></label>
         <label>Espesor (mm)<input data-new-measure="espesor" type="number" inputmode="decimal" min="0" step="0.1"></label>
       </div>

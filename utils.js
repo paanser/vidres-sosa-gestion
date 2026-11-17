@@ -193,6 +193,8 @@ if (typeof window !== "undefined") {
           ? String(Math.round(U.num(cm) * 100) / 10)
           : String(cm);
   function read(input) {
+    if (input.hasAttribute("data-measure-optional") && !input.value.trim())
+      return { ok: true, cm: null, confirmation: "" };
     const selected = input.dataset.measureUnit || unit();
     const parsed =
       selected === "m"
@@ -222,7 +224,9 @@ if (typeof window !== "undefined") {
     const hint = input.parentElement.querySelector(".measure-feedback");
     if (hint) {
       hint.textContent = result.ok
-        ? "= " + U.formatMeasure(result.cm)
+        ? result.cm == null
+          ? "Opcional: puedes guardar solo el croquis."
+          : "= " + U.formatMeasure(result.cm)
         : result.error;
       hint.classList.toggle("measure-error", !result.ok);
     }

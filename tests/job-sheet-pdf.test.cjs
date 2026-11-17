@@ -105,6 +105,43 @@ test("Los trazos y las cotas se imprimen como imagen y las notas largas continú
     },
   };
   try {
+    for (const count of [1, 2]) {
+      const compact = build(
+        {
+          id: "COMPACTO",
+          cliente: "Cliente",
+          telefono: "600123456",
+          direccion: "Calle Mayor 12",
+          descripcion: "Cambiar vidrio. ".repeat(30),
+          notas: "Llamar antes",
+        },
+        {},
+        {},
+        Array.from({ length: count }, () => ({
+          ancho: 120,
+          alto: 80,
+          cantidad: 1,
+          croquis: {
+            strokes: [
+              {
+                points: [
+                  [1, 1],
+                  [2, 2],
+                ],
+              },
+            ],
+            notes: "Nota del dibujo",
+          },
+        })),
+      );
+      assert.equal(
+        compact.getNumberOfPages(),
+        1,
+        `${count} croquis en la primera hoja`,
+      );
+      assert.ok(compact.internal.pages[1].join("\n").includes("/I0 Do"));
+    }
+    seen.length = 0;
     const sketches = [
       {
         strokes: [

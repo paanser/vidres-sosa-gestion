@@ -746,6 +746,13 @@ async function checkMobileFields(page) {
   await page.locator("#form [name=cliente]").fill("Cliente de navegador");
   await page.locator("#form [name=descripcion]").fill("Prueba completa");
   await page.locator("#new-measure-add").click();
+  assert.deepEqual(
+    await page.evaluate(() => {
+      const piece = vidresNewMeasures.read("TEST")[0];
+      return [piece.ancho, piece.alto];
+    }),
+    [null, null],
+  );
   await page.locator("[data-new-measure=ancho]").fill("1.000");
   await page.locator("[data-new-measure=alto]").fill("0.800");
   await page
@@ -817,6 +824,55 @@ async function checkMobileFields(page) {
     }),
     [123.4, 83],
   );
+  // Guardar y recuperar un croquis sin rellenar ancho ni alto, también en móvil.
+  await page.evaluate(() =>
+    vidresOpenMeasurement(null, vidresGetJobs()[0].id, true),
+  );
+  const sketchCanvas = page.locator(".sketch-expanded[open] canvas");
+  const sketchBounds = await sketchCanvas.boundingBox();
+  await page.mouse.move(sketchBounds.x + 30, sketchBounds.y + 30);
+  await page.mouse.down();
+  await page.mouse.move(sketchBounds.x + 130, sketchBounds.y + 80, {
+    steps: 5,
+  });
+  await page.mouse.up();
+  await page.locator(".sketch-expanded[open] [data-case-toggle]").click();
+  await page.locator(".sketch-expanded[open] [data-sketch-notes]").click();
+  await page
+    .locator(".sketch-expanded[open] textarea")
+    .fill("Croquis sin ancho ni alto escritos");
+  await page.locator(".sketch-expanded[open] [data-sketch-return]").click();
+  await page.locator("#measure-form [type=submit]").click();
+  await page.locator("#measure-editor").waitFor({ state: "hidden" });
+  const sketchId = await page.evaluate(() => {
+    const piece = VSStorage.measurements.get().at(-1);
+    if (
+      piece.ancho !== null ||
+      piece.alto !== null ||
+      !piece.croquis.strokes.length
+    )
+      throw Error("No se guardó el croquis sin medidas");
+    const pdf = VSJobSheetPDF.build(vidresGetJobs()[0], {}, {}, [piece]);
+    if (pdf.getNumberOfPages() !== 1)
+      throw Error("El croquis debe caber en la primera hoja");
+    return piece.id;
+  });
+  await page.evaluate((id) => vidresOpenMeasurement(id), sketchId);
+  assert.equal(
+    await page.locator("#measure-form [name=ancho]").inputValue(),
+    "",
+  );
+  assert.equal(
+    await page.locator("#measure-form [name=alto]").inputValue(),
+    "",
+  );
+  await page.evaluate(() => document.querySelector("#measure-editor").close());
+  await page.evaluate(async (id) => {
+    await VSStorage.measurements.replace(
+      VSStorage.measurements.get().filter((m) => m.id !== id),
+    );
+    vidresReloadData();
+  }, sketchId);
   console.log(
     "PASS parte, medición y foto en servidor, sin copia local de negocio",
   );

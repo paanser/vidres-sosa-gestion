@@ -2014,10 +2014,11 @@ window.vidresAppReady = (async () => {
         m[key] = VSMeasureInput.read(e.target.elements[key]).cm;
       if (
         !jobs.some((j) => j.id === m.trabajo) ||
-        !Number.isFinite(Number(m.ancho)) ||
-        Number(m.ancho) <= 0 ||
-        !Number.isFinite(Number(m.alto)) ||
-        Number(m.alto) <= 0 ||
+        [m.ancho, m.alto].some(
+          (value) =>
+            value != null &&
+            (!Number.isFinite(Number(value)) || Number(value) <= 0),
+        ) ||
         !Number.isInteger(Number(m.cantidad)) ||
         Number(m.cantidad) <= 0
       ) {

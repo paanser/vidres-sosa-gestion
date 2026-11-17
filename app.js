@@ -1448,11 +1448,13 @@ window.vidresAppReady = (async () => {
     jobs = next;
   };
   window.vidresDeleteJob = async (id) => {
+    if (!confirm("¿Quieres eliminar el expediente " + id + "?")) return false;
     if (
-      prompt(
-        "Para eliminar el trabajo y sus medidas, fotos y documentos, escribe " +
-          id,
-      ) !== id
+      !confirm(
+        "¿Confirmas la eliminación definitiva del expediente " +
+          id +
+          " y de sus medidas, fotos y documentos? Esta acción no se puede deshacer.",
+      )
     )
       return false;
     try {

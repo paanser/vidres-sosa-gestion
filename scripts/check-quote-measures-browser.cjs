@@ -80,7 +80,7 @@ module.exports = async function checkQuoteMeasures(page, context, root) {
       normalPhoto: normalPhoto.id,
     };
   });
-  assert.equal(
+  assert.deepEqual(
     await page
       .locator("#quote-measures")
       .evaluate((panel) => [

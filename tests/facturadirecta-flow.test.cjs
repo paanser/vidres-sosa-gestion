@@ -174,7 +174,7 @@ test("Gestión valida el presupuesto guardado, reserva el envío en D1 y conserv
       await estimateWait;
       if (behaviour === "interrupted") throw new TypeError("connection reset");
       return xml(`<estimate><id>72</id><documentNumberFormatted>00004</documentNumberFormatted>
-        <netTotal>196.60</netTotal><tax1><total>41.29</total></tax1><grossTotal>237.89</grossTotal></estimate>`);
+        <netTotal>197.30</netTotal><tax1><total>41.43</total></tax1><grossTotal>238.73</grossTotal></estimate>`);
     }
     assert.equal(url.pathname, "/api/invoices.xml");
     sentInvoice += 1;
@@ -195,8 +195,8 @@ test("Gestión valida el presupuesto guardado, reserva el envío en D1 y conserv
       new RegExp("<draft>" + String(!definitive) + "</draft>"),
     );
     return xml(`<invoice><id>${sentInvoice}</id><draft>${!definitive}</draft>
-      ${definitive ? "<invoiceNumberFormatted>00009</invoiceNumberFormatted>" : ""}<netTotal>196.60</netTotal>
-      <tax1><total>41.29</total></tax1><grossTotal>${behaviour === "mismatch" ? "240" : "237.89"}</grossTotal></invoice>`);
+      ${definitive ? "<invoiceNumberFormatted>00009</invoiceNumberFormatted>" : ""}<netTotal>197.30</netTotal>
+      <tax1><total>41.43</total></tax1><grossTotal>${behaviour === "mismatch" ? "240" : "238.73"}</grossTotal></invoice>`);
   };
 
   const diagnostic = await request("connection?number=02898");
@@ -212,12 +212,12 @@ test("Gestión valida el presupuesto guardado, reserva el envío en D1 y conserv
   const review = await preview("P-01");
   assert.deepEqual(
     review.invoice.lines.map((line) => line.unitPrice),
-    ["125.00", "25.00", "39.60", "7.00"],
+    ["125.00", "25.00", "39.60", "7.70"],
   );
   assert.deepEqual(review.invoice.totals, {
-    base: "196.60",
-    vat: "41.29",
-    total: "237.89",
+    base: "197.30",
+    vat: "41.43",
+    total: "238.73",
   });
   assert.equal(sentInvoice, 0);
   assert.equal(

@@ -70,8 +70,8 @@ test("recargos en venta, IVA, tarifa fija y FacturaDirecta", async () => {
   const d = C.quoteDetails(q);
   close(d.lines[0].surcharge, 92.5344);
   assert.equal(d.cost, 298.17);
-  assert.equal(d.margin, 41.13);
-  assert.deepEqual(d.totals, { base: 339.3, iva: 71.25, total: 410.55 });
+  assert.equal(d.margin, 59.63);
+  assert.deepEqual(d.totals, { base: 357.8, iva: 75.14, total: 432.94 });
   assert.equal(
     C.quoteDetails({
       ...q,
@@ -81,7 +81,7 @@ test("recargos en venta, IVA, tarifa fija y FacturaDirecta", async () => {
   );
   const { quoteInvoice } = await import("../worker/facturadirecta.js");
   const invoice = quoteInvoice(q);
-  assert.equal(invoice.lines[0].unitPrice, "339.30");
+  assert.equal(invoice.lines[0].unitPrice, "357.80");
   const { checked, KEYS } = await import("../worker/data.js");
   const saved = { ...q, id: "P-1", client: "Prueba", date: "2026-11-18" };
   assert.doesNotThrow(() => checked({ [KEYS.presupuestos]: [saved] }));

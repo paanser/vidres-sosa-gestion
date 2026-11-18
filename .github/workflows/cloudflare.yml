@@ -6,6 +6,8 @@ on:
       - .github/workflows/cloudflare.yml
       - scripts/cloudflare-deploy.mjs
       - worker/**
+      - calculations.js
+      - utils.js
   workflow_dispatch:
 permissions:
   contents: read

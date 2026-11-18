@@ -157,7 +157,7 @@ test("margen incluye cantos y energía; suma de conceptos coincide con base y to
   assert.equal(result.totals.iva, round2(result.totals.base * 0.1));
 });
 
-test("incremento solo sobre vidrio, sin margen en cantos, energía ni mano de obra", () => {
+test("incremento sobre todo el coste del vidrio, con cantos, energía y manufacturas asociadas", () => {
   const q = {
     pricing: {
       marginScope: "glass",
@@ -182,15 +182,15 @@ test("incremento solo sobre vidrio, sin margen en cantos, energía ni mano de ob
     ],
   };
   const result = quoteDetails(q);
-  assert.equal(result.margin, 57.6);
-  assert.equal(result.lines[0].extraSale, 50);
+  assert.equal(result.margin, 78.64);
+  assert.equal(result.lines[0].extraSale, 60);
   assert.equal(result.lines[1].sale, 100);
   assert.equal(result.cost, 493.2);
-  assert.deepEqual(result.totals, { base: 550.8, iva: 115.67, total: 666.47 });
+  assert.deepEqual(result.totals, { base: 571.84, iva: 120.09, total: 691.93 });
   q.lines[0].extraMode = "included";
   assert.deepEqual(quoteDetails(q).totals, result.totals);
   q.pricing.margin = 100;
-  assert.equal(quoteDetails(q).margin, 288);
+  assert.equal(quoteDetails(q).margin, 393.2);
 });
 
 test("aluminio: incremento propio, vidrio independiente e IVA sobre venta", () => {
@@ -512,4 +512,39 @@ test("suplementos por medidas y metraje: umbrales reales, tramos y desactivació
     30,
   );
   assert.equal(calc({ w: 300, h: 300, price: 100 }).supplementTotal, 0);
+});
+
+test("100 € de coste completo con 100 % de margen son 200 € antes de IVA", () => {
+  const q = {
+    pricing: {
+      marginScope: "glass",
+      marginMode: "cost",
+      margin: 100,
+      energyMode: "percent",
+      energy: 25,
+      energySeparate: true,
+      vat: 21,
+    },
+    lines: [
+      {
+        w: 120,
+        h: 120,
+        qty: 1,
+        price: 25,
+        edgePrice: 20,
+        sides: ["top"],
+        extraAmount: 25,
+        extraMode: "separate",
+      },
+    ],
+  };
+  const result = quoteDetails(q);
+  assert.equal(result.cost, 100);
+  assert.equal(result.margin, 100);
+  assert.deepEqual(result.totals, { base: 200, iva: 42, total: 242 });
+  assert.equal(result.lines[0].extraSale, 50);
+  assert.equal(result.lines[0].energySale, 30);
+  q.lines[0].extraMode = "included";
+  q.pricing.energySeparate = false;
+  assert.deepEqual(quoteDetails(q).totals, result.totals);
 });

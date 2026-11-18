@@ -282,10 +282,18 @@ contar los ángulos distintos de 90° y los lados curvos por pieza. Cada recargo
 calcula sobre el coste facturable del vidrio (con su redondeo comercial y metraje
 mínimo), sin cantos, energía ni extras. Se toma el mayor entre porcentaje y mínimo
 en euros, por pieza y por ángulo/lado cuando corresponda, y se multiplica por la
-cantidad. Los recargos seleccionados se suman sin capitalización; no llevan margen
-en el modo actual de margen solo sobre vidrio y se mantienen con tarifa fija.
+cantidad. Los recargos seleccionados se suman sin capitalización; forman parte del coste total sobre el que se aplica el margen comercial
+y se mantienen con tarifa fija.
 El PDF interno detalla los recargos y el del cliente los incluye en el vidrio.
 La facturación automática usa el mismo cálculo.
 
 «Ver medidas del parte» está inmediatamente antes de las líneas de vidrio,
 después de los datos del cliente y del margen.
+
+## Margen comercial del vidrio
+
+El porcentaje se aplica sobre el coste total del vidrio, incluidos cantos,
+manufacturas, mano de obra, recargos energéticos y extras asociados. Por ejemplo,
+100 € de coste total con un margen del 100 % son 200 € de venta antes de IVA.
+Mostrar recargos o extras por separado no cambia el margen ni el total. Los
+conceptos libres independientes y el aluminio conservan su tratamiento propio.

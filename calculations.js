@@ -260,7 +260,7 @@
     return { base, iva, total: round2(base + iva) };
   }
   // Los importes adicionales son por línea completa, no por pieza.
-  // Nuevos presupuestos: incremento solo del vidrio; los antiguos conservan su fórmula.
+  // El incremento del vidrio incluye cantos, energía y extras asociados.
   function quoteDetails(quote) {
     const config = quote.pricing || {},
       marginRate = num(config.margin),
@@ -298,7 +298,7 @@
             config.marginScope === "glass"
               ? line.kind === "concept"
                 ? 0
-                : dimensions.area * num(line.price) * dimensions.qty
+                : cost
               : cost,
           sale = round2(
             config.priceMode === "fixed" && line.kind !== "concept"
@@ -312,16 +312,13 @@
           ),
           separate = line.extraMode === "separate",
           extraSale = separate
-            ? round2(extraCost * (config.marginScope === "glass" ? 1 : factor))
+            ? round2(extraCost * (config.priceMode === "fixed" ? 1 : factor))
             : 0,
           energySale =
             config.energySeparate === true && line.kind !== "concept"
               ? round2(
                   dimensions.energy *
-                    (config.marginScope === "glass" ||
-                    config.priceMode === "fixed"
-                      ? 1
-                      : factor),
+                    (config.priceMode === "fixed" ? 1 : factor),
                 )
               : 0;
         return {

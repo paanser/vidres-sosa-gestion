@@ -5021,3 +5021,238 @@ html {
 .quote-supplements label {
   margin-top: 0.75rem;
 }
+
+/* Presupuestos: recorrido por bloques y datos de entrada destacados. */
+.quote-editor,
+.quick-quote-editor {
+  --quote-accent: #155b40;
+  --quote-soft: #eff8f3;
+  --quote-line: #cadfd2;
+}
+.quote-intro {
+  color: #52645a;
+  line-height: 1.6;
+  margin: 0 0 28px;
+}
+.quote-form-section {
+  min-width: 0;
+  margin: 28px 0;
+  padding: 24px 0 0;
+  border-top: 1px solid #dce7e0;
+}
+.quote-form-section > h3 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 22px;
+  color: #203e2e;
+  line-height: 1.4;
+}
+.quote-form-section .quote-step {
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  font-weight: 800;
+}
+.quote-editor .quote-fields,
+.quick-quote-editor .quote-fields {
+  gap: 20px;
+  margin: 20px 0;
+}
+.quote-editor label,
+.quick-quote-editor label {
+  line-height: 1.5;
+}
+.quote-measure-inputs {
+  min-width: 0;
+  margin: 26px 0;
+  padding: 18px 20px 20px;
+  border: 2px solid #79ad8f;
+  border-radius: 12px;
+  background: var(--quote-soft);
+}
+.quote-measure-inputs legend {
+  max-width: 100%;
+  padding: 0 8px;
+  color: var(--quote-accent);
+  font-weight: 800;
+  line-height: 1.5;
+}
+#content .quote-field-hint {
+  color: #3f5e4b;
+  margin: 0 0 18px;
+  line-height: 1.6;
+}
+.quote-measure-inputs .quote-fields.quote-dimensions {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  margin: 0;
+}
+.quote-editor .quote-key-field,
+.quick-quote-editor .quote-key-field {
+  display: grid;
+  gap: 9px;
+  min-width: 0;
+  color: var(--quote-accent);
+  font-weight: 800;
+  align-content: start;
+}
+.quote-key-field input,
+.quote-key-field .select-search-trigger {
+  border: 1px solid #8eb69e;
+  background: #fff;
+}
+#content .quote-measure-inputs input {
+  min-height: 52px;
+  padding: 12px;
+  font-size: max(18px, 1em);
+  font-weight: 700;
+}
+.quote-key-field input:focus-visible,
+.quote-key-field .select-search-trigger:focus-visible {
+  outline: 3px solid #8fc2a4;
+  outline-offset: 2px;
+}
+.quote-thickness {
+  display: grid;
+  grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
+  align-items: center;
+  gap: 16px 24px;
+  margin: 24px 0;
+  padding: 18px;
+  border: 1px solid var(--quote-line);
+  border-radius: 10px;
+  background: #f8fbf9;
+}
+#content .quote-thickness p {
+  color: #52645a;
+  line-height: 1.6;
+}
+.quote-editor .quote-line {
+  margin: 24px 0;
+  padding: 24px;
+}
+.quote-editor .quote-line-head {
+  gap: 12px;
+  padding-bottom: 18px;
+}
+.quote-editor .quote-line-head strong {
+  color: var(--quote-accent);
+  font-size: 1.15em;
+}
+.quote-editor .quote-extras > h4 {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #52645a;
+}
+.quote-editor .quote-customer,
+.quick-quote-editor .quote-customer,
+.quote-editor .quote-energy,
+.quick-quote-editor .quote-energy {
+  min-width: 0;
+  margin: 24px 0;
+  padding: 18px;
+  border: 1px solid var(--quote-line);
+  border-radius: 12px;
+}
+.quote-customer > summary,
+.quote-energy > legend,
+.quote-edge-panel > legend {
+  color: #324e3e;
+  font-weight: 750;
+  line-height: 1.5;
+}
+.quote-customer > summary {
+  cursor: pointer;
+}
+.quote-customer[open] > summary {
+  margin-bottom: 16px;
+}
+.quote-editor .quote-supplements,
+.quick-quote-editor .quote-supplements {
+  margin: 14px 0;
+  padding: 16px;
+  background: #fafcfb;
+  border-color: #dce7e0;
+}
+.quote-editor .quote-supplements summary,
+.quick-quote-editor .quote-supplements summary {
+  color: #425a4b;
+}
+.quote-editor .quote-edge-panel,
+.quick-quote-editor .quote-edge-panel {
+  margin: 24px 0;
+  padding: 8px 10px;
+}
+.quote-editor .quote-edge-panel label,
+.quick-quote-editor .quote-edge-panel label {
+  line-height: 1.25;
+}
+.quote-editor .quote-margin {
+  gap: 20px;
+  padding: 20px;
+  background: #fafcfb;
+}
+.quote-editor .quote-margin label {
+  color: var(--quote-accent);
+  font-weight: 750;
+}
+.quote-editor .quote-margin p,
+.quote-editor .quote-energy p,
+.quick-quote-editor .quote-energy p {
+  color: #52645a;
+  line-height: 1.65;
+}
+.quote-editor .quote-result,
+.quick-quote-editor .quick-result {
+  margin-top: 24px;
+  padding: 20px;
+}
+.quote-summary-heading {
+  margin: 30px 0 0;
+  color: #203e2e;
+}
+.quote-editor .quote-total,
+.quick-quote-editor .quick-result {
+  border: 2px solid #92bba2;
+  background: #eff8f3;
+}
+.quote-editor > .quote-toolbar,
+.quick-quote-editor > .quote-toolbar {
+  gap: 14px;
+  margin: 26px 0 0;
+  padding-top: 22px;
+  border-top: 1px solid #dce7e0;
+}
+@media (max-width: 900px) {
+  .quote-thickness {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .quote-editor .quote-line {
+    padding: 16px;
+  }
+  .quote-measure-inputs {
+    padding: 16px 12px;
+  }
+  .quote-measure-inputs .quote-fields.quote-dimensions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px 14px;
+  }
+  .quote-measure-inputs .quote-key-field:last-child {
+    grid-column: 1 / -1;
+  }
+  .quote-editor .quote-fields,
+  .quick-quote-editor .quote-fields {
+    gap: 18px;
+  }
+  .quote-editor .quote-glass-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 370px) {
+  .quote-measure-inputs .quote-fields.quote-dimensions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

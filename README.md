@@ -188,6 +188,12 @@ Las preferencias se guardan en la cuenta mediante `/api/preferences/home`, separ
 
 ### Vistas de presupuestos
 
+Los editores normal y rápido se organizan en bloques numerados de cliente,
+piezas o medidas y condiciones de cálculo, con un resumen final. Ancho, alto
+y cantidad aparecen juntos en un recuadro verde con etiquetas en negrita y
+campos grandes. El tipo de vidrio, precio y espesor también se destacan; los
+recargos y opciones de cálculo se consultan después de los datos principales.
+
 Al abrir Presupuestos se muestra directamente la lista de presupuestos guardados,
 con «Nuevo presupuesto» y «Presupuesto rápido» arriba. El formulario completo de
 cliente, medidas y precios se abre al crear, abrir o duplicar un presupuesto.

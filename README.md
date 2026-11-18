@@ -221,3 +221,19 @@ Al abrir WhatsApp, tanto para presupuesto como para seguimiento, el diálogo
 permite elegir el teléfono de la ficha o escribir otro número con prefijo
 internacional. El número alternativo no modifica la ficha ni se conserva para
 el siguiente envío. No es necesario añadir el destinatario a los contactos.
+
+### Orden y filtros de expedientes
+
+En Trabajos, «Ordenar por» permite ordenar por referencia, creación, cliente,
+responsable o fecha de cita, en ambos sentidos. El orden se recuerda para cada
+usuario en ese navegador y se conserva al cambiar entre tarjetas y lista compacta.
+«Más filtros» permite combinar responsable, estado, tipo de cliente y un rango
+inclusivo de fechas de creación. Los filtros se conservan al cambiar entre activos,
+finalizados, archivo y todos; «Limpiar filtros» los retira junto con la búsqueda y
+los hitos, conservando el orden y el ámbito elegidos.
+
+La creación procede del evento inicial del historial y se muestra en la zona
+horaria del dispositivo; no se utiliza la fecha de cita ni una edición posterior.
+Los expedientes antiguos sin ese evento indican «Sin fecha registrada», quedan al
+final al ordenar por creación y se excluyen cuando se aplica un rango de creación.
+Este cambio solo afecta al frontend y no necesita cambios en el Worker ni en D1.

@@ -2457,7 +2457,10 @@ nav button[data-page="criticos"].active {
 }
 .simple-work-search {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(160px, 240px);
+  grid-template-columns: minmax(0, 1fr) minmax(130px, 190px) minmax(
+      170px,
+      240px
+    );
   gap: 14px;
   margin-bottom: 14px;
 }

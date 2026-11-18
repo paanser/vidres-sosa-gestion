@@ -403,6 +403,7 @@ async function checkMobileFields(page) {
     "PASS deslizar actualiza trabajos remotos; gesto corto y fallo de red conservan datos y sesión",
   );
 
+  await require("./check-job-list-browser.cjs")(page);
   await require("./check-meters-browser.cjs")(page, context, root);
   await require("./check-client-link-browser.cjs")(page);
   await require("./check-price-profiles-browser.cjs")(page);

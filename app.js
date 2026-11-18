@@ -170,7 +170,33 @@ window.vidresAppReady = (async () => {
   let jobScope = "activos",
     jobFocus = "";
   const usagePanel = document.querySelector(".ai-usage");
-  let filters = { estado: "", responsable: "", tipoCliente: "" };
+  const emptyJobFilters = () => ({
+    estado: "",
+    responsable: "",
+    tipoCliente: "",
+    createdFrom: "",
+    createdTo: "",
+  });
+  let filters = emptyJobFilters();
+  const jobOrders = {
+    "id:asc": "Referencia: menor a mayor",
+    "id:desc": "Referencia: mayor a menor",
+    "creation:desc": "Creación: más recientes primero",
+    "creation:asc": "Creación: más antiguos primero",
+    "cliente:asc": "Cliente: A–Z",
+    "cliente:desc": "Cliente: Z–A",
+    "responsable:asc": "Responsable: A–Z",
+    "responsable:desc": "Responsable: Z–A",
+    "fecha:asc": "Cita: más próximas primero",
+    "fecha:desc": "Cita: más lejanas primero",
+  };
+  const jobOrderKey = "vidres-job-order-v1:" + VSAuth.user.id;
+  let jobOrder = "id:asc";
+  let jobOrderNotice = "";
+  try {
+    const saved = localStorage.getItem(jobOrderKey);
+    if (Object.hasOwn(jobOrders, saved)) jobOrder = saved;
+  } catch {}
   const options = (values, selected) =>
     '<option value="">Todos</option>' +
     values
@@ -213,6 +239,8 @@ window.vidresAppReady = (async () => {
             esc(j.responsable || "Sin asignar") +
             "</span><span>" +
             esc(j.tipoCliente || "Particular") +
+            '</span><span class="job-created">Creación: ' +
+            esc(VSUtils.jobCreatedDate(j) || "Sin fecha registrada") +
             '</span></div><button type="button" class="job-open" data-id="' +
             esc(j.id) +
             '">Ver y editar trabajo</button>' +
@@ -264,6 +292,19 @@ window.vidresAppReady = (async () => {
             "</option>",
         )
         .join("") +
+      '</select></label><label>Ordenar por<select id="job-order">' +
+      Object.entries(jobOrders)
+        .map(
+          ([value, label]) =>
+            '<option value="' +
+            value +
+            '"' +
+            (jobOrder === value ? " selected" : "") +
+            ">" +
+            label +
+            "</option>",
+        )
+        .join("") +
       '</select></label></div><details class="advanced-work-filters"><summary>Más filtros</summary><div class="work-filters"><label>Estado<select data-filter="estado">' +
       options(states, filters.estado) +
       '</select></label><label>Responsable<select data-filter="responsable">' +
@@ -276,7 +317,18 @@ window.vidresAppReady = (async () => {
         ["Particular", "Vitralia", "Mapfre", "Otros"],
         filters.tipoCliente,
       ) +
-      "</select></label></div></details>"
+      '</select></label><label>Creación desde<input type="date" data-filter="createdFrom" value="' +
+      esc(filters.createdFrom) +
+      '"' +
+      (filters.createdTo ? ' max="' + esc(filters.createdTo) + '"' : "") +
+      '></label><label>Creación hasta<input type="date" data-filter="createdTo" value="' +
+      esc(filters.createdTo) +
+      '"' +
+      (filters.createdFrom ? ' min="' + esc(filters.createdFrom) + '"' : "") +
+      '></label></div><p class="muted">El rango incluye ambos días. Los expedientes sin fecha de creación registrada no aparecen al filtrar por creación.</p></details>' +
+      '<button type="button" data-jobs-clear>Limpiar filtros</button><p role="status" class="muted">' +
+      esc(jobOrderNotice) +
+      "</p>"
     );
   }
   function dashboardHtml() {
@@ -774,7 +826,10 @@ window.vidresAppReady = (async () => {
             }
           : {
               description: ["Descripciones", ".job-card > p, .panel > p.muted"],
-              metadata: ["Fecha, responsable y tipo de cliente", ".job-meta"],
+              metadata: [
+                "Cita, creación, responsable y tipo de cliente",
+                ".job-meta",
+              ],
               milestones: ["Hitos de trabajos", ".job-card > .milestones"],
             };
     const defaults = {
@@ -962,6 +1017,11 @@ window.vidresAppReady = (async () => {
             milestoneFilter,
             milestoneCompletion,
           ) &&
+          VSUtils.jobMatchesCreation(
+            j,
+            filters.createdFrom,
+            filters.createdTo,
+          ) &&
           (!filters.estado || j.estado === filters.estado) &&
           (!filters.responsable || j.responsable === filters.responsable) &&
           (!filters.tipoCliente ||
@@ -1000,7 +1060,10 @@ window.vidresAppReady = (async () => {
           : "") +
         workFilters() +
         VSMilestones.controls("jobs") +
-        jobCards(filtered);
+        '<p role="status" class="muted">' +
+        filtered.length +
+        " expedientes encontrados</p>" +
+        jobCards(VSUtils.sortJobs(filtered, jobOrder));
     } else if (page === "criticos") {
       const criticalJobs = jobs.filter((j) => j.estado === "Crítico");
       html =
@@ -1103,18 +1166,45 @@ window.vidresAppReady = (async () => {
     customizeSection();
     const advanced = $(".advanced-work-filters");
     if (advanced && Object.values(filters).some(Boolean)) advanced.open = true;
+    const order = $("#job-order");
+    if (order)
+      order.onchange = () => {
+        jobOrder = order.value;
+        jobOrderNotice = "";
+        try {
+          localStorage.setItem(jobOrderKey, jobOrder);
+        } catch {
+          jobOrderNotice =
+            "El orden se ha aplicado, pero no se pudo guardar en este navegador.";
+        }
+        render();
+        $("#job-order").focus();
+      };
+    const clear = $("[data-jobs-clear]");
+    if (clear)
+      clear.onclick = () => {
+        search = "";
+        jobFocus = "";
+        filters = emptyJobFilters();
+        milestoneFilter = "";
+        milestoneCompletion = "done";
+        render();
+        $("#search").focus();
+      };
     const scope = $("#job-scope");
     if (scope)
       scope.addEventListener("change", () => {
         jobScope = scope.value;
         jobFocus = "";
-        filters = { estado: "", responsable: "", tipoCliente: "" };
         render();
       });
     document.querySelectorAll("[data-filter]").forEach((el) =>
       el.addEventListener("change", () => {
-        filters[el.dataset.filter] = el.value;
+        if (!el.reportValidity()) return;
+        const field = el.dataset.filter;
+        filters[field] = el.value;
         render();
+        document.querySelector('[data-filter="' + field + '"]')?.focus();
       }),
     );
     const mf = $("#jobs-milestone"),
@@ -1804,7 +1894,7 @@ window.vidresAppReady = (async () => {
       jobScope = "activos";
       jobFocus = focus.dataset.jobFocus;
       search = "";
-      filters = { estado: "", responsable: "", tipoCliente: "" };
+      filters = emptyJobFilters();
       window.vidresNavigate("trabajos");
       return;
     }
@@ -1819,7 +1909,7 @@ window.vidresAppReady = (async () => {
         search = "";
         jobScope = "activos";
         jobFocus = "";
-        filters = { estado: "", responsable: "", tipoCliente: "" };
+        filters = emptyJobFilters();
       }
       window.vidresNavigate(go.dataset.go);
       return;

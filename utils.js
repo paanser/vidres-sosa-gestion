@@ -115,7 +115,51 @@
     const n = unit === "mm" ? num(value) / 10 : num(value);
     return Math.round(n * 100) / 100;
   };
+  // Creation is the initial status event, never the appointment or a later edit.
+  const jobCreatedAt = (job) => {
+    const event = (Array.isArray(job.historial) ? job.historial : []).find(
+      (h) => h && h.de === "" && h.fecha,
+    );
+    const value = event?.fecha;
+    return typeof value === "string" &&
+      /^\d{4}-\d{2}-\d{2}T/.test(value) &&
+      Number.isFinite(Date.parse(value))
+      ? value
+      : "";
+  };
+  const jobCreatedDate = (job) => {
+    const value = jobCreatedAt(job);
+    if (!value) return "";
+    const d = new Date(value);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+  const jobMatchesCreation = (job, from, to) => {
+    if (!from && !to) return true;
+    const date = jobCreatedDate(job);
+    return Boolean(date && (!from || date >= from) && (!to || date <= to));
+  };
+  const sortJobs = (items, order) => {
+    const [field, direction] = order.split(":");
+    const sign = direction === "desc" ? -1 : 1;
+    const value = (job) =>
+      field === "creation" ? jobCreatedAt(job) : String(job[field] || "");
+    return [...items].sort((a, b) => {
+      const av = value(a),
+        bv = value(b);
+      // Missing dates and unassigned fields remain last in either direction.
+      if (!av || !bv) return av ? -1 : bv ? 1 : 0;
+      return (
+        sign *
+        (field === "creation"
+          ? Date.parse(av) - Date.parse(bv)
+          : av.localeCompare(bv, "es", { numeric: true, sensitivity: "base" }))
+      );
+    });
+  };
   const api = {
+    jobCreatedDate,
+    jobMatchesCreation,
+    sortJobs,
     esc,
     num,
     priceError,

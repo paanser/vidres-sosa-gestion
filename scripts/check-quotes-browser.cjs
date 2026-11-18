@@ -468,7 +468,9 @@ module.exports = async function checkQuotes(page, context, root) {
     zeroId,
   );
   await page.reload();
-  await page.waitForFunction(() => window.vidresQuoteOpenSaved);
+  await page.waitForFunction(
+    () => window.vidresQuoteOpenSaved && window.vidresNavigate,
+  );
   await page.evaluate((id) => vidresQuoteOpenSaved(id), zeroId);
   assert.equal(
     await page.locator('[data-field="edgeMode"]').inputValue(),
@@ -573,7 +575,9 @@ module.exports = async function checkQuotes(page, context, root) {
     ),
   );
   await page.reload();
-  await page.waitForFunction(() => window.vidresQuoteOpenSaved);
+  await page.waitForFunction(
+    () => window.vidresQuoteOpenSaved && window.vidresNavigate,
+  );
   await page.evaluate(() => {
     const quote = VSStorage.read("vs-quote-prototype-v1", []).find(
       (q) => q.lines[0].edgeTariff === "test-edge-second",

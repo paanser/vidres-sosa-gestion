@@ -45,7 +45,7 @@ test("suma de recargos sin cantos ni energía y casillas reversibles", () => {
   });
   close(off.surcharge, 82.2528);
   assert.equal(off.surcharges.find((r) => r.id === "area4").applied, false);
-  assert.equal(C.calc(l, {}).surcharge, 0); // presupuestos anteriores
+  close(C.calc(l, {}).surcharge, c.surcharge); // presupuestos anteriores sin reglas guardadas
   assert.equal(C.calc({ ...l, doubleGlazing: false }, config).surcharge, 0);
 });
 test("mínimos y cantidades de formas por pieza, sin recargo para piezas incompletas", () => {

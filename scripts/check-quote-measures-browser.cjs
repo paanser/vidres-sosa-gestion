@@ -83,8 +83,13 @@ module.exports = async function checkQuoteMeasures(page, context, root) {
   assert.equal(
     await page
       .locator("#quote-measures")
-      .evaluate((panel) => panel.nextElementSibling?.id),
-    "quote-lines",
+      .evaluate((panel) => [
+        panel.nextElementSibling?.querySelector('[data-field="w"]')?.dataset
+          .field,
+        panel.nextElementSibling?.querySelector('[data-field="h"]')?.dataset
+          .field,
+      ]),
+    ["w", "h"],
   );
   const fileRequests = [],
     track = (request) => {

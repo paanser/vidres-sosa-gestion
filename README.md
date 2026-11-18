@@ -287,8 +287,8 @@ y se mantienen con tarifa fija.
 El PDF interno detalla los recargos y el del cliente los incluye en el vidrio.
 La facturación automática usa el mismo cálculo.
 
-«Ver medidas del parte» está inmediatamente antes de las líneas de vidrio,
-después de los datos del cliente y del margen.
+«Ver medidas del parte» está justo encima de los campos de ancho y alto
+del primer vidrio, después de la configuración del acristalamiento.
 
 ## Margen comercial del vidrio
 

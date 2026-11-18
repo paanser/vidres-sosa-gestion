@@ -302,6 +302,7 @@
   });
   function minimumAreaFields() {
     const value = String(pricing(draft).minimumArea ?? "legacy");
+    const sizeMode = pricing(draft).specialSizeMode ?? "legacy";
     return `<div class="quote-fields"><label>Metraje mínimo por pieza<select id="quote-minimum-area">${[
       ["auto", "Automático · simple 0,50 m² / doble 0,70 m²"],
       ["0.35", "0,35 m²"],
@@ -316,7 +317,9 @@
         ([key, label]) =>
           `<option value="${key}" ${value === key ? "selected" : ""}>${label}</option>`,
       )
-      .join("")}</select></label></div>`;
+      .join(
+        "",
+      )}</select></label><label>Medidas especiales · doble acristalamiento<select id="quote-special-size"><option value="auto" ${sizeMode === "auto" ? "selected" : ""}>Automático según medidas</option><option value="none" ${sizeMode === "none" ? "selected" : ""}>Sin recargo</option>${sizeMode === "legacy" ? '<option value="legacy" selected>Sin recargo · presupuesto anterior</option>' : ""}</select></label></div><p class="muted">Doble acristalamiento: lado &gt; 2,40 m: 20 %; superficie por pieza &gt; 4 m²: 25 %, &gt; 5 m²: 50 %, &gt; 8 m²: 100 %. Se aplica el porcentaje mayor sobre el vidrio, sin sumar porcentajes. Cantos y energía aparte.</p>`;
   }
   function energyFields() {
     const p = pricing(draft);
@@ -329,6 +332,11 @@
     draft.pricing.energySeparate = input.checked;
   }
   function readMinimumArea() {
+    const size = document.querySelector("#quote-special-size");
+    if (size && size.value !== "legacy") {
+      draft.pricing ||= { ...pricing(draft) };
+      draft.pricing.specialSizeMode = size.value;
+    }
     const input = document.querySelector("#quote-minimum-area");
     if (input && input.value !== "legacy") {
       draft.pricing ||= { ...pricing(draft) };
@@ -352,6 +360,7 @@
         marginMode: "cost",
         marginScope: "glass",
         minimumArea: "auto",
+        specialSizeMode: "auto",
       },
       lines: [emptyLine()],
     };
@@ -612,8 +621,14 @@
       </section>`;
     initMeasures();
   }
+  function sizeSurchargeText(result) {
+    if (!result.detectedSizeRate) return "";
+    return result.sizeRate
+      ? `Recargo por medidas especiales: ${result.sizeRate} % · ${money(result.sizeSurcharge)} sin IVA`
+      : `Medidas especiales detectadas: ${result.detectedSizeRate} % · recargo desactivado`;
+  }
   function quickResultHtml(result, total) {
-    return `Medida real: ${measures(result.w, result.h)}<br>Medida aplicada: ${measures(result.aw, result.ah)}<br>Superficie aplicada: ${result.area.toFixed(4)} m² por pieza<br>Canto pulido: ${result.ml.toFixed(2)} ml × ${result.edgeParts} vidrio(s) × ${result.qty} ud. = ${(result.ml * result.edgeParts * result.qty).toFixed(2)} ml<br>Importe del pulido: ${money(result.ml * result.edgeParts * result.qty * num(draft.lines[0].edgePrice))} sin IVA<br>Peso vidrio: ${result.weight.toFixed(2)} kg<br>Recargo energético calculado: <strong>${money(result.energy)}</strong><br>Base: <strong>${money(total.base)}</strong><br>IVA (${esc(pricing(draft).vat ?? 21)} %): <strong>${money(total.iva)}</strong><br>Total: <strong class="quote-grand-total">${money(total.total)}</strong>`;
+    return `${sizeSurchargeText(result) ? sizeSurchargeText(result) + "<br>" : ""}Medida real: ${measures(result.w, result.h)}<br>Medida aplicada: ${measures(result.aw, result.ah)}<br>Superficie aplicada: ${result.area.toFixed(4)} m² por pieza<br>Canto pulido: ${result.ml.toFixed(2)} ml × ${result.edgeParts} vidrio(s) × ${result.qty} ud. = ${(result.ml * result.edgeParts * result.qty).toFixed(2)} ml<br>Importe del pulido: ${money(result.ml * result.edgeParts * result.qty * num(draft.lines[0].edgePrice))} sin IVA<br>Peso vidrio: ${result.weight.toFixed(2)} kg<br>Recargo energético calculado: <strong>${money(result.energy)}</strong><br>Base: <strong>${money(total.base)}</strong><br>IVA (${esc(pricing(draft).vat ?? 21)} %): <strong>${money(total.iva)}</strong><br>Total: <strong class="quote-grand-total">${money(total.total)}</strong>`;
   }
   function readQuickForm() {
     const line = draft.lines[0] || emptyLine(),
@@ -806,7 +821,7 @@
   }
   function lineResult(c, line) {
     const sale = `<p class="quote-line-sale"><strong>Precio de esta partida sin IVA: ${money(c.glassSale)}</strong>${c.energySale ? `<br>Recargo energético separado sin IVA: ${money(c.energySale)}` : ""}${c.separate && c.extraSale ? `<br>Concepto separado sin IVA: ${money(c.extraSale)}` : ""}${c.energySale || c.extraSale ? `<br>Total de la partida sin IVA: ${money(c.sale)}` : ""}</p>`;
-    return `${sale}<div class="quote-line-metrics"><span>Peso vidrio: ${c.thickness ? c.weight.toFixed(2) + " kg" : "pendiente de espesor"}</span><span>Real: ${measures(c.w, c.h)} · ${c.real.toFixed(4)} m²</span><span>Aplicada: ${measures(c.aw, c.ah)} · ${c.area.toFixed(4)} m²</span><span>Canto: ${c.ml.toFixed(2)} ml × ${c.edgeParts} pieza(s) de vidrio · Unidades: ${c.qty} · Canto total: ${(c.ml * c.edgeParts * c.qty).toFixed(2)} ml</span><span>Coste de vidrio y cantos: ${money(c.total - c.energy)}</span><span>Importe del pulido: ${money(c.ml * c.edgeParts * c.qty * num(line?.edgePrice))} sin IVA</span>${c.thickness ? `<span>Recargo energético: ${money(c.energy)} sin IVA${pricing(draft).energyMode === "kg" ? ` (${c.weight.toFixed(2)} kg × ${money(num(pricing(draft).energy))}/kg)` : ""}</span>` : "<span>Recargo energético pendiente: indica el espesor del vidrio.</span>"}</div>`;
+    return `${sale}<div class="quote-line-metrics">${sizeSurchargeText(c) ? `<span>${sizeSurchargeText(c)}</span>` : ""}<span>Peso vidrio: ${c.thickness ? c.weight.toFixed(2) + " kg" : "pendiente de espesor"}</span><span>Real: ${measures(c.w, c.h)} · ${c.real.toFixed(4)} m²</span><span>Aplicada: ${measures(c.aw, c.ah)} · ${c.area.toFixed(4)} m²</span><span>Canto: ${c.ml.toFixed(2)} ml × ${c.edgeParts} pieza(s) de vidrio · Unidades: ${c.qty} · Canto total: ${(c.ml * c.edgeParts * c.qty).toFixed(2)} ml</span><span>Coste de vidrio, cantos y recargo por medidas: ${money(c.total - c.energy)}</span><span>Importe del pulido: ${money(c.ml * c.edgeParts * c.qty * num(line?.edgePrice))} sin IVA</span>${c.thickness ? `<span>Recargo energético: ${money(c.energy)} sin IVA${pricing(draft).energyMode === "kg" ? ` (${c.weight.toFixed(2)} kg × ${money(num(pricing(draft).energy))}/kg)` : ""}</span>` : "<span>Recargo energético pendiente: indica el espesor del vidrio.</span>"}</div>`;
   }
   function totalResult(breakdown) {
     const total = breakdown.totals;
@@ -1131,7 +1146,7 @@
           return `<tr><td>${l.kind === "aluminum" ? aluminumDescription(l) : esc(l.description)}</td>${internal ? `<td>${money(a.cost)}</td><td>${money(a.margin)}</td>` : ""}<td>${money(a.sale)}</td></tr>`;
         const label = `${esc(glassName(l) || "Vidrio")} · ${measures(a.w, a.h)} · ${a.qty} ud.`;
         if (internal)
-          return `<tr><td>${label}<br>Precio vidrio: ${money(num(l.price))}/m² · canto: ${money(num(l.edgePrice))}/ml<br>Real: ${a.real.toFixed(4)} m²/pieza · aplicada: ${a.area.toFixed(4)} m²/pieza · canto: ${a.ml.toFixed(2)} ml × ${a.edgeParts} vidrio(s)/pieza<br>Peso vidrio: ${a.weight.toFixed(2)} kg<br>Vidrio y cantos: ${money(a.glassCost - a.energy)} · recargo energético: ${money(a.energy)}<br>Otros conceptos: ${esc(l.extraDescription || "Sin concepto")} · ${money(a.extraCost)} (${a.separate ? "separado" : "integrado en vidrio"})</td><td>${money(a.cost)}</td><td>${money(a.margin)}</td><td>${money(a.sale)}</td></tr>`;
+          return `<tr><td>${label}<br>Precio vidrio: ${money(num(l.price))}/m² · canto: ${money(num(l.edgePrice))}/ml<br>Real: ${a.real.toFixed(4)} m²/pieza · aplicada: ${a.area.toFixed(4)} m²/pieza · canto: ${a.ml.toFixed(2)} ml × ${a.edgeParts} vidrio(s)/pieza<br>Peso vidrio: ${a.weight.toFixed(2)} kg<br>${sizeSurchargeText(a) ? sizeSurchargeText(a) + "<br>" : ""}Vidrio, cantos y recargo por medidas: ${money(a.glassCost - a.energy)} · recargo energético: ${money(a.energy)}<br>Otros conceptos: ${esc(l.extraDescription || "Sin concepto")} · ${money(a.extraCost)} (${a.separate ? "separado" : "integrado en vidrio"})</td><td>${money(a.cost)}</td><td>${money(a.margin)}</td><td>${money(a.sale)}</td></tr>`;
         return `<tr><td>${label}</td><td>${money(a.glassSale)}</td></tr>${a.energySale ? `<tr><td>Recargo energético</td><td>${money(a.energySale)}</td></tr>` : ""}${a.separate && a.extraCost ? `<tr><td>${esc(l.extraDescription || "Otros conceptos")}</td><td>${money(a.extraSale)}</td></tr>` : ""}`;
       })
       .join("");

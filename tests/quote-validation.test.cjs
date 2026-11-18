@@ -220,3 +220,26 @@ test("clientes homónimos conservan identidades y presupuesto sin parte", async 
     }),
   );
 });
+
+test("servidor: conserva y valida el modo de medidas especiales y admite anteriores", async () => {
+  const { checked, KEYS } = await import("../worker/data.js");
+  const validate = (pricing) =>
+    checked({
+      [KEYS.presupuestos]: [
+        {
+          id: "P-SIZE",
+          client: "Cliente",
+          lines: [{ w: 250, h: 200, qty: 1, price: 100, doubleGlazing: true }],
+          pricing,
+        },
+      ],
+    })[KEYS.presupuestos][0];
+  for (const specialSizeMode of ["auto", "none"])
+    assert.equal(
+      validate({ specialSizeMode }).pricing.specialSizeMode,
+      specialSizeMode,
+    );
+  assert.equal(validate({}).pricing.specialSizeMode, undefined);
+  for (const specialSizeMode of ["", "legacy", 20, true, {}, []])
+    assert.throws(() => validate({ specialSizeMode }));
+});

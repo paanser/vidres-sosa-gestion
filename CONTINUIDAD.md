@@ -371,3 +371,23 @@ CHROMIUM_PATH=/usr/bin/chromium npm run test:browser` (en una sola línea).
   recargo guardado a cero, actualización explícita, modos de pulido,
   normal/rápido, doble y persistencia tras recargar.
 - Publicación autorizada por el usuario mediante el workflow Pages existente.
+
+## Medidas especiales · 18 de noviembre de 2026
+
+- Selector junto al metraje mínimo en presupuesto normal y rápido: Automático
+  según medidas / Sin recargo. Nuevos presupuestos en automático; anteriores
+  conservan su cálculo hasta activar la opción. Guardado y duplicado conservan
+  la selección; el Worker valida los valores auto/none.
+- Alcance: tabla «Recargos / doble acristalamiento» del PDF Reuglass adjunto al
+  repositorio. Lado real > 2,40 m: 20 %; área real por pieza > 4/5/8 m²:
+  25/50/100 %. Umbrales estrictos; cantidad y superficie comercial redondeada
+  no cambian el tramo. Se aplica el porcentaje mayor sin acumularlos porque
+  el PDF no especifica acumulación. Criterio explicado en el editor y README.
+- Recargo sobre el coste del vidrio, sin cantos, energía ni extras; conserva
+  importe con tarifa de venta fija. Editor y PDF interno muestran porcentaje
+  e importe; documentos de cliente y mensajes incluyen el importe en su precio.
+- Pruebas de límites, exclusiones, desactivación, presupuestos anteriores,
+  margen, precio fijo, energía, extras y validación del servidor: npm test,
+  100 aprobadas. Comprobación de navegador con servidor simulado y datos
+  ficticios, sin modificar datos reales. Publicación autorizada por el usuario
+  con «Publica» mediante los workflows existentes de Cloudflare y Pages.

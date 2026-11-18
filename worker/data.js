@@ -356,6 +356,11 @@ export function checked(values) {
         )
       )
         fail(400, "Metraje mínimo no válido");
+      if (
+        q.pricing.specialSizeMode != null &&
+        !["auto", "none"].includes(q.pricing.specialSizeMode)
+      )
+        fail(400, "Modo de recargo por medidas especiales no válido");
       if (q.pricing.energy) number(q.pricing.energy);
       if (
         q.pricing.energySeparate != null &&

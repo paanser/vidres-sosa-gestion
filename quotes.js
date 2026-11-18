@@ -634,7 +634,11 @@
     initMeasures();
   }
   function quickResultHtml(result, total) {
-    return `${surchargeResult(result)}Medida real: ${measures(result.w, result.h)}<br>Medida aplicada: ${measures(result.aw, result.ah)}<br>Superficie aplicada: ${result.area.toFixed(4)} m² por pieza<br>Canto pulido: ${result.ml.toFixed(2)} ml × ${result.edgeParts} vidrio(s) × ${result.qty} ud. = ${(result.ml * result.edgeParts * result.qty).toFixed(2)} ml<br>Importe del pulido: ${money(result.ml * result.edgeParts * result.qty * num(draft.lines[0].edgePrice))} sin IVA<br>Peso vidrio: ${result.weight.toFixed(2)} kg<br>Recargo energético calculado: <strong>${money(result.energy)}</strong><br>Base: <strong>${money(total.base)}</strong><br>IVA (${esc(pricing(draft).vat ?? 21)} %): <strong>${money(total.iva)}</strong><br>Total: <strong class="quote-grand-total">${money(total.total)}</strong>`;
+    const config = pricing(draft);
+    const glassRate =
+      config.priceMode === "fixed" ? config.fixedPrice : draft.lines[0].price;
+    const netGlass = result.area * result.qty * num(glassRate);
+    return `${surchargeResult(result)}Medida real: ${measures(result.w, result.h)}<br>Medida aplicada: ${measures(result.aw, result.ah)}<br>Superficie aplicada: ${result.area.toFixed(4)} m² por pieza<br>Importe neto del vidrio: <strong>${money(netGlass)}</strong> sin IVA<br>Canto pulido: ${result.ml.toFixed(2)} ml × ${result.edgeParts} vidrio(s) × ${result.qty} ud. = ${(result.ml * result.edgeParts * result.qty).toFixed(2)} ml<br>Importe del pulido: ${money(result.ml * result.edgeParts * result.qty * num(draft.lines[0].edgePrice))} sin IVA<br>Peso vidrio: ${result.weight.toFixed(2)} kg<br>Recargo energético calculado: <strong>${money(result.energy)}</strong><br>Base: <strong>${money(total.base)}</strong><br>IVA (${esc(pricing(draft).vat ?? 21)} %): <strong>${money(total.iva)}</strong><br>Total: <strong class="quote-grand-total">${money(total.total)}</strong>`;
   }
   function readQuickForm() {
     const line = draft.lines[0] || emptyLine(),

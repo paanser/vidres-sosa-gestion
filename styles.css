@@ -4947,3 +4947,21 @@ html {
   margin: 0;
   accent-color: var(--vs-green);
 }
+
+.quote-edge-price select {
+  width: 100%;
+  min-height: 44px;
+}
+.quote-edge-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+}
+.quote-edge-price,
+.quote-edge-price:has(select) {
+  width: auto;
+  min-width: 0;
+}
+.quote-edge-options,
+.quote-edge-controls > p {
+  grid-column: 1 / -1;
+}

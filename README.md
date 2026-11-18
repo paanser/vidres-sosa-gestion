@@ -239,3 +239,14 @@ horaria del dispositivo; no se utiliza la fecha de cita ni una edición posterio
 Los expedientes antiguos sin ese evento indican «Sin fecha registrada», quedan al
 final al ordenar por creación y se excluyen cuando se aplica un rango de creación.
 Este cambio solo afecta al frontend y no necesita cambios en el Worker ni en D1.
+
+Los presupuestos guardados a cero muestran la tarifa aplicada y el botón
+«Aplicar tarifa actual de Ajustes», que recalcula el borrador con la tarifa
+actual. Guarda el presupuesto para conservar el cambio.
+
+En «Canto pulido», el selector «Precio del pulido» permite elegir Manual e
+introducir €/ml, o Por tarifa de vidrio para copiar el precio de canto del
+catálogo. Disponible en el presupuesto normal y rápido; se conservan al guardar.
+El precio manual no cambia al seleccionar otro vidrio. Si la tarifa no tiene
+precio de pulido, se indica para que puedas introducirlo manualmente.
+El desglose muestra el importe del pulido y el recargo por separado.

@@ -434,6 +434,109 @@ module.exports = async function checkQuotes(page, context, root) {
   );
   await page.locator("#quote-new").click();
   assert.equal(await page.locator("#quote-energy").count(), 0);
+  // Un presupuesto antiguo con tarifa cero puede actualizarse expresamente.
+  const zeroId = await page.evaluate(async () => {
+    const key = "vs-quote-prototype-v1";
+    const list = VSStorage.read(key, []);
+    const q = list.find((q) => q.pricing.energy === "0.5");
+    q.pricing.energy = "0";
+    await VSStorage.write(key, list);
+    vidresQuoteOpenSaved(q.id);
+    return q.id;
+  });
+  assert.match(
+    await page.locator(".quote-energy").textContent(),
+    /recargo a cero/,
+  );
+  await page.locator("#quote-energy-refresh").click();
+  assert.match(
+    await page.locator(".quote-total-breakdown").textContent(),
+    /20,00/,
+  );
+  assert.equal(await page.locator("#quote-energy-refresh").count(), 0);
+  await page.locator('[data-field="edgeMode"]').selectOption("manual");
+  await set('[data-field="edgePrice"]', "3,5");
+  assert.match(
+    await page.locator(".quote-line-metrics").textContent(),
+    /Importe del pulido: 28,00/,
+  );
+  await page.locator("#quote-save").click();
+  await page.waitForFunction(
+    (id) =>
+      VSStorage.read("vs-quote-prototype-v1", []).find((q) => q.id === id)
+        ?.lines[0].edgePrice === "3.5",
+    zeroId,
+  );
+  await page.reload();
+  await page.waitForFunction(() => window.vidresQuoteOpenSaved);
+  await page.evaluate((id) => vidresQuoteOpenSaved(id), zeroId);
+  assert.equal(
+    await page.locator('[data-field="edgeMode"]').inputValue(),
+    "manual",
+  );
+  assert.equal(
+    await page.locator('[data-field="edgePrice"]').inputValue(),
+    "3.5",
+  );
+  // Tarifa con canto y vidrio de prueba, sin registros reales.
+  await page.evaluate(async () => {
+    const key = "vs-tariffs-prototype-v1";
+    await VSStorage.write(key, [
+      ...VSStorage.read(key, []),
+      { id: "test-edge", name: "Float 4 prueba pulido", price: 20, edge: 6 },
+    ]);
+  });
+  await page.locator("#quote-quick").click();
+  await set("#quick-w", "1.000");
+  await set("#quick-h", "1.000");
+  await selectBySearch(page, "#quick-glass", "test-edge");
+  await set('[data-field="edgePrice"]', "4,5");
+  await page.locator('[data-quick-edge="top"]').check();
+  assert.match(
+    await page.locator("#quick-result").textContent(),
+    /Importe del pulido: 4,50/,
+  );
+  await page.locator('[data-field="edgeMode"]').selectOption("tariff");
+  assert.equal(
+    await page.locator('[data-field="edgePrice"]').inputValue(),
+    "6",
+  );
+  assert.equal(
+    await page.locator('[data-field="edgePrice"]').getAttribute("readonly"),
+    "",
+  );
+  assert.match(
+    await page.locator("#quick-result").textContent(),
+    /Importe del pulido: 6,00/,
+  );
+  await page.locator('[data-field="doubleGlazing"]').check();
+  assert.match(
+    await page.locator("#quick-result").textContent(),
+    /Importe del pulido: 12,00/,
+  );
+  await page.locator("#quick-save").click();
+  await page.waitForSelector("#quote-save");
+  assert.equal(
+    await page.locator('[data-field="edgeMode"]').inputValue(),
+    "tariff",
+  );
+  await page.locator('[data-field="edgeMode"]').selectOption("manual");
+  await set('[data-field="edgePrice"]', "2,5");
+  assert.match(
+    await page.locator(".quote-line-metrics").textContent(),
+    /Importe del pulido: 5,00/,
+  );
+  await page.evaluate(() =>
+    VSStorage.write(
+      "vs-tariffs-prototype-v1",
+      VSStorage.read("vs-tariffs-prototype-v1", []).filter(
+        (t) => t.id !== "test-edge",
+      ),
+    ),
+  );
+  console.log(
+    "PASS recargo antiguo cero actualizado, pulido manual y por tarifa, doble, rápido y persistencia",
+  );
   await page.evaluate(
     (c) => VSStorage.write("vs-config-v1", c),
     originalConfig,

@@ -354,3 +354,20 @@ CHROMIUM_PATH=/usr/bin/chromium npm run test:browser` (en una sola línea).
   presupuestos de otros clientes homónimos.
 - Actualizada la versión de caché PWA. Prueba de navegador con escritura,
   guardado, recarga y comprobación de enlaces; 78 pruebas Node superadas.
+
+## Pulido manual o por tarifa y recargo antiguo a cero · 18 de noviembre de 2026
+
+- Se parte de main `a7ec715`, conservando el recargo fijo en Ajustes y la tarifa
+  inicial de 0,33 €/kg. Los presupuestos guardados conservan su tarifa: se muestra
+  explícitamente y pueden recalcularse con «Aplicar tarifa actual de Ajustes».
+  No se modifican automáticamente presupuestos guardados ni datos reales.
+- Canto pulido permite elegir Manual (€/ml) o Por tarifa de vidrio, en editor
+  normal y rápido. El manual no se sobrescribe al cambiar de vidrio; por tarifa
+  muestra el precio del catálogo y avisa cuando falta. Ambos se guardan.
+- Desglose de pulido en euros y fórmula del recargo por partida. El coste de
+  vidrio y cantos excluye la energía, que tiene su propio importe.
+- Caché PWA y versión actualizadas. Pruebas: 96 Node, navegador con datos
+  ficticios y backend en memoria, comprobaciones 390/768/1024/1440 px,
+  recargo guardado a cero, actualización explícita, modos de pulido,
+  normal/rápido, doble y persistencia tras recargar.
+- Publicación autorizada por el usuario mediante el workflow Pages existente.

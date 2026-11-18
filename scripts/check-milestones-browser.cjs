@@ -54,49 +54,78 @@ module.exports = async (page) => {
           job,
           client: "Cliente Hitos",
           date: "2026-11-13",
+          hitos: { F: true },
           lines: [{ kind: "concept", description: "Montaje", amount: 100 }],
         });
     });
     vidresNavigate("presupuestos");
   });
-  await page.locator("#quote-search").fill("HITO-Q");
-  assert.equal(await page.locator("[data-saved-quote]:visible").count(), 1);
-  await page.locator('[data-saved-quote="HITO-Q"] summary').click();
-  const qb = page.locator('[data-milestone-id="HITO-Q"][data-milestone="F"]');
-  await qb.click();
-  await page.waitForFunction(
-    () =>
-      VSStorage.read(VSStorage.keys.presupuestos, []).find(
-        (q) => q.id === "HITO-Q",
-      ).hitos?.F === true,
+  const noQuoteMilestones = async () => {
+    assert.equal(
+      await page
+        .locator("#content [data-milestone], #content .milestone-filters")
+        .count(),
+      0,
+      "Los presupuestos no muestran hitos ni filtros de hitos",
+    );
+  };
+  for (const view of ["compact", "cards"]) {
+    for (const id of ["HITO-Q", "HITO-LINK"]) {
+      await page.evaluate((view) => vidresQuoteSetView(view), view);
+      await page.locator("#quote-search").fill(id);
+      assert.equal(await page.locator("[data-saved-quote]:visible").count(), 1);
+      await noQuoteMilestones();
+      if (view === "compact") {
+        await page.locator(`[data-saved-quote="${id}"] summary`).click();
+        await noQuoteMilestones();
+      }
+      assert.equal(
+        await page
+          .locator(`[data-saved-quote="${id}"] [data-whatsapp]`)
+          .isVisible(),
+        true,
+      );
+      await page.locator(`[data-saved-quote="${id}"] [data-load]`).click();
+      await page.locator(".quote-editor").waitFor();
+      await noQuoteMilestones();
+      await page.locator("#quote-close").click();
+      await noQuoteMilestones();
+    }
+  }
+  await page.locator("#quote-search").fill("13/11/2026");
+  assert.equal(
+    await page.locator('[data-saved-quote^="HITO-"]:visible').count(),
+    2,
   );
-  await page.locator("#quotes-milestone").selectOption("F");
-  assert.equal(await page.locator("[data-saved-quote]:visible").count(), 1);
-  await page.locator("#quotes-completion").selectOption("pending");
-  assert.equal(await page.locator("[data-saved-quote]:visible").count(), 0);
-  await page.locator("#quotes-milestone").selectOption("");
-  await page.locator("#quote-search").fill("HITO-LINK");
-  await page.locator('[data-saved-quote="HITO-LINK"] summary').click();
-  await page
-    .locator('[data-saved-quote="HITO-LINK"] [data-milestone="MO"]')
-    .click();
+  assert.deepEqual(
+    await page.evaluate(() =>
+      VSStorage.read(VSStorage.keys.presupuestos, [])
+        .filter((q) => ["HITO-Q", "HITO-LINK"].includes(q.id))
+        .map((q) => q.hitos),
+    ),
+    [{ F: true }, { F: true }],
+    "Se conservan los datos de hitos de presupuestos antiguos",
+  );
+  await page.locator("#quote-search").fill("");
+  await page.evaluate(() => vidresNavigate("trabajos"));
+  await page.locator("#search").fill("Cliente Hitos");
+  await page.emulateMedia({ colorScheme: "dark" });
+  const mounted = page.locator(
+    '[data-milestone-id="HITO-TEST"][data-milestone="MO"]',
+  );
+  await mounted.click();
   await page.waitForFunction(
     () =>
       VSStorage.read(VSStorage.keys.trabajos, []).find(
         (j) => j.id === "HITO-TEST",
       ).hitos.MO === true,
   );
-  await page.emulateMedia({ colorScheme: "dark" });
-  assert.equal(
-    await page
-      .locator('[data-saved-quote="HITO-LINK"] [data-milestone="MO"]')
-      .getAttribute("aria-pressed"),
-    "true",
+  assert.equal(await mounted.getAttribute("aria-pressed"), "true");
+  await page.evaluate(() => vidresNavigate("presupuestos"));
+  console.log(
+    "PASS presupuestos: sin hitos en lista, opciones, tarjetas y editor, con y sin parte vinculado; búsqueda y WhatsApp conservados",
   );
   console.log(
-    "PASS presupuestos: hitos propios y vinculados, búsqueda y filtros sin reemplazar el editor",
-  );
-  console.log(
-    "PASS hitos: alternancia persistente, recarga D1 y filtros por cliente, fecha y pendiente/completado",
+    "PASS hitos de trabajos: alternancia persistente, recarga D1, filtros por cliente, fecha y pendiente/completado y modo oscuro",
   );
 };

@@ -433,9 +433,7 @@
         '<p>No se pudieron cargar las fotos de medidas.</p><button type="button" id="quote-measures-retry">Reintentar</button>';
     }
   }
-  let quoteSearch = "",
-    quoteMilestone = "",
-    quoteCompletion = "done";
+  let quoteSearch = "";
   function savedQuoteRow(q) {
     const total = sum(q),
       status = q.status || "Borrador",
@@ -477,7 +475,7 @@
         .filter(Boolean)
         .join(" / ");
     return `<tr class="quote-saved" data-saved-quote="${esc(q.id)}">
-      <td class="quote-saved-client"><div class="quote-saved-detail" title="${esc(detail)}">${esc(detail)}</div><details class="quote-saved-options"><summary aria-label="Opciones del presupuesto ${esc(q.id)}" title="Opciones del presupuesto">···</summary><div class="quote-saved-actions">${VSMilestones.badges(q, "quote")}<div><button type="button" data-whatsapp="${esc(q.id)}">WhatsApp</button>${window.VSFacturaDirecta?.button(q.id) || ""}<button type="button" data-duplicate="${esc(q.id)}">Duplicar</button><button type="button" data-delete-quote="${esc(q.id)}">Eliminar</button></div></div></details></td>
+      <td class="quote-saved-client"><div class="quote-saved-detail" title="${esc(detail)}">${esc(detail)}</div><details class="quote-saved-options"><summary aria-label="Opciones del presupuesto ${esc(q.id)}" title="Opciones del presupuesto">···</summary><div class="quote-saved-actions"><div><button type="button" data-whatsapp="${esc(q.id)}">WhatsApp</button>${window.VSFacturaDirecta?.button(q.id) || ""}<button type="button" data-duplicate="${esc(q.id)}">Duplicar</button><button type="button" data-delete-quote="${esc(q.id)}">Eliminar</button></div></div></details></td>
       <td class="quote-saved-state"><span class="quote-state-icon quote-state-${state[0]}" role="img" aria-label="${esc(state[1])}" title="${esc(state[1])}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6Z"/><path d="M14 3v4h4"/>${state[2]}</svg></span></td>
       <td><button type="button" class="quote-saved-number" data-load="${esc(q.id)}" aria-label="Abrir presupuesto ${esc(q.id)}">${esc(q.id)}</button></td>
       <td class="quote-saved-date">${esc(dateText)}</td>
@@ -505,9 +503,9 @@
     );
     const content =
       view === "cards"
-        ? `<div class="quote-saved-cards">${sorted.map((q) => `<article class="quote-saved-card" data-saved-quote="${esc(q.id)}"><span>${esc(q.id)} · ${esc(q.client)} · ${esc(q.status || "Borrador")} · Total: ${money(sum(q).total)}</span>${VSMilestones.badges(q, "quote")}<div class="quote-card-actions"><button type="button" data-load="${esc(q.id)}">Abrir</button><button type="button" data-whatsapp="${esc(q.id)}">WhatsApp</button>${window.VSFacturaDirecta?.button(q.id) || ""}<button type="button" data-duplicate="${esc(q.id)}">Duplicar</button><button type="button" data-delete-quote="${esc(q.id)}">Eliminar</button></div></article>`).join("")}</div>`
+        ? `<div class="quote-saved-cards">${sorted.map((q) => `<article class="quote-saved-card" data-saved-quote="${esc(q.id)}"><span>${esc(q.id)} · ${esc(q.client)} · ${esc(q.status || "Borrador")} · Total: ${money(sum(q).total)}</span><div class="quote-card-actions"><button type="button" data-load="${esc(q.id)}">Abrir</button><button type="button" data-whatsapp="${esc(q.id)}">WhatsApp</button>${window.VSFacturaDirecta?.button(q.id) || ""}<button type="button" data-duplicate="${esc(q.id)}">Duplicar</button><button type="button" data-delete-quote="${esc(q.id)}">Eliminar</button></div></article>`).join("")}</div>`
         : savedQuotesTable(sorted);
-    return `${content}<p id="quote-search-empty" class="muted" role="status" hidden>No hay presupuestos que coincidan con la búsqueda o los filtros.</p>`;
+    return `${content}<p id="quote-search-empty" class="muted" role="status" hidden>No hay presupuestos que coincidan con la búsqueda.</p>`;
   }
   window.vidresQuoteSetView = (view) => {
     const host = document.querySelector("#quote-saved-results");
@@ -526,20 +524,17 @@
           q,
           "quote",
           quoteSearch.replace(/^(\d{2})-(\d{2})-(\d{4})$/, "$3-$2-$1"),
-          quoteMilestone,
-          quoteCompletion,
         );
       if (!article.hidden) visible++;
     });
     const empty = document.querySelector("#quote-search-empty");
     if (empty) empty.hidden = visible > 0;
   }
-  window.addEventListener("vidres-milestones-saved", filterSavedQuotes);
   function toolbar() {
     return `<div class="quote-toolbar"><button type="button" class="quick-quote-button" id="quote-quick">⚡ Presupuesto rápido</button><button type="button" class="primary" id="quote-new">+ Nuevo presupuesto</button><button type="button" id="quote-settings">Ajustes de tarifas</button>${editorOpen ? '<button type="button" id="quote-close">← Volver a presupuestos</button>' : ""}</div>`;
   }
   function savedPanel(list) {
-    return `<section class="panel quote-saved-panel"><h2>Presupuestos guardados</h2><label>Buscar presupuesto<input id="quote-search" type="search" placeholder="Cliente, referencia o fecha" value="${esc(quoteSearch)}"></label>${VSMilestones.controls("quotes")}<div id="quote-saved-results">${savedQuotesView(list)}</div></section>`;
+    return `<section class="panel quote-saved-panel"><h2>Presupuestos guardados</h2><label>Buscar presupuesto<input id="quote-search" type="search" placeholder="Cliente, referencia o fecha" value="${esc(quoteSearch)}"></label><div id="quote-saved-results">${savedQuotesView(list)}</div></section>`;
   }
   function sync() {
     if (quickMode) {
@@ -560,7 +555,7 @@
     const previousMeasures = document.querySelector("#quote-measures");
     document.querySelector("#content").innerHTML = `${toolbar()}
  <section class="panel quote-editor"><h2>Presupuesto · ${esc(draft.id || "Sin guardar")}</h2><div class="quote-fields">${clientPicker()}<label>Cliente · escribe para buscar<input id="quote-client" type="search" autocomplete="off" aria-controls="quote-client-matches" maxlength="100" value="${esc(draft.client)}"></label><div id="quote-client-matches" class="quote-client-matches" role="group" aria-label="Coincidencias de clientes"></div><datalist id="quote-clients">${(window.vidresClientNames?.() || []).map((name) => `<option value="${esc(name)}"></option>`).join("")}</datalist><label>Parte relacionado<select id="quote-job" data-search-select="Cliente, referencia o dirección"><option value="">Sin vincular</option>${jobs.map((j) => VSSelectSearch.jobOption(j, draft.job)).join("")}</select></label><label>Estado<select id="quote-status">${statuses.map((s) => `<option ${s === (draft.status || "Borrador") ? "selected" : ""}>${s}</option>`).join("")}</select></label></div>
- ${draft.id ? VSMilestones.badges(quotes().find((q) => q.id === draft.id) || draft, "quote") : ""}${minimumAreaFields()}${surchargeFields()}${energyFields()}${customerFields()}<div class="quote-margin"><label>Precio para este presupuesto<select id="quote-price-mode" data-search-select="Margen, recargo o tarifa"><option value="markup" ${pricing(draft).priceMode !== "fixed" ? "selected" : ""}>Recargo porcentual</option><option value="fixed" ${pricing(draft).priceMode === "fixed" ? "selected" : ""}>Tarifa de venta por m²</option></select></label><label>Tarifa de venta del vidrio (€/m²)<input id="quote-fixed-price" type="text" inputmode="decimal" data-price-input value="${esc(pricing(draft).fixedPrice ?? "")}"></label><p>Perfil copiado del cliente al seleccionarlo; editable solo para esta oferta. La tarifa fija sustituye el precio de venta del vidrio, con cantos, energía y extras aparte.</p><label>Margen (%)<input id="quote-margin" type="text" inputmode="decimal" data-price-input value="${esc(pricing(draft).margin || "")}"></label><p>Incremento sobre el precio del vidrio: 100 € con 20 % → 120 €. Mano de obra, cantos, recargos y conceptos adicionales sin margen. Antes del IVA; solo visible en la copia interna.</p>${pricing(draft).marginScope !== "glass" && num(pricing(draft).margin) ? "<p>Presupuesto anterior: conserva el cálculo guardado. Al editar se aplicará el incremento solo al vidrio.</p>" : ""}</div>${measurePanel()}<div id="quote-lines">${draft.lines.map(row).join("")}</div><button type="button" id="quote-add">+ Añadir otro vidrio</button><button type="button" id="quote-add-aluminum">+ Añadir aluminio con dibujo</button><button type="button" id="quote-add-concept">+ Añadir concepto libre</button><div class="quote-total"><div class="quote-total-breakdown">${totalResult(breakdown)}</div></div>${documentFields()}<div class="quote-toolbar"><button type="button" class="primary" id="quote-save">Guardar presupuesto</button><button type="button" id="quote-whatsapp">Enviar por WhatsApp</button><button type="button" id="quote-pdf">PDF para cliente</button><button type="button" id="quote-pdf-internal">PDF interno · Vidres Sosa</button>${window.VSFacturaDirecta?.button(list.find((q) => q.id === draft.id)?.id) || ""}</div></section>
+ ${minimumAreaFields()}${surchargeFields()}${energyFields()}${customerFields()}<div class="quote-margin"><label>Precio para este presupuesto<select id="quote-price-mode" data-search-select="Margen, recargo o tarifa"><option value="markup" ${pricing(draft).priceMode !== "fixed" ? "selected" : ""}>Recargo porcentual</option><option value="fixed" ${pricing(draft).priceMode === "fixed" ? "selected" : ""}>Tarifa de venta por m²</option></select></label><label>Tarifa de venta del vidrio (€/m²)<input id="quote-fixed-price" type="text" inputmode="decimal" data-price-input value="${esc(pricing(draft).fixedPrice ?? "")}"></label><p>Perfil copiado del cliente al seleccionarlo; editable solo para esta oferta. La tarifa fija sustituye el precio de venta del vidrio, con cantos, energía y extras aparte.</p><label>Margen (%)<input id="quote-margin" type="text" inputmode="decimal" data-price-input value="${esc(pricing(draft).margin || "")}"></label><p>Incremento sobre el precio del vidrio: 100 € con 20 % → 120 €. Mano de obra, cantos, recargos y conceptos adicionales sin margen. Antes del IVA; solo visible en la copia interna.</p>${pricing(draft).marginScope !== "glass" && num(pricing(draft).margin) ? "<p>Presupuesto anterior: conserva el cálculo guardado. Al editar se aplicará el incremento solo al vidrio.</p>" : ""}</div>${measurePanel()}<div id="quote-lines">${draft.lines.map(row).join("")}</div><button type="button" id="quote-add">+ Añadir otro vidrio</button><button type="button" id="quote-add-aluminum">+ Añadir aluminio con dibujo</button><button type="button" id="quote-add-concept">+ Añadir concepto libre</button><div class="quote-total"><div class="quote-total-breakdown">${totalResult(breakdown)}</div></div>${documentFields()}<div class="quote-toolbar"><button type="button" class="primary" id="quote-save">Guardar presupuesto</button><button type="button" id="quote-whatsapp">Enviar por WhatsApp</button><button type="button" id="quote-pdf">PDF para cliente</button><button type="button" id="quote-pdf-internal">PDF interno · Vidres Sosa</button>${window.VSFacturaDirecta?.button(list.find((q) => q.id === draft.id)?.id) || ""}</div></section>
  ${savedPanel(list)}`;
     const panel = document.querySelector("#quote-measures");
     if (panel && previousMeasures?.dataset.job === draft.job) {
@@ -574,21 +569,9 @@
     initMeasures();
   }
   function initSavedFilters() {
-    const search = document.querySelector("#quote-search"),
-      milestone = document.querySelector("#quotes-milestone"),
-      completion = document.querySelector("#quotes-completion");
+    const search = document.querySelector("#quote-search");
     search.oninput = () => {
       quoteSearch = search.value;
-      filterSavedQuotes();
-    };
-    milestone.value = quoteMilestone;
-    completion.value = quoteCompletion;
-    milestone.onchange = () => {
-      quoteMilestone = milestone.value;
-      filterSavedQuotes();
-    };
-    completion.onchange = () => {
-      quoteCompletion = completion.value;
       filterSavedQuotes();
     };
     filterSavedQuotes();

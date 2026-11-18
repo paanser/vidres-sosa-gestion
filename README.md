@@ -143,26 +143,28 @@ En móvil, un deslizamiento horizontal de al menos 80 px desde los primeros 24 p
 ### Hitos y búsqueda de expedientes
 
 Los botones M (Medido), F (Fabricado), PM (Pendiente Montaje) y MO (Montado)
-son indicadores independientes: gris significa pendiente y verde completado.
+aparecen solo en los partes de trabajo y son indicadores independientes:
+gris significa pendiente y verde completado.
 No cambian el estado comercial ni los cálculos del expediente. Cada pulsación
 se confirma mediante `/api/state`, con la revisión existente, antes de mostrar
 el cambio. Los registros antiguos empiezan con todos los hitos pendientes.
 
 Los hitos se guardan en el objeto `hitos` del registro JSON de D1, sin migración
-SQL. Los presupuestos vinculados comparten los hitos del trabajo; los no
-vinculados guardan sus propios hitos. El Worker valida las cuatro claves y sus
-valores booleanos. Un fallo de red o conflicto deja visible el estado guardado
-y muestra el error, sin afirmar que se haya guardado localmente.
+SQL. Los presupuestos no muestran botones ni filtros de hitos. Los datos
+de hitos de presupuestos antiguos se conservan por compatibilidad. El Worker
+valida las cuatro claves y sus valores booleanos. Un fallo de red o conflicto
+deja visible el estado guardado y muestra el error, sin afirmar que se haya
+guardado localmente.
 
 Trabajos permite buscar por cliente, referencia y fecha (AAAA-MM-DD o
-DD/MM/AAAA), además de los campos anteriores. Trabajos y presupuestos permiten
-filtrar por hito y por pendiente/completado. En presupuestos, los filtros actúan
-sobre el listado sin reconstruir el formulario que se está editando.
+DD/MM/AAAA), además de los campos anteriores, y filtrar por hito y por
+pendiente/completado. En presupuestos, la búsqueda por cliente, referencia y
+fecha actúa sobre el listado sin reconstruir el formulario que se está editando.
 
 Validación: `npm test` y `CHROMIUM_PATH=/usr/bin/chromium npm run test:browser`.
 Las pruebas de navegador incluyen alternancia, recarga del estado del Worker/D1,
-hitos propios y vinculados, filtros y modo oscuro. Estas pruebas usan el backend
-de pruebas; no modifican D1 remoto ni despliegan recursos.
+filtros de trabajos y ausencia de hitos en presupuestos. Estas pruebas usan el
+backend de pruebas; no modifican D1 remoto ni despliegan recursos.
 
 ## Hoja imprimible para visitas
 
@@ -196,7 +198,7 @@ conserva al consultar otro apartado y regresar.
 El icono de deslizadores de la esquina inferior derecha abre la personalización
 de cada apartado. En Presupuestos permite elegir entre tarjetas y una lista con
 estado, número, fecha, cliente/detalle, neto sin IVA y total con IVA. La lista es
-la vista inicial; sus opciones por fila incluyen hitos, WhatsApp, duplicar y eliminar.
+la vista inicial; sus opciones por fila incluyen WhatsApp, duplicar y eliminar.
 Cambiar de vista conserva el formulario y los filtros. La elección se recuerda
 para cada usuario en ese navegador, independientemente de los demás apartados.
 

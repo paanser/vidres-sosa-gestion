@@ -1926,6 +1926,10 @@ window.vidresAppReady = (async () => {
       await window.vidresToolsClick?.(e, window.vidresNavigate);
       return;
     }
+    if (page === "presupuestos" && e.type === "dblclick") {
+      window.vidresQuoteDoubleClick?.(e);
+      return;
+    }
     if (page === "presupuestos") {
       await window.vidresQuoteClick?.(e);
       return;

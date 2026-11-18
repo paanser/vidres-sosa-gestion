@@ -477,7 +477,7 @@
         .filter(Boolean)
         .join(" / ");
     return `<tr class="quote-saved" data-saved-quote="${esc(q.id)}">
-      <td class="quote-saved-client"><div class="quote-saved-detail" title="${esc(detail)}">${esc(detail)}</div><details class="quote-saved-options"><summary aria-label="Opciones del presupuesto ${esc(q.id)}" title="Opciones del presupuesto">···</summary><div class="quote-saved-actions"><div><button type="button" data-whatsapp="${esc(q.id)}">WhatsApp</button>${window.VSFacturaDirecta?.button(q.id) || ""}<button type="button" data-duplicate="${esc(q.id)}">Duplicar</button><button type="button" data-delete-quote="${esc(q.id)}">Eliminar</button></div></div></details></td>
+      <td class="quote-saved-client"><div class="quote-saved-detail" data-load="${esc(q.id)}" title="${esc(detail)}">${esc(detail)}</div><details class="quote-saved-options"><summary aria-label="Opciones del presupuesto ${esc(q.id)}" title="Opciones del presupuesto">···</summary><div class="quote-saved-actions"><div><button type="button" data-whatsapp="${esc(q.id)}">WhatsApp</button>${window.VSFacturaDirecta?.button(q.id) || ""}<button type="button" data-duplicate="${esc(q.id)}">Duplicar</button><button type="button" data-delete-quote="${esc(q.id)}">Eliminar</button></div></div></details></td>
       <td class="quote-saved-state"><span class="quote-state-icon quote-state-${state[0]}" role="img" aria-label="${esc(state[1])}" title="${esc(state[1])}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6Z"/><path d="M14 3v4h4"/>${state[2]}</svg></span></td>
       <td><button type="button" class="quote-saved-number" data-load="${esc(q.id)}" aria-label="Abrir presupuesto ${esc(q.id)}">${esc(q.id)}</button></td>
       <td class="quote-saved-date">${esc(dateText)}</td>
@@ -1432,6 +1432,16 @@
       }
     } catch (error) {
       alert(error.message);
+    }
+  };
+  window.vidresQuoteDoubleClick = (e) => {
+    const detail = e.target.closest(".quote-saved-detail[data-load]");
+    if (!detail) return;
+    const quote = quotes().find((item) => item.id === detail.dataset.load);
+    if (quote && discard()) {
+      editorOpen = true;
+      draft = structuredClone(quote);
+      sync();
     }
   };
   window.vidresQuoteChange = async (e) => {

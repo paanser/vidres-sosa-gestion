@@ -144,7 +144,7 @@
     return `<h3>Peso del vidrio y recargo energético</h3>
       <p>${measures.length ? `Peso ${result.pending ? "conocido" : "total"} de las medidas: <strong>${result.weight.toFixed(2)} kg</strong><br>Recargo energético${result.pending ? " parcial" : ""}: <strong>${result.energy == null ? "Pendiente de configurar tarifa €/kg" : money(result.energy) + " sin IVA"}</strong>` : "Añade las medidas y el espesor para calcular el peso y el recargo."}</p>
       ${result.pending ? `<p>Faltan medidas o espesor en ${result.pending} pieza(s). Completa el espesor total de vidrio, sin la cámara de aire.</p>` : ""}
-      ${measures.length ? `<p class="muted">Superficie real × unidades × espesor total (mm) × 2,5. ${result.rate == null ? "" : `Tarifa actual: ${money(result.rate)}/kg.`} Sin metraje mínimo.</p>` : ""}
+      ${measures.length ? `<p class="muted">Superficie real × unidades × espesor total (mm) × 2,5. ${result.rate == null ? "" : `Tarifa actual: ${VSUtils.energyMoney(result.rate)}/kg.`} Sin metraje mínimo.</p>` : ""}
       ${quotes
         .map((q) => {
           const d = VSCalculations.quoteDetails(q);

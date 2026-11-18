@@ -476,3 +476,12 @@ test("espesor en nombres de tarifa completos y laminado triple", () => {
   ])
     assert.equal(inferThickness({ glass }), mm, glass);
 });
+
+test("recargo de 0,314 €/kg multiplica el peso antes de redondear el importe", () => {
+  const line = { w: 100, h: 100, qty: 1, thickness: 4, price: 0 };
+  const pricing = { energyMode: "kg", energy: "0.314", vat: 21 };
+  assert.equal(calc(line, pricing).weight, 10);
+  assert.equal(calc(line, pricing).energy, 3.14);
+  assert.equal(quoteDetails({ lines: [line], pricing }).totals.base, 3.14);
+  assert.equal(calc({ ...line, qty: 10 }, pricing).energy, 31.4);
+});

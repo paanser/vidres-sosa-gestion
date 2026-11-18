@@ -129,7 +129,40 @@ async function checkMobileFields(page) {
   // Verificar el importe inicial y usar una tarifa cero explícita en las
   // demás pruebas que comprueban precios de vidrio sin recargo.
   await page.evaluate(() => window.vidresNavigate("ajustes-general"));
-  assert.equal(await page.locator("#cfg-energy").inputValue(), "0.33");
+  assert.equal(await page.locator("#cfg-energy").inputValue(), "0.314");
+  assert.equal(await page.locator("#cfg-energy").getAttribute("step"), "0.001");
+  await page.locator("#cfg-energy").fill("0.314");
+  assert.equal(
+    await page.locator("#cfg-energy").evaluate((el) => el.validity.valid),
+    true,
+  );
+  await page.locator("#cfg-save").click();
+  await page.waitForFunction(
+    () => VSStorage.read("vs-config-v1", {}).energy === "0.314",
+  );
+  await page.evaluate(() => window.vidresNavigate("presupuestos"));
+  await page.locator("#quote-quick").click();
+  for (const field of ["#quick-w", "#quick-h"]) {
+    await page.locator(field).fill("1.000");
+    await page.locator(field).dispatchEvent("change");
+  }
+  await require("./search-select-browser.cjs")(
+    page,
+    "#quick-glass",
+    "reuglass-2-0",
+  );
+  assert.match(await page.locator(".quote-energy").textContent(), /0,314/);
+  assert.match(
+    await page.locator("#quick-result").textContent(),
+    /Peso vidrio: 10.00 kg/,
+  );
+  assert.match(
+    await page.locator("#quick-result").textContent(),
+    /Recargo energético calculado: 3,14/,
+  );
+  await page.locator("#quick-close").click();
+  await page.evaluate(() => window.vidresNavigate("ajustes-general"));
+  assert.equal(await page.locator("#cfg-energy").inputValue(), "0.314");
   await page.locator("#cfg-energy").fill("0");
   await page.locator("#cfg-save").click();
   await page.waitForFunction(

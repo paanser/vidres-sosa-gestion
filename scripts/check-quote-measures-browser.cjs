@@ -122,6 +122,26 @@ module.exports = async function checkQuoteMeasures(page, context, root) {
     true,
   );
   assert.deepEqual(fileRequests, [fixture.paper]);
+  assert.equal(
+    await page.locator('[data-field="thickness"]').inputValue(),
+    "6",
+  );
+  await page.locator("#quote-energy").fill("0,5");
+  await page.locator("#quote-energy-separate").check();
+  await page.locator("#quote-pdf").click();
+  await page.locator("#quote-pdf-result").waitFor();
+  assert.equal(await page.locator("#quote-print .quote-doc-energy").count(), 1);
+  const totalWithSeparateEnergy = await page
+    .locator("#quote-print .quote-doc-totals")
+    .textContent();
+  await page.locator("#quote-energy-separate").uncheck();
+  await page.locator("#quote-pdf").click();
+  assert.equal(await page.locator("#quote-print .quote-doc-energy").count(), 0);
+  assert.equal(
+    await page.locator("#quote-print .quote-doc-totals").textContent(),
+    totalWithSeparateEnergy,
+  );
+  await page.locator("#quote-energy-separate").check();
   await page.locator("#quote-save").click();
   await page.waitForFunction(() =>
     VSStorage.read(VSStorage.keys.presupuestos, []).some((q) => q.job),
@@ -134,6 +154,7 @@ module.exports = async function checkQuoteMeasures(page, context, root) {
   );
   await page.locator("#quote-new").click();
   await page.locator(`[data-load="${saved}"]`).click();
+  assert.equal(await page.locator("#quote-energy-separate").isChecked(), true);
   await page.locator("#quote-measures > summary").click();
   await page.locator("[data-quote-paper] img").waitFor();
   for (const width of [320, 390, 768, 1440]) {
@@ -242,6 +263,13 @@ module.exports = async function checkQuoteMeasures(page, context, root) {
     .filter({ hasText: "No hay fotos de medidas" })
     .waitFor();
   page.off("request", track);
+  await page.locator('[data-page="trabajos"]').click();
+  await page.locator(`.job-card [data-id="${fixture.first}"]`).first().click();
+  const glassSummary = await page.locator("#exp-body").textContent();
+  assert.match(glassSummary, /Peso del vidrio y recargo energético/);
+  assert.match(glassSummary, /12.00 kg/);
+  assert.ok(glassSummary.includes(saved));
+  await page.locator("[data-exp-close]").click();
 
   await page.evaluate(async (f) => {
     await VSFiles.remove("photos", f.normalPhoto);

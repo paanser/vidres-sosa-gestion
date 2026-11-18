@@ -375,3 +375,64 @@ test("doble 1 × 1: 8 metros de canto; energía solo por kilos de vidrio", () =>
     41.14,
   );
 });
+
+test("recargo separado conserva venta, coste, IVA y suma de conceptos", () => {
+  const line = {
+    w: 83,
+    h: 100,
+    qty: 3,
+    thickness: 8,
+    price: 52.37,
+    extraAmount: 17,
+    extraMode: "separate",
+  };
+  for (const profile of [
+    { marginScope: "glass", margin: 20 },
+    { priceMode: "fixed", fixedPrice: 85 },
+    { margin: 20 },
+    { marginMode: "sale", margin: 20 },
+    {},
+  ]) {
+    const pricing = { ...profile, energyMode: "kg", energy: "0,43", vat: 21 };
+    const included = quoteDetails({ lines: [line], pricing });
+    const separate = quoteDetails({
+      lines: [line],
+      pricing: { ...pricing, energySeparate: true },
+    });
+    assert.deepEqual(separate.totals, included.totals);
+    assert.equal(separate.cost, included.cost);
+    assert.equal(separate.margin, included.margin);
+    const a = separate.lines[0];
+    assert.ok(a.energySale > 0);
+    assert.equal(
+      Math.round((a.glassSale + a.extraSale + a.energySale) * 100),
+      Math.round(a.sale * 100),
+    );
+    assert.equal(included.lines[0].energySale, 0);
+  }
+});
+
+test("expediente: peso real sin mínimo, tarifa decimal y piezas incompletas", () => {
+  const { jobGlassDetails } = require("../calculations.js");
+  const measures = [{ ancho: 50, alto: 40, cantidad: 2, espesor: 8 }];
+  const config = { energyMode: "kg", energy: "0,5", minimumArea: 1 };
+  assert.deepEqual(jobGlassDetails(measures, config), {
+    weight: 8,
+    energy: 4,
+    rate: 0.5,
+    pending: 0,
+  });
+  assert.equal(
+    jobGlassDetails([...measures, { ancho: 100, alto: 100 }], config).pending,
+    1,
+  );
+  assert.equal(jobGlassDetails(measures, {}).energy, null);
+  assert.equal(
+    jobGlassDetails(measures, { energyMode: "percent", energy: 5 }).energy,
+    null,
+  );
+  assert.equal(
+    jobGlassDetails(measures, { energyMode: "kg", energy: 0 }).energy,
+    0,
+  );
+});

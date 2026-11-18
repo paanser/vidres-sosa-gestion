@@ -34,6 +34,14 @@ export function quoteInvoice(quote, tariffs = []) {
     const description = `${name || "Vidrio"} · ${utils.formatMeters(value.w)} × ${utils.formatMeters(value.h)} m · ${value.qty} ud.`;
     return [
       { description, amount: cents(value.glassSale) },
+      ...(value.energySale
+        ? [
+            {
+              description: "Recargo energético",
+              amount: cents(value.energySale),
+            },
+          ]
+        : []),
       ...(value.separate && value.extraCost
         ? [
             {

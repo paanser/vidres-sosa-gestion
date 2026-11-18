@@ -87,6 +87,7 @@
             glassSale: sale,
             extraSale: 0,
             separate: false,
+            energySale: 0,
           };
         }
         const dimensions = calc(line, config),
@@ -115,7 +116,17 @@
           separate = line.extraMode === "separate",
           extraSale = separate
             ? round2(extraCost * (config.marginScope === "glass" ? 1 : factor))
-            : 0;
+            : 0,
+          energySale =
+            config.energySeparate === true && line.kind !== "concept"
+              ? round2(
+                  dimensions.energy *
+                    (config.marginScope === "glass" ||
+                    config.priceMode === "fixed"
+                      ? 1
+                      : factor),
+                )
+              : 0;
         return {
           ...dimensions,
           glassCost,
@@ -123,7 +134,8 @@
           cost,
           margin: round2(sale - cost),
           sale,
-          glassSale: round2(sale - extraSale),
+          glassSale: round2(sale - extraSale - energySale),
+          energySale,
           extraSale,
           separate,
         };
@@ -148,7 +160,35 @@
       totals: { base, iva, total: round2(base + iva) },
     };
   }
-  const api = { calc, totals, quoteDetails, round2 };
+  function jobGlassDetails(measures, config = {}) {
+    let weight = 0,
+      pending = 0;
+    for (const m of measures) {
+      if (num(m.ancho) <= 0 || num(m.alto) <= 0 || num(m.espesor) <= 0) {
+        pending++;
+        continue;
+      }
+      weight += calc({
+        w: m.ancho,
+        h: m.alto,
+        qty: m.cantidad,
+        thickness: m.espesor,
+      }).weight;
+    }
+    const rate =
+      config.energyMode === "kg" &&
+      config.energy !== "" &&
+      config.energy != null
+        ? num(config.energy)
+        : null;
+    return {
+      weight,
+      energy: rate == null ? null : round2(weight * rate),
+      rate,
+      pending,
+    };
+  }
+  const api = { calc, totals, quoteDetails, round2, jobGlassDetails };
   if (typeof module !== "undefined") module.exports = api;
   else root.VSCalculations = api;
 })(globalThis);

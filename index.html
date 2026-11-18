@@ -433,6 +433,21 @@
       <form id="quote-message-form">
         <h2 id="quote-message-title">Mensaje de WhatsApp</h2>
         <p class="muted">Puedes corregir el texto antes de enviarlo.</p>
+        <label
+          >¿A qué número quieres enviarlo?<select name="destinatario">
+            <option value="card">Número de la ficha</option>
+            <option value="other">Otro número</option>
+          </select></label
+        >
+        <label hidden
+          >Otro número (con prefijo internacional)<input
+            name="telefono"
+            type="tel"
+            inputmode="tel"
+            maxlength="30"
+            placeholder="Ej.: +34 600 123 456"
+            disabled
+        /></label>
         <textarea name="mensaje" rows="14" maxlength="5000" required></textarea>
         <div class="actions">
           <button type="button" id="quote-message-cancel">Cancelar</button

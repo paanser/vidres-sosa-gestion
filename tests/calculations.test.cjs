@@ -256,7 +256,7 @@ test("metraje mínimo por pieza: automático, selección manual y presupuestos a
     const result = calc({ ...line, doubleGlazing: true }, { minimumArea });
     assert.equal(result.area, minimumArea);
     assert.equal(result.ml, 0.2);
-    assert.equal(result.total, (minimumArea * 100 + 2) * 2);
+    assert.equal(result.total, (minimumArea * 100 + 0.2 * 2 * 10) * 2);
   }
   assert.equal(calc(line).area, 0.072);
   assert.equal(
@@ -334,5 +334,44 @@ test("energía por kg usa superficie real, espesor y cantidad sin mínimo factur
   assert.equal(
     calc({ ...line, kind: "concept" }, { energyMode: "kg", energy: 1 }).energy,
     0,
+  );
+});
+
+test("doble 1 × 1: 8 metros de canto; energía solo por kilos de vidrio", () => {
+  const line = {
+    w: 100,
+    h: 100,
+    qty: 1,
+    thickness: 8,
+    doubleGlazing: true,
+    edgePrice: 3,
+    sides: ["top", "bottom", "left", "right"],
+  };
+  // Las opciones antiguas de energía del pulido y número de piezas se ignoran.
+  const pricing = { energyMode: "kg", energy: "0,5", energyPolishing: true };
+  const both = calc({ ...line, edgeParts: "1", polishedThickness: 4 }, pricing);
+  assert.equal(both.ml, 4);
+  assert.equal(both.edgeParts, 2);
+  assert.equal(both.weight, 20);
+  assert.equal(both.energy, 10);
+  assert.equal(both.total, 34); // 4 m × 2 vidrios × 3 € + 20 kg × 0,5 €
+  const unpolished = calc({ ...line, sides: [] }, pricing);
+  assert.equal(unpolished.energy, both.energy);
+  assert.equal(unpolished.weight, both.weight);
+  const twoSides = calc({ ...line, sides: ["top", "left"] }, pricing);
+  assert.equal(twoSides.ml * twoSides.edgeParts, 4);
+  assert.equal(twoSides.total, 22);
+  const mono = calc({ ...line, doubleGlazing: false, thickness: 4 }, pricing);
+  assert.equal(mono.edgeParts, 1);
+  assert.equal(mono.weight, 10);
+  assert.equal(mono.energy, 5);
+  assert.equal(mono.total, 17);
+  const twoUnits = calc({ ...line, qty: 2 }, pricing);
+  assert.equal(twoUnits.total, 68);
+  assert.equal(twoUnits.energy, 20);
+  assert.equal(
+    quoteDetails({ lines: [line], pricing: { ...pricing, vat: 21 } }).totals
+      .total,
+    41.14,
   );
 });

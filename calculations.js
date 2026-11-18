@@ -28,7 +28,9 @@
           : 0,
       ),
       real = (w * h) / 10000;
-    const subtotal = (area * num(line.price) + ml * num(line.edgePrice)) * qty;
+    const edgeParts = line.doubleGlazing ? 2 : 1;
+    const subtotal =
+      (area * num(line.price) + ml * edgeParts * num(line.edgePrice)) * qty;
     const thickness = num(line.thickness);
     const weight = ["concept", "aluminum"].includes(line.kind)
       ? 0
@@ -46,6 +48,7 @@
       real,
       area,
       ml,
+      edgeParts,
       qty,
       weight,
       thickness,

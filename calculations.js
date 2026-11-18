@@ -6,15 +6,19 @@
   const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
   // Solo espesores explícitos; los códigos de capas y las cámaras no son vidrio.
   function glassThickness(name) {
-    const text = String(name || "").split("·")[0];
+    const text = String(name || "")
+      .replace(/^tarifa\s+[^·]+·\s*/i, "")
+      .split("·")[0];
     const plus = text.match(
       /(?:^|\s)(\d+(?:[.,]\d+)?(?:\s*\+\s*\d+(?:[.,]\d+)?)+)(?:\s|$)/,
     );
     if (plus) return plus[1].split("+").reduce((sum, n) => sum + num(n), 0);
-    const laminate = text.match(/(?:^|\s)(\d{2}|\d{4})[.,][1-9](?=\s|$)/);
+    const laminate = text.match(/(?:^|\s)(\d{2}|\d{3}|\d{4})[.,][1-9](?=\s|$)/);
     if (laminate) {
       const digits = laminate[1],
         half = digits.length / 2;
+      if (digits.length === 3)
+        return [...digits].reduce((sum, n) => sum + Number(n), 0);
       return Number(digits.slice(0, half)) + Number(digits.slice(half));
     }
     const parts = text

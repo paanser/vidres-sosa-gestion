@@ -238,13 +238,13 @@
   const thicknessSources = new WeakMap();
   function fillThickness(line) {
     const source = JSON.stringify([
-      line.doubleGlazing,
+      Boolean(line.doubleGlazing),
       line.doubleComposition,
       line.faceOne,
       line.faceOneName,
       line.faceTwo,
       line.faceTwoName,
-      line.glass,
+      glassName(line),
     ]);
     const previous = thicknessSources.get(line);
     if (!num(line.thickness) || (previous !== undefined && previous !== source))
@@ -639,13 +639,16 @@
       .forEach((input) => {
         line[input.dataset.field] = input.value;
       });
-    if (line.edgeMode === "tariff") line.edgePrice = tariff?.edge ?? "";
+    if (line.edgeMode === "tariff")
+      line.edgePrice = edgeTariff(line)?.edge ?? "";
     document.querySelectorAll(".quick-double [data-field]").forEach((input) => {
       line[input.dataset.field] =
         input.type === "checkbox" ? input.checked : input.value;
     });
     if (line.doubleGlazing) readDouble(line);
     fillThickness(line);
+    document.querySelector('.quick-double [data-field="thickness"]').value =
+      line.thickness ?? "";
     line.sides = [
       ...document.querySelectorAll("[data-quick-edge]:checked"),
     ].map((input) => input.dataset.quickEdge);
@@ -737,8 +740,20 @@
       area.remove();
     }
   }
+  const edgeTariff = (line) =>
+    tariffs().find((t) => t.id === (line.edgeTariff || line.tariff));
   function edgeFields(line, quick = false) {
-    return `<fieldset class="quote-edge-panel"><legend>Canto pulido · ${line.doubleGlazing ? "dos vidrios" : "un vidrio"}</legend><div class="quote-edge-controls"><label class="quote-edge-price">Precio del pulido<select data-field="edgeMode"><option value="manual" ${line.edgeMode !== "tariff" ? "selected" : ""}>Manual</option><option value="tariff" ${line.edgeMode === "tariff" ? "selected" : ""}>Por tarifa de vidrio</option></select></label><label class="quote-edge-price">Precio (€/ml)<input type="text" inputmode="decimal" data-price-input data-field="edgePrice" ${line.edgeMode === "tariff" ? "readonly" : ""} value="${esc(line.edgePrice ?? "")}"></label>${line.edgeMode === "tariff" && !num(line.edgePrice) ? '<p class="muted">La tarifa de vidrio seleccionada no tiene precio de pulido. Elige Manual e introduce el precio en €/ml.</p>' : ""}<div class="quote-edge-options">${[
+    return `<fieldset class="quote-edge-panel"><legend>Canto pulido · ${line.doubleGlazing ? "dos vidrios" : "un vidrio"}</legend><div class="quote-edge-controls"><label class="quote-edge-price">Precio del pulido<select data-field="edgeMode"><option value="manual" ${line.edgeMode !== "tariff" ? "selected" : ""}>Manual</option><option value="tariff" ${line.edgeMode === "tariff" ? "selected" : ""}>Por tarifa de vidrio</option></select></label>${
+      line.edgeMode === "tariff"
+        ? `<label class="quote-edge-tariff">Tarifa del canto<select data-field="edgeTariff" data-search-select="Tarifa o precio del canto"><option value="">Usar tarifa del vidrio · ${money(num(tariffs().find((t) => t.id === line.tariff)?.edge))}/ml</option>${tariffs()
+            .filter((t) => t.edge !== "" && t.edge != null)
+            .map(
+              (t) =>
+                `<option value="${esc(t.id)}" ${line.edgeTariff === t.id ? "selected" : ""}>${esc(t.name)} · ${money(num(t.edge))}/ml</option>`,
+            )
+            .join("")}</select></label>`
+        : ""
+    }<label class="quote-edge-price">Precio (€/ml)<input type="text" inputmode="decimal" data-price-input data-field="edgePrice" ${line.edgeMode === "tariff" ? "readonly" : ""} value="${esc(line.edgePrice ?? "")}"></label>${line.edgeMode === "tariff" && !num(line.edgePrice) ? '<p class="muted">La tarifa de vidrio seleccionada no tiene precio de pulido. Elige Manual e introduce el precio en €/ml.</p>' : ""}<div class="quote-edge-options">${[
       ["top", "Superior"],
       ["bottom", "Inferior"],
       ["left", "Izquierdo"],
@@ -832,6 +847,8 @@
       );
       if (l.doubleGlazing) readDouble(l);
       fillThickness(l);
+      const thicknessInput = el.querySelector('[data-field="thickness"]');
+      if (thicknessInput) thicknessInput.value = l.thickness ?? "";
       l.sides = [...el.querySelectorAll("[data-edge]:checked")].map(
         (x) => x.dataset.edge,
       );
@@ -1430,7 +1447,7 @@
       if (
         e.target.closest(".quick-double") ||
         ["quick-client", "quick-glass"].includes(e.target.id) ||
-        e.target.dataset.field === "edgeMode"
+        ["edgeMode", "edgeTariff"].includes(e.target.dataset.field)
       )
         sync();
       return;
@@ -1442,10 +1459,9 @@
     }
     fromForm();
     const el = e.target.closest(".quote-line");
-    if (el && e.target.dataset.field === "edgeMode") {
+    if (el && ["edgeMode", "edgeTariff"].includes(e.target.dataset.field)) {
       const l = draft.lines[Number(el.dataset.line)];
-      if (l.edgeMode === "tariff")
-        l.edgePrice = tariffs().find((t) => t.id === l.tariff)?.edge ?? "";
+      if (l.edgeMode === "tariff") l.edgePrice = edgeTariff(l)?.edge ?? "";
     }
     if (el && e.target.dataset.field === "doubleGlazing" && !e.target.checked) {
       const l = draft.lines[Number(el.dataset.line)];
@@ -1466,11 +1482,11 @@
       if (t) {
         l.glass = t.name;
         l.price = t.price;
-        if (l.edgeMode === "tariff") l.edgePrice = t.edge ?? "";
+        if (l.edgeMode === "tariff") l.edgePrice = edgeTariff(l)?.edge ?? "";
         l.tariff = t.id;
       } else if (wasTariff || e.target.dataset.field === "tariff") {
         l.price = "";
-        if (l.edgeMode === "tariff") l.edgePrice = "";
+        if (l.edgeMode === "tariff") l.edgePrice = edgeTariff(l)?.edge ?? "";
       }
     }
     if (
@@ -1484,6 +1500,7 @@
         "faceOne",
         "faceTwo",
         "edgeMode",
+        "edgeTariff",
       ].includes(e.target.dataset.field)
     )
       sync();

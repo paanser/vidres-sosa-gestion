@@ -464,3 +464,15 @@ test("espesor desde la composición: excluye cámara y códigos de capas", () =>
   ])
     assert.equal(inferThickness({ glass }), mm, glass);
 });
+
+test("espesor en nombres de tarifa completos y laminado triple", () => {
+  const { inferThickness } = require("../calculations.js");
+  for (const [glass, mm] of [
+    ["Tarifa Reuglass · Float 4 · MF", 4],
+    ["Tarifa Reuglass · Guardian Sun 44.2 Acustico P2A · Sustituciones", 8],
+    ["Tarifa Reuglass · Laminado 1010.2 · MF", 20],
+    ["Tarifa Reuglass · Laminado 666.2 · MF", 18],
+    ["Tarifa Reuglass · Pyrobel EI-30 · MF", 0],
+  ])
+    assert.equal(inferThickness({ glass }), mm, glass);
+});

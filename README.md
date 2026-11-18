@@ -213,6 +213,16 @@ una tarifa por kg configurada; se puede guardar 0 para desactivarlo. Los presupu
 normales, rápidos y duplicados toman esa tarifa al crearse. Los guardados conservan sus condiciones. El peso usa superficie real × cantidad × espesor total del vidrio
 × 2,5; en dobles se suman ambos vidrios sin incluir la cámara de aire.
 
+Al seleccionar una tarifa de vidrio se completa el espesor si se reconoce en su
+nombre (también en laminados). En dobles se suman los espesores de las caras.
+El espesor sigue siendo editable; si el vidrio no lo indica, hay que introducirlo.
+
+En «Canto pulido», al elegir «Por tarifa», el selector «Tarifa del canto» muestra los importes €/ml de
+las tarifas disponibles y permite elegir una independientemente de la del vidrio.
+También se puede introducir un precio manual, tanto en el presupuesto normal
+como en el rápido. Las tarifas con canto a cero se muestran a cero hasta que
+se configure su importe en Tarifas.
+
 El canto pulido se calcula por los metros lineales de los lados seleccionados,
 multiplicados por dos en doble acristalamiento y por uno en monolítico, y por
 la cantidad de unidades. Por ejemplo, un doble de 1 × 1 m con todo el perímetro

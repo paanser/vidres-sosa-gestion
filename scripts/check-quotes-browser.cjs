@@ -484,6 +484,12 @@ module.exports = async function checkQuotes(page, context, root) {
     await VSStorage.write(key, [
       ...VSStorage.read(key, []),
       { id: "test-edge", name: "Float 4 prueba pulido", price: 20, edge: 6 },
+      {
+        id: "test-edge-second",
+        name: "Otra tarifa pulido",
+        price: 25,
+        edge: 9,
+      },
     ]);
   });
   await page.locator("#quote-quick").click();
@@ -509,6 +515,28 @@ module.exports = async function checkQuotes(page, context, root) {
     await page.locator("#quick-result").textContent(),
     /Importe del pulido: 6,00/,
   );
+  await selectBySearch(
+    page,
+    '[data-field="edgeTariff"]',
+    "test-edge-second",
+    "9,00",
+  );
+  assert.equal(await page.locator("#quick-glass").inputValue(), "test-edge");
+  assert.equal(
+    await page.locator('[data-field="edgePrice"]').inputValue(),
+    "9",
+  );
+  await set("#quick-qty", "2");
+  assert.match(
+    await page.locator("#quick-result").textContent(),
+    /Importe del pulido: 18,00/,
+  );
+  await set("#quick-qty", "1");
+  await selectBySearch(page, '[data-field="edgeTariff"]', "test-edge");
+  assert.equal(
+    await page.locator('[data-field="edgePrice"]').inputValue(),
+    "6",
+  );
   await page.locator('[data-field="doubleGlazing"]').check();
   assert.match(
     await page.locator("#quick-result").textContent(),
@@ -520,6 +548,46 @@ module.exports = async function checkQuotes(page, context, root) {
     await page.locator('[data-field="edgeMode"]').inputValue(),
     "tariff",
   );
+  assert.equal(
+    await page.locator('[data-field="edgeTariff"]').inputValue(),
+    "test-edge",
+  );
+  await selectBySearch(page, '[data-field="edgeTariff"]', "test-edge-second");
+  assert.equal(
+    await page.locator('[data-field="edgePrice"]').inputValue(),
+    "9",
+  );
+  assert.match(
+    await page.locator(".quote-line-metrics").textContent(),
+    /Importe del pulido: 18,00/,
+  );
+  assert.ok(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  );
+  await page.locator("#quote-save").click();
+  await page.waitForFunction(() =>
+    VSStorage.read("vs-quote-prototype-v1", []).some(
+      (q) => q.lines[0].edgeTariff === "test-edge-second",
+    ),
+  );
+  await page.reload();
+  await page.waitForFunction(() => window.vidresQuoteOpenSaved);
+  await page.evaluate(() => {
+    const quote = VSStorage.read("vs-quote-prototype-v1", []).find(
+      (q) => q.lines[0].edgeTariff === "test-edge-second",
+    );
+    vidresQuoteOpenSaved(quote.id);
+  });
+  assert.equal(
+    await page.locator('[data-field="edgeTariff"]').inputValue(),
+    "test-edge-second",
+  );
+  assert.equal(
+    await page.locator('[data-field="edgePrice"]').inputValue(),
+    "9",
+  );
   await page.locator('[data-field="edgeMode"]').selectOption("manual");
   await set('[data-field="edgePrice"]', "2,5");
   assert.match(
@@ -530,7 +598,7 @@ module.exports = async function checkQuotes(page, context, root) {
     VSStorage.write(
       "vs-tariffs-prototype-v1",
       VSStorage.read("vs-tariffs-prototype-v1", []).filter(
-        (t) => t.id !== "test-edge",
+        (t) => !["test-edge", "test-edge-second"].includes(t.id),
       ),
     ),
   );

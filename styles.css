@@ -3810,6 +3810,18 @@ input[data-measure] {
   align-items: flex-end;
   gap: 8px 12px;
 }
+.quote-edge-tariff {
+  display: grid;
+  gap: 4px;
+  flex: 1 1 260px;
+  min-width: 0;
+  max-width: 100%;
+  font-size: 0.9em;
+}
+.quote-edge-tariff .select-search-trigger {
+  min-width: 0;
+  max-width: 100%;
+}
 .quote-edge-price {
   display: grid;
   gap: 4px;

@@ -340,6 +340,19 @@ export function checked(values) {
         )
           fail(400, "Forma de vidrio no válida");
       strings(l, { glass: 200, tariff: 150 });
+      for (const field of ["sizeSupplement", "areaSupplement"])
+        if (l[field] != null && typeof l[field] !== "boolean")
+          fail(400, "Activación de recargo no válida");
+      if (
+        l.supplementFamily != null &&
+        !["", "mono", "laminated", "double"].includes(l.supplementFamily)
+      )
+        fail(400, "Familia de recargo no válida");
+      if (
+        l.shape != null &&
+        !["0", "1", "2", "3", "4", "5", "6"].includes(String(l.shape))
+      )
+        fail(400, "Forma no válida");
       if (l.extraAmount != null && l.extraAmount !== "") number(l.extraAmount);
       strings(l, { extraDescription: 160 });
       if (

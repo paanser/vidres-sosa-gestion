@@ -1,6 +1,8 @@
 "use strict";
 const RELEASE = "__BUILD_VERSION__";
-const VERSION = RELEASE.startsWith("__") ? "20261118-recargos-doble" : RELEASE;
+const VERSION = RELEASE.startsWith("__")
+  ? "20261118-suplementos-automaticos"
+  : RELEASE;
 const PREFIX = "vidres-sosa:" + self.registration.scope + ":",
   CACHE = PREFIX + VERSION;
 const ASSETS = [

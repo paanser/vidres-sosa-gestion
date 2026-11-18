@@ -114,7 +114,9 @@
             ? 1
             : 0;
       if (!count) return [];
-      const applied = config.surchargeRules?.[rule.id] === true;
+      // Presupuestos anteriores a esta opción no guardaban reglas. Aplícalas
+      // por defecto; una desactivación explícita sigue prevaleciendo.
+      const applied = config.surchargeRules?.[rule.id] !== false;
       const amount =
         Math.max(
           (area * num(line.price) * rule.percent) / 100,

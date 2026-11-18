@@ -260,3 +260,20 @@ catálogo. Disponible en el presupuesto normal y rápido; se conservan al guarda
 El precio manual no cambia al seleccionar otro vidrio. Si la tarifa no tiene
 precio de pulido, se indica para que puedas introducirlo manualmente.
 El desglose muestra el importe del pulido y el recargo por separado.
+
+### Medidas especiales en presupuestos
+
+Junto al metraje mínimo, «Medidas especiales · doble acristalamiento» permite
+elegir Automático según medidas (por defecto en nuevos presupuestos) o Sin
+recargo. Usa medidas reales por pieza: lado > 2,40 m: 20 %; superficie > 4 m²:
+25 %, > 5 m²: 50 %, > 8 m²: 100 %. Los límites son estrictos y la cantidad no
+cambia el tramo. Se aplica el porcentaje mayor, sin acumularlos, ya que la tabla
+«Recargos / doble acristalamiento» del PDF no especifica acumulación. No se
+extienden estos porcentajes a vidrio monolítico o laminado.
+
+El recargo se suma al coste del vidrio; cantos, energía y extras se calculan
+aparte. Se conserva con tarifa fija y no recibe el margen exclusivo del vidrio.
+El editor y la copia interna muestran porcentaje e importe; los documentos de
+cliente y mensajes incluyen el importe en su precio. La opción se guarda por
+presupuesto, también en el modo rápido. Los anteriores conservan sus importes
+hasta seleccionar explícitamente el modo automático.

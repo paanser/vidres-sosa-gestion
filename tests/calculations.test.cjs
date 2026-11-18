@@ -477,6 +477,88 @@ test("espesor en nombres de tarifa completos y laminado triple", () => {
     assert.equal(inferThickness({ glass }), mm, glass);
 });
 
+test("medidas especiales: límites estrictos del doble y porcentaje mayor por pieza", () => {
+  const config = { specialSizeMode: "auto", minimumArea: "auto" };
+  const line = { doubleGlazing: true, price: 100, qty: 1 };
+  for (const [w, h, rate] of [
+    [240, 100, 0],
+    [240.1, 100, 20],
+    [100, 240.1, 20],
+    [200, 200, 0],
+    [200, 200.1, 25],
+    [200, 250, 25],
+    [200, 250.1, 50],
+    [200, 400, 50],
+    [200, 400.1, 100],
+    [160, 250, 20],
+    [240, 240, 50],
+  ]) {
+    const result = calc({ ...line, w, h }, config);
+    assert.equal(result.sizeRate, rate, `${w} × ${h}`);
+    assert.equal(result.sizeSurcharge, (result.area * 100 * rate) / 100);
+  }
+  const small = calc({ ...line, w: 100, h: 100, qty: 10 }, config);
+  assert.equal(
+    small.sizeRate,
+    0,
+    "no usa la superficie conjunta de la cantidad",
+  );
+  const large = { ...line, w: 250, h: 200 };
+  for (const specialSizeMode of [undefined, "none"]) {
+    const result = calc(large, { specialSizeMode });
+    assert.equal(result.detectedSizeRate, 25);
+    assert.equal(result.sizeSurcharge, 0);
+    assert.equal(result.total, result.area * 100);
+  }
+  for (const patch of [
+    { doubleGlazing: false },
+    { kind: "concept" },
+    { kind: "aluminum" },
+    { w: 0 },
+  ])
+    assert.equal(calc({ ...large, ...patch }, config).sizeSurcharge, 0);
+});
+
+test("recargo dimensional solo sobre vidrio, con margen, tarifa fija, energía y extras", () => {
+  const line = {
+    doubleGlazing: true,
+    w: 300,
+    h: 300,
+    qty: 2,
+    price: 100,
+    sides: ["top"],
+    edgePrice: 10,
+    thickness: 8,
+    extraAmount: 30,
+  };
+  const config = {
+    specialSizeMode: "auto",
+    marginScope: "glass",
+    margin: 20,
+    energyMode: "kg",
+    energy: 0.5,
+    vat: 21,
+  };
+  const result = calc(line, config);
+  assert.equal(result.sizeSurcharge, 1800);
+  assert.equal(result.energy, 180);
+  assert.equal(result.total, 3900); // Vidrio 1800 + recargo 1800 + cantos 120 + energía 180.
+  const quote = { lines: [line], pricing: config };
+  assert.deepEqual(quoteDetails(quote).totals, {
+    base: 4290,
+    iva: 900.9,
+    total: 5190.9,
+  });
+  assert.equal(
+    quoteDetails({
+      ...quote,
+      pricing: { ...config, priceMode: "fixed", fixedPrice: 80 },
+    }).totals.base,
+    3570,
+  );
+  assert.equal(calc(line, { ...config, specialSizeMode: "none" }).energy, 180);
+});
+
 test("recargo de 0,314 €/kg multiplica el peso antes de redondear el importe", () => {
   const line = { w: 100, h: 100, qty: 1, thickness: 4, price: 0 };
   const pricing = { energyMode: "kg", energy: "0.314", vat: 21 };

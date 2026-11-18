@@ -30,6 +30,35 @@ module.exports = async function checkQuotes(page, context, root) {
   await page.locator("#quote-minimum-area").selectOption("1");
   assert.match(await page.locator(".quote-result").textContent(), /1.0000 m²/);
   await page.locator("#quote-minimum-area").selectOption("auto");
+  assert.equal(await page.locator("#quote-special-size").inputValue(), "auto");
+  await set('[data-field="w"]', "2.500");
+  await set('[data-field="h"]', "2.000");
+  assert.match(
+    await page.locator(".quote-line-metrics").textContent(),
+    /medidas especiales: 25 %/,
+  );
+  const withSize = await page.locator(".quote-grand-total").textContent();
+  await page.locator("#quote-special-size").selectOption("none");
+  assert.match(
+    await page.locator(".quote-line-metrics").textContent(),
+    /recargo desactivado/,
+  );
+  assert.notEqual(
+    await page.locator(".quote-grand-total").textContent(),
+    withSize,
+  );
+  await page.locator("#quote-special-size").selectOption("auto");
+  assert.equal(
+    await page.locator(".quote-grand-total").textContent(),
+    withSize,
+  );
+  await page.locator("#quote-pdf-internal").click();
+  assert.match(
+    await page.locator("#quote-print").textContent(),
+    /medidas especiales: 25 %/,
+  );
+  await set('[data-field="w"]', "0.200");
+  await set('[data-field="h"]', "0.300");
   await page.locator('[data-field="doubleGlazing"]').uncheck();
 
   assert.equal(await page.locator('[name="quote-margin-mode"]').count(), 0);
@@ -236,6 +265,7 @@ module.exports = async function checkQuotes(page, context, root) {
       ),
     key,
   );
+  assert.equal(saved.pricing.specialSizeMode, "auto");
   assert.equal(saved.pricing.marginMode, "cost");
   assert.equal(saved.pricing.marginScope, "glass");
   assert.equal(saved.lines[0].extraMode, "separate");
@@ -243,6 +273,7 @@ module.exports = async function checkQuotes(page, context, root) {
   await page.reload();
   await page.locator("#title").filter({ hasText: "Inicio" }).waitFor();
   await page.evaluate((id) => window.vidresQuoteOpenSaved(id), saved.id);
+  assert.equal(await page.locator("#quote-special-size").inputValue(), "auto");
   assert.match(
     await page.locator(".quote-grand-total").textContent(),
     /390,59/,

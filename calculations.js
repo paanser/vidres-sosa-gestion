@@ -60,9 +60,26 @@
           : 0,
       ),
       real = (w * h) / 10000;
+    // Tabla «Recargos / doble acristalamiento»: medidas reales por pieza.
+    // Se aplica el porcentaje mayor; el PDF no indica acumulación.
+    const eligible =
+      line.doubleGlazing &&
+      w > 0 &&
+      h > 0 &&
+      !["concept", "aluminum"].includes(line.kind);
+    const surface = Math.round(real * 1e8) / 1e8;
+    const detectedSizeRate = !eligible
+      ? 0
+      : Math.max(
+          Math.max(w, h) > 240 ? 20 : 0,
+          surface > 8 ? 100 : surface > 5 ? 50 : surface > 4 ? 25 : 0,
+        );
+    const sizeRate = config.specialSizeMode === "auto" ? detectedSizeRate : 0;
+    const sizeSurcharge = (area * num(line.price) * qty * sizeRate) / 100;
     const edgeParts = line.doubleGlazing ? 2 : 1;
     const subtotal =
-      (area * num(line.price) + ml * edgeParts * num(line.edgePrice)) * qty;
+      (area * num(line.price) + ml * edgeParts * num(line.edgePrice)) * qty +
+      sizeSurcharge;
     const thickness = num(line.thickness);
     const weight = ["concept", "aluminum"].includes(line.kind)
       ? 0
@@ -85,6 +102,9 @@
       weight,
       thickness,
       energy,
+      detectedSizeRate,
+      sizeRate,
+      sizeSurcharge,
       total: subtotal + energy,
     };
   }

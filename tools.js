@@ -290,7 +290,7 @@
       esc(c.followupDays || 4) +
       '"></label></div></fieldset><fieldset class="settings-group"><legend>Impuestos y energía</legend><div class="quote-fields"><label>IVA (%)<input id="cfg-vat" type="number" min="0" max="100" step="0.01" value="' +
       esc(c.vat ?? 21) +
-      '"></label><label>Recargo energético (€/kg)<input id="cfg-energy" type="number" min="0" step="0.01" value="' +
+      '"></label><label>Recargo energético (€/kg)<input id="cfg-energy" type="number" min="0" step="0.001" value="' +
       esc(c.energy ?? "") +
       '"></label></div><p class="muted">Consulta y modifica aquí la tarifa fija del recargo energético en €/kg. Se aplica a los presupuestos nuevos y no se edita dentro de cada presupuesto. Las tarifas anteriores en porcentaje o €/m² deben configurarse de nuevo. Recargo = peso real del vidrio (kg) × tarifa (€/kg). El peso usa la superficie real, el espesor total y 2,5 kg/m² por mm; no el metraje mínimo.</p></fieldset><details open><summary>Datos de empresa, logo y condiciones del presupuesto</summary><p class="muted">Estos datos aparecen en la cabecera de los PDF. Sin imagen se utiliza la marca de texto Vidres Sosa.</p><label>Logo de Vidres Sosa<input id="cfg-logo-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></label><input type="hidden" data-company="logo" value="' +
       esc(VSUtils.isCompanyLogo(company.logo) ? company.logo : "") +

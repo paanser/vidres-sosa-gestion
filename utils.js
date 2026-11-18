@@ -159,8 +159,16 @@
   const energyRate = (config = {}) =>
     config.energyMode === "kg" && String(config.energy ?? "").trim() !== ""
       ? config.energy
-      : "0.33";
+      : "0.314";
+  const energyMoney = (value) =>
+    Number(value || 0).toLocaleString("es-ES", {
+      style: "currency",
+      currency: "EUR",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 3,
+    });
   const api = {
+    energyMoney,
     energyRate,
     jobCreatedDate,
     jobMatchesCreation,

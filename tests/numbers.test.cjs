@@ -57,13 +57,19 @@ test("formulario bloquea importes negativos y texto con error del campo", async 
   assert.equal(saves, 1);
 });
 
-test("tarifa energética inicial de 0,33 €/kg conserva tarifas y cero explícitos", () => {
+test("tarifa energética inicial de 0,314 €/kg conserva tarifas y cero explícitos", () => {
   for (const config of [
     {},
     { energyMode: "kg", energy: "" },
     { energyMode: "percent", energy: 7 },
   ])
-    assert.equal(energyRate(config), "0.33");
+    assert.equal(energyRate(config), "0.314");
   for (const energy of ["0", 0, "0.5", "0,42"])
     assert.equal(energyRate({ energyMode: "kg", energy }), energy);
+});
+
+test("la tarifa energética muestra tres decimales sin redondear a céntimos", () => {
+  const { energyMoney } = require("../utils.js");
+  assert.match(energyMoney(0.314), /0,314/);
+  assert.match(energyMoney(0.5), /0,50/);
 });

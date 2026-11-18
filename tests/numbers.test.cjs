@@ -1,6 +1,6 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { num, priceError } = require("../utils.js");
+const { num, priceError, energyRate } = require("../utils.js");
 test("importes españoles y errores de campo sin convertir entradas inválidas a cero", () => {
   for (const [value, expected] of [
     ["1.234,56", 1234.56],
@@ -55,4 +55,15 @@ test("formulario bloquea importes negativos y texto con error del campo", async 
   await submit({ currentTarget: form, preventDefault() {} });
   assert.equal(error, "");
   assert.equal(saves, 1);
+});
+
+test("tarifa energética inicial de 0,33 €/kg conserva tarifas y cero explícitos", () => {
+  for (const config of [
+    {},
+    { energyMode: "kg", energy: "" },
+    { energyMode: "percent", energy: 7 },
+  ])
+    assert.equal(energyRate(config), "0.33");
+  for (const energy of ["0", 0, "0.5", "0,42"])
+    assert.equal(energyRate({ energyMode: "kg", energy }), energy);
 });

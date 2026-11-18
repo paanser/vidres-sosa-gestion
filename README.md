@@ -207,9 +207,10 @@ no permite compartir archivos, se descarga el PDF para adjuntarlo manualmente.
 
 ## Recargo energético y destinatario de WhatsApp
 
-La tarifa del recargo energético se configura en Ajustes → Configuración general,
-en €/kg. Los presupuestos normales, rápidos y duplicados toman esa tarifa al
-crearse y la muestran como solo lectura. Los guardados conservan sus condiciones. El peso usa superficie real × cantidad × espesor total del vidrio
+La tarifa fija del recargo energético se consulta y modifica únicamente en
+Ajustes → Configuración general, en €/kg. El valor inicial es 0,33 €/kg si no hay
+una tarifa por kg configurada; se puede guardar 0 para desactivarlo. Los presupuestos
+normales, rápidos y duplicados toman esa tarifa al crearse. Los guardados conservan sus condiciones. El peso usa superficie real × cantidad × espesor total del vidrio
 × 2,5; en dobles se suman ambos vidrios sin incluir la cámara de aire.
 
 El canto pulido se calcula por los metros lineales de los lados seleccionados,

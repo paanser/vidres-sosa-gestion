@@ -131,7 +131,7 @@ module.exports = async function checkQuoteMeasures(page, context, root) {
     await page.locator('[data-field="thickness"]').inputValue(),
     "6",
   );
-  assert.equal(await page.locator("#quote-energy").inputValue(), "0.5");
+  assert.equal(await page.locator("#quote-energy").count(), 0);
   await page.locator("#quote-energy-separate").check();
   await page.locator("#quote-pdf").click();
   await page.locator("#quote-pdf-result").waitFor();

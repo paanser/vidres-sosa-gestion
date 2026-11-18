@@ -156,7 +156,12 @@
       );
     });
   };
+  const energyRate = (config = {}) =>
+    config.energyMode === "kg" && String(config.energy ?? "").trim() !== ""
+      ? config.energy
+      : "0.33";
   const api = {
+    energyRate,
     jobCreatedDate,
     jobMatchesCreation,
     sortJobs,

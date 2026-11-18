@@ -126,6 +126,16 @@ async function checkMobileFields(page) {
     .locator("#nav button[disabled]")
     .first()
     .waitFor({ state: "detached" });
+  // Verificar el importe inicial y usar una tarifa cero explícita en las
+  // demás pruebas que comprueban precios de vidrio sin recargo.
+  await page.evaluate(() => window.vidresNavigate("ajustes-general"));
+  assert.equal(await page.locator("#cfg-energy").inputValue(), "0.33");
+  await page.locator("#cfg-energy").fill("0");
+  await page.locator("#cfg-save").click();
+  await page.waitForFunction(
+    () => VSStorage.read("vs-config-v1", {}).energy === "0",
+  );
+  await page.evaluate(() => window.vidresNavigate("inicio"));
   assert.equal(await page.locator(".operations-summary").count(), 0);
   assert.equal(await page.locator('#nav [data-page="calendario"]').count(), 0);
   await page.locator('[data-home-view="calendar"]').click();

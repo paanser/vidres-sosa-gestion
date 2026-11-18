@@ -325,11 +325,7 @@ module.exports = async function checkQuotes(page, context, root) {
     .waitFor();
   await page.evaluate(() => window.vidresNavigate("presupuestos"));
   await page.locator("#quote-quick").click();
-  assert.equal(await page.locator("#quote-energy").inputValue(), "0.5");
-  assert.equal(
-    await page.locator("#quote-energy").getAttribute("readonly"),
-    "",
-  );
+  assert.equal(await page.locator("#quote-energy").count(), 0);
   await set("#quick-w", "1.000");
   await set("#quick-h", "1.000");
   await page.locator('[data-field="doubleGlazing"]').check();
@@ -362,11 +358,7 @@ module.exports = async function checkQuotes(page, context, root) {
     "PASS doble acristalamiento en presupuesto rápido: base, ambas sustituciones y guardado",
   );
   await set('[data-field="thickness"]', "10");
-  assert.equal(await page.locator("#quote-energy").inputValue(), "0.5");
-  assert.equal(
-    await page.locator("#quote-energy").getAttribute("readonly"),
-    "",
-  );
+  assert.equal(await page.locator("#quote-energy").count(), 0);
   await page.locator('[data-edge="top"]').check();
   const before = await page.locator(".quote-total-breakdown").textContent();
   await page.locator('[data-edge="bottom"]').check();
@@ -404,7 +396,7 @@ module.exports = async function checkQuotes(page, context, root) {
     );
     vidresQuoteOpenSaved(quote.id);
   });
-  assert.equal(await page.locator("#quote-energy").inputValue(), "0.5");
+  assert.equal(await page.locator("#quote-energy").count(), 0);
   assert.match(
     await page.locator(".quote-line-metrics").textContent(),
     /Canto total: 8.00 ml/,
@@ -425,15 +417,23 @@ module.exports = async function checkQuotes(page, context, root) {
     .getByText("Configuración guardada en el servidor.", { exact: true })
     .waitFor();
   await page.evaluate((id) => window.vidresQuoteOpenSaved(id), savedId);
-  assert.equal(await page.locator("#quote-energy").inputValue(), "0.5");
+  assert.equal(await page.locator("#quote-energy").count(), 0);
+  assert.match(
+    await page.locator(".quote-total-breakdown").textContent(),
+    /12,50/,
+  );
   await page.locator("#quote-close").click();
   const duplicate = page.locator(`[data-duplicate="${savedId}"]`);
   const options = duplicate.locator("xpath=ancestor::details");
   if (await options.count()) await options.locator("summary").click();
   await duplicate.click();
-  assert.equal(await page.locator("#quote-energy").inputValue(), "0.8");
+  assert.equal(await page.locator("#quote-energy").count(), 0);
+  assert.match(
+    await page.locator(".quote-total-breakdown").textContent(),
+    /20,00/,
+  );
   await page.locator("#quote-new").click();
-  assert.equal(await page.locator("#quote-energy").inputValue(), "0.8");
+  assert.equal(await page.locator("#quote-energy").count(), 0);
   await page.evaluate(
     (c) => VSStorage.write("vs-config-v1", c),
     originalConfig,

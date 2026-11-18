@@ -318,6 +318,27 @@ export function checked(values) {
       if (l.thickness != null && l.thickness !== "") number(l.thickness, 0.001);
       if (q.pricing?.energyMode === "kg" && Number(q.pricing.energy) > 0)
         number(l.thickness, 0.001);
+      for (const key of ["angles", "curves"]) {
+        const value = l["surcharge_" + key];
+        if (value != null && value !== "") {
+          number(value, 0, 100);
+          if (!Number.isInteger(Number(value)))
+            fail(400, "Cantidad de recargo no válida");
+        }
+      }
+      for (const key of [
+        "blunt",
+        "circles",
+        "drills",
+        "regular",
+        "template",
+        "irregular",
+      ])
+        if (
+          l["surcharge_" + key] != null &&
+          typeof l["surcharge_" + key] !== "boolean"
+        )
+          fail(400, "Forma de vidrio no válida");
       strings(l, { glass: 200, tariff: 150 });
       if (l.extraAmount != null && l.extraAmount !== "") number(l.extraAmount);
       strings(l, { extraDescription: 160 });
@@ -356,6 +377,30 @@ export function checked(values) {
         )
       )
         fail(400, "Metraje mínimo no válido");
+      if (q.pricing.surchargeRules != null) {
+        const rules = q.pricing.surchargeRules;
+        const keys = [
+          "angles",
+          "blunt",
+          "curves",
+          "circles",
+          "drills",
+          "regular",
+          "template",
+          "irregular",
+          "longSide",
+          "area4",
+          "area5",
+          "area8",
+        ];
+        if (
+          !object(rules) ||
+          Object.entries(rules).some(
+            ([key, value]) => !keys.includes(key) || typeof value !== "boolean",
+          )
+        )
+          fail(400, "Reglas de recargos no válidas");
+      }
       if (q.pricing.energy) number(q.pricing.energy);
       if (
         q.pricing.energySeparate != null &&

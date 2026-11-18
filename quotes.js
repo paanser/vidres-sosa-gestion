@@ -322,7 +322,7 @@
   }
   function surchargeFields() {
     const rules = pricing(draft).surchargeRules || {};
-    return `<details id="quote-surcharges" class="quote-measures"><summary>Recargos · doble acristalamiento</summary><div class="quote-measures-body"><p>Activa o quita los recargos de este presupuesto. Los de medidas se detectan automáticamente por pieza; indica las formas y mecanizados en cada vidrio.</p><div class="quote-surcharge-rules">${VSCalculations.surchargeRules.map((r) => `<label><input type="checkbox" data-surcharge-rule="${r.id}" ${rules[r.id] === true ? "checked" : ""}>${esc(r.label)} · ${r.percent} %${r.minimum ? ` · mínimo ${money(r.minimum)}` : ""}</label>`).join("")}</div><p class="muted">Por pieza, sobre el importe del vidrio, sin cantos ni energía. Mínimos de recargo por pieza y por ángulo/lado cuando corresponda. Solo se aplica un tramo de superficie; se suma al de lado superior a 2.400 mm. Mínimo de facturación del doble: 0,70 m² en modo automático.</p></div></details>`;
+    return `<details id="quote-surcharges" class="quote-measures"><summary>Recargos · doble acristalamiento</summary><div class="quote-measures-body"><p>Activa o quita los recargos de este presupuesto. Los de medidas se detectan automáticamente por pieza; indica las formas y mecanizados en cada vidrio.</p><div class="quote-surcharge-rules">${VSCalculations.surchargeRules.map((r) => `<label><input type="checkbox" data-surcharge-rule="${r.id}" ${rules[r.id] !== false ? "checked" : ""}>${esc(r.label)} · ${r.percent} %${r.minimum ? ` · mínimo ${money(r.minimum)}` : ""}</label>`).join("")}</div><p class="muted">Por pieza, sobre el importe del vidrio, sin cantos ni energía. Mínimos de recargo por pieza y por ángulo/lado cuando corresponda. Solo se aplica un tramo de superficie; se suma al de lado superior a 2.400 mm. Mínimo de facturación del doble: 0,70 m² en modo automático.</p></div></details>`;
   }
   function readSurchargeRules() {
     const inputs = document.querySelectorAll("[data-surcharge-rule]");
@@ -343,7 +343,10 @@
       .join("")}</div></details>`;
   }
   function surchargeResult(result) {
-    if (!result.surcharges?.length) return "";
+    if (!result.surcharges?.length) {
+      if (!result.supplementTotal) return "";
+      return `<div class="quote-surcharge-notice" role="status" aria-live="polite"><strong>Recargos aplicados sin IVA</strong>${result.size ? `<div>Por medidas (${result.sizeRate} %): ${money(result.size)}</div>` : ""}${result.surface ? `<div>Por metraje (${result.areaRate} %): ${money(result.surface)}</div>` : ""}${result.shape ? `<div>Por forma: ${money(result.shape)}</div>` : ""}</div>`;
+    }
     return `<div class="quote-surcharge-notice" role="status" aria-live="polite"><strong>Recargos detectados · doble acristalamiento</strong>${result.surcharges.map((r) => `<div>${esc(r.label)} · ${r.percent} %${r.count > 1 ? ` × ${r.count}` : ""}: ${r.applied ? money(r.amount) : "desactivado en este presupuesto"}</div>`).join("")}<strong>Suplemento: ${money(result.surcharge)} sin IVA</strong></div>`;
   }
   function energyFields() {
@@ -660,14 +663,10 @@
       });
     if (line.edgeMode === "tariff")
       line.edgePrice = edgeTariff(line)?.edge ?? "";
-    document
-      .querySelectorAll(
-        ".quick-double [data-field], .quote-supplements [data-field]",
-      )
-      .forEach((input) => {
-        line[input.dataset.field] =
-          input.type === "checkbox" ? input.checked : input.value;
-      });
+    document.querySelectorAll(".quick-double [data-field]").forEach((input) => {
+      line[input.dataset.field] =
+        input.type === "checkbox" ? input.checked : input.value;
+    });
     if (line.doubleGlazing) readDouble(line);
     fillThickness(line);
     document.querySelector('.quick-double [data-field="thickness"]').value =
@@ -810,8 +809,8 @@
       .join(
         "",
       )}</select></label><label>Forma (por pieza)<select data-field="shape">${["Sin recargo por forma", "Ángulo distinto de 90°", "Punta roma", "Lado curvo", "Círculo, escuadra o forma regular", "Forma según plantilla", "Forma irregular"].map((text, i) => `<option value="${i}" ${Number(l.shape || 0) === i ? "selected" : ""}>${text}</option>`).join("")}</select></label></details>
-    <details class="quote-supplements"><summary>Recargos por medidas</summary><label><input type="checkbox" data-field="sizeSupplement" ${l.sizeSupplement === true ? "checked" : ""}>Aplicar automáticamente</label><p>Lado superior a 2,40 m: 20 %. Laminado superior a 3,21 m: 30 % (sustituye al 20 %).</p></details>
-    <details class="quote-supplements"><summary>Recargos por metraje</summary><label><input type="checkbox" data-field="areaSupplement" ${l.areaSupplement === true ? "checked" : ""}>Aplicar automáticamente</label><p>Superficie real por pieza: más de 4 m², 10 %; más de 6 m², 20 %. Doble: más de 4 m², 25 %; más de 5 m², 50 %; más de 8 m², 100 %. Se aplica el tramo mayor.</p></details>`;
+    <details class="quote-supplements"><summary>Recargos por medidas</summary><label><input type="checkbox" data-field="sizeSupplement" ${l.sizeSupplement !== false ? "checked" : ""}>Aplicar automáticamente</label><p>Todos los tipos de vidrio: 20 % si algún lado supera 2,40 m. En laminado, si algún lado supera 3,21 m, se aplica el 30 %. Se suma al recargo por metraje cuando corresponda.</p></details>
+    <details class="quote-supplements"><summary>Recargos por metraje</summary><label><input type="checkbox" data-field="areaSupplement" ${l.areaSupplement !== false ? "checked" : ""}>Aplicar automáticamente</label><p>Superficie real por pieza: más de 4 m², 10 %; más de 6 m², 20 %. Doble: más de 4 m², 25 %; más de 5 m², 50 %; más de 8 m², 100 %. Se aplica el tramo mayor.</p></details>`;
   }
   function row(l, i, measuresPanel) {
     if (l.kind === "aluminum") {
@@ -846,7 +845,7 @@
   }
   function lineResult(c, line) {
     const sale = `<p class="quote-line-sale"><strong>Precio de esta partida sin IVA: ${money(c.glassSale)}</strong>${c.energySale ? `<br>Recargo energético separado sin IVA: ${money(c.energySale)}` : ""}${c.separate && c.extraSale ? `<br>Concepto separado sin IVA: ${money(c.extraSale)}` : ""}${c.energySale || c.extraSale ? `<br>Total de la partida sin IVA: ${money(c.sale)}` : ""}</p>`;
-    return `${sale}${surchargeResult(c)}${!line.doubleGlazing ? `<p>Recargos: medidas ${money(c.size)} · metraje ${money(c.surface)} · forma ${money(c.shape)}</p>` : ""}<div class="quote-line-metrics"><span>Peso vidrio: ${c.thickness ? c.weight.toFixed(2) + " kg" : "pendiente de espesor"}</span><span>Real: ${measures(c.w, c.h)} · ${c.real.toFixed(4)} m²</span><span>Aplicada: ${measures(c.aw, c.ah)} · ${c.area.toFixed(4)} m²</span><span>Canto: ${c.ml.toFixed(2)} ml × ${c.edgeParts} pieza(s) de vidrio · Unidades: ${c.qty} · Canto total: ${(c.ml * c.edgeParts * c.qty).toFixed(2)} ml</span><span>Coste de vidrio y cantos: ${money(c.total - c.energy - c.surcharge)}</span><span>Importe del pulido: ${money(c.ml * c.edgeParts * c.qty * num(line?.edgePrice))} sin IVA</span>${c.thickness ? `<span>Recargo energético: ${money(c.energy)} sin IVA${pricing(draft).energyMode === "kg" ? ` (${c.weight.toFixed(2)} kg × ${VSUtils.energyMoney(num(pricing(draft).energy))}/kg)` : ""}</span>` : "<span>Recargo energético pendiente: indica el espesor del vidrio.</span>"}</div>`;
+    return `${sale}${surchargeResult(c)}<div class="quote-line-metrics"><span>Peso vidrio: ${c.thickness ? c.weight.toFixed(2) + " kg" : "pendiente de espesor"}</span><span>Real: ${measures(c.w, c.h)} · ${c.real.toFixed(4)} m²</span><span>Aplicada: ${measures(c.aw, c.ah)} · ${c.area.toFixed(4)} m²</span><span>Canto: ${c.ml.toFixed(2)} ml × ${c.edgeParts} pieza(s) de vidrio · Unidades: ${c.qty} · Canto total: ${(c.ml * c.edgeParts * c.qty).toFixed(2)} ml</span><span>Coste de vidrio y cantos: ${money(c.total - c.energy - c.surcharge - c.supplementTotal)}</span><span>Importe del pulido: ${money(c.ml * c.edgeParts * c.qty * num(line?.edgePrice))} sin IVA</span>${c.thickness ? `<span>Recargo energético: ${money(c.energy)} sin IVA${pricing(draft).energyMode === "kg" ? ` (${c.weight.toFixed(2)} kg × ${VSUtils.energyMoney(num(pricing(draft).energy))}/kg)` : ""}</span>` : "<span>Recargo energético pendiente: indica el espesor del vidrio.</span>"}</div>`;
   }
   function totalResult(breakdown) {
     const total = breakdown.totals;
@@ -1521,7 +1520,10 @@
       updateQuickResult();
       if (
         (e.target.closest(".quick-double") &&
-          !e.target.dataset.field?.startsWith("surcharge_")) ||
+          !e.target.dataset.field?.startsWith("surcharge_") &&
+          !["sizeSupplement", "areaSupplement"].includes(
+            e.target.dataset.field,
+          )) ||
         ["quick-client", "quick-glass"].includes(e.target.id) ||
         ["edgeMode", "edgeTariff"].includes(e.target.dataset.field)
       )

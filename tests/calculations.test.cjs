@@ -511,7 +511,7 @@ test("suplementos por medidas y metraje: umbrales reales, tramos y desactivació
       .sizeRate,
     30,
   );
-  assert.equal(calc({ w: 300, h: 300, price: 100 }).supplementTotal, 0);
+  assert.equal(calc({ w: 300, h: 300, price: 100 }).supplementTotal, 360);
 });
 
 test("100 € de coste completo con 100 % de margen son 200 € antes de IVA", () => {

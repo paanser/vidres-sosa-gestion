@@ -36,7 +36,7 @@ module.exports = async (page) => {
   assert.equal(saved.pricing.surchargeRules.area5, false);
   assert.equal(saved.lines[0].surcharge_circles, true);
   await page.locator("#quote-close").click();
-  await page.locator(`[data-load="${saved.id}"]`).click();
+  await page.locator(`button[data-load="${saved.id}"]`).click();
   assert.match(await notice.textContent(), /50 %: desactivado/);
   assert.match(await notice.textContent(), /Círculos.*100 %/);
   await page.locator("#quote-close").click();
@@ -55,7 +55,67 @@ module.exports = async (page) => {
     /50 %: desactivado/,
   );
   await page.locator("#quick-close").click();
+  await page.evaluate(async (quote) => {
+    const key = "vs-quote-prototype-v1";
+    const legacyLine = {
+      w: 275.4,
+      h: 258.5,
+      price: 29.95,
+      thickness: 4,
+      qty: 1,
+    };
+    const { surchargeRules, ...pricing } = quote.pricing;
+    await VSStorage.write(key, [
+      ...VSStorage.read(key, []),
+      {
+        ...quote,
+        id: "P-LEGACY-RECARGOS",
+        client: "Presupuesto anterior de prueba",
+        pricing,
+        lines: [
+          legacyLine,
+          { ...legacyLine, sizeSupplement: false },
+          { ...quote.lines[0], surcharge_circles: false },
+        ],
+      },
+    ]);
+    vidresNavigate("inicio");
+    vidresNavigate("presupuestos");
+  }, saved);
+  await page.locator('button[data-load="P-LEGACY-RECARGOS"]').click();
+  const savedLine = page.locator('[data-line="0"]');
+  assert.match(
+    await savedLine.locator(".quote-result").textContent(),
+    /Por medidas \(20 %\): 43,65/,
+  );
+  assert.match(
+    await savedLine.locator(".quote-result").textContent(),
+    /Por metraje \(20 %\): 43,65/,
+  );
+  assert.equal(
+    await savedLine.locator('[data-field="sizeSupplement"]').isChecked(),
+    true,
+  );
+  assert.equal(
+    await page.locator('[data-surcharge-rule="longSide"]').isChecked(),
+    true,
+  );
+  await page.locator("#quote-close").click();
+  const duplicate = page.locator('[data-duplicate="P-LEGACY-RECARGOS"]');
+  const options = duplicate.locator("xpath=ancestor::details");
+  if (await options.count()) await options.locator("summary").click();
+  await duplicate.click();
+  const first = page.locator('[data-line="0"] .quote-result');
+  const second = page.locator('[data-line="1"] .quote-result');
+  assert.match(await first.textContent(), /Por medidas \(20 %\): 43,65/);
+  assert.match(await first.textContent(), /Por metraje \(20 %\): 43,65/);
+  assert.doesNotMatch(await second.textContent(), /Por medidas/);
+  assert.match(await second.textContent(), /Por metraje \(20 %\): 43,65/);
+  const third = page.locator('[data-line="2"] .quote-result');
+  assert.match(await third.textContent(), /2.400 mm · 20 %: \d/);
+  assert.match(await third.textContent(), /5 m² · 50 %: \d/);
+  await page.locator("#quote-close").click();
   console.log(
-    "PASS recargos: detección, tramo único, casillas, formas, guardado/reapertura y presupuesto rápido",
+    "PASS recargos: detección, tramo único, casillas, formas, presupuestos anteriores, duplicación y presupuesto rápido",
   );
 };

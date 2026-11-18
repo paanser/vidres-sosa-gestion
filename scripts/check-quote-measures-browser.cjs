@@ -169,7 +169,7 @@ module.exports = async function checkQuoteMeasures(page, context, root) {
     fixture.first,
   );
   await page.locator("#quote-new").click();
-  await page.locator(`[data-load="${saved}"]`).click();
+  await page.locator(`button[data-load="${saved}"]`).click();
   assert.equal(await page.locator("#quote-energy-separate").isChecked(), true);
   await page.locator("#quote-measures > summary").click();
   await page.locator("[data-quote-paper] img").waitFor();

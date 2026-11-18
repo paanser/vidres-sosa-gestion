@@ -128,7 +128,12 @@
     });
   }
   function supplements(line, area, qty) {
-    if (line.doubleGlazing)
+    if (
+      line.doubleGlazing ||
+      ["concept", "aluminum"].includes(line.kind) ||
+      num(line.w) <= 0 ||
+      num(line.h) <= 0
+    )
       return { size: 0, surface: 0, shape: 0, supplementTotal: 0 };
     const family =
       line.supplementFamily ||
@@ -156,8 +161,8 @@
             ? 10
             : 0;
     const base = area * num(line.price) * qty;
-    const size = line.sizeSupplement === true ? (base * sizeRate) / 100 : 0;
-    const surface = line.areaSupplement === true ? (base * areaRate) / 100 : 0;
+    const size = line.sizeSupplement !== false ? (base * sizeRate) / 100 : 0;
+    const surface = line.areaSupplement !== false ? (base * areaRate) / 100 : 0;
     const rules =
       family === "double"
         ? [

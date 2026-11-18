@@ -144,7 +144,7 @@ module.exports = async (page, context, root) => {
   assert.equal(estimateRequests, 0);
   await review.getByRole("button", { name: "Cerrar" }).click();
 
-  await row.locator("[data-load]").click();
+  await row.locator("button[data-load]").click();
   const mobileViewport = page.viewportSize();
   await page.setViewportSize({ width: 1440, height: 900 });
   await page

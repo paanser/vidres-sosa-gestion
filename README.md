@@ -267,8 +267,8 @@ El desglose muestra el importe del pulido y el recargo por separado.
 
 Al inicio del presupuesto normal y rápido, junto al metraje mínimo, el bloque
 «Recargos · doble acristalamiento» permite activar o desactivar las reglas de la
-tabla. Los nuevos presupuestos las activan; los anteriores conservan sus importes
-y pueden activarlas expresamente. Los ajustes se guardan con cada presupuesto.
+tabla. Los recargos se activan por defecto en presupuestos nuevos y guardados.
+Si se desactiva un recargo expresamente, se guarda esa preferencia en el presupuesto.
 
 En líneas con «Calcular doble acristalamiento», se detecta por pieza un lado
 real superior a 2.400 mm (+20 %) y el tramo de superficie real: superior a 4 m²

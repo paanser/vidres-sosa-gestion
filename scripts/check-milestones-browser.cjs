@@ -85,7 +85,9 @@ module.exports = async (page) => {
           .isVisible(),
         true,
       );
-      await page.locator(`[data-saved-quote="${id}"] [data-load]`).click();
+      await page
+        .locator(`[data-saved-quote="${id}"] button[data-load]`)
+        .click();
       await page.locator(".quote-editor").waitFor();
       await noQuoteMilestones();
       await page.locator("#quote-close").click();

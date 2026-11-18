@@ -53,7 +53,7 @@ module.exports = async (page) => {
       !document.querySelector("#nav button").disabled,
   );
   await page.evaluate(() => window.vidresNavigate("presupuestos"));
-  await page.locator(`[data-load="${saved.id}"]`).click();
+  await page.locator(`button[data-load="${saved.id}"]`).click();
   assert.equal(
     await page
       .locator(".quote-editor .quote-aluminum-drawing")

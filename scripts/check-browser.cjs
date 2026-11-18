@@ -160,6 +160,25 @@ async function checkMobileFields(page) {
     await page.locator("#quick-result").textContent(),
     /Recargo energético calculado: 3,14/,
   );
+  const quickResult = page.locator("#quick-result");
+  await page.locator("#quick-w").fill("2.754");
+  await page.locator("#quick-h").fill("2.585");
+  await require("./search-select-browser.cjs")(
+    page,
+    "#quick-glass",
+    "reuglass-2-2",
+  );
+  assert.match(await quickResult.textContent(), /Por medidas \(20 %\): 43,65/);
+  assert.match(await quickResult.textContent(), /Por metraje \(20 %\): 43,65/);
+  assert.match(await quickResult.textContent(), /Base: 327,87/);
+  await page.getByText("Recargos por medidas", { exact: true }).click();
+  const sizeSupplement = page.locator('[data-field="sizeSupplement"]');
+  await sizeSupplement.uncheck();
+  assert.doesNotMatch(await quickResult.textContent(), /Por medidas/);
+  assert.match(await quickResult.textContent(), /Por metraje \(20 %\): 43,65/);
+  assert.match(await quickResult.textContent(), /Base: 284,23/);
+  await sizeSupplement.check();
+  assert.match(await quickResult.textContent(), /Base: 327,87/);
   await page.locator("#quick-close").click();
   await page.evaluate(() => window.vidresNavigate("ajustes-general"));
   assert.equal(await page.locator("#cfg-energy").inputValue(), "0.314");

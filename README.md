@@ -207,8 +207,9 @@ no permite compartir archivos, se descarga el PDF para adjuntarlo manualmente.
 
 ## Recargo energético y destinatario de WhatsApp
 
-En el presupuesto normal y en el rápido, «Recargo energético» permite editar la
-tarifa en €/kg. El peso usa superficie real × cantidad × espesor total del vidrio
+La tarifa del recargo energético se configura en Ajustes → Configuración general,
+en €/kg. Los presupuestos normales, rápidos y duplicados toman esa tarifa al
+crearse y la muestran como solo lectura. Los guardados conservan sus condiciones. El peso usa superficie real × cantidad × espesor total del vidrio
 × 2,5; en dobles se suman ambos vidrios sin incluir la cámara de aire.
 
 El canto pulido se calcula por los metros lineales de los lados seleccionados,

@@ -303,21 +303,13 @@
   }
   function energyFields() {
     const p = pricing(draft);
-    return `<fieldset class="quote-energy"><legend>Recargo energético</legend><label>Tarifa de energía (€/kg)<input id="quote-energy" type="text" inputmode="decimal" data-price-input value="${esc(p.energyMode === "kg" ? (p.energy ?? "") : "")}"></label><label class="quote-energy-presentation"><input id="quote-energy-separate" type="checkbox" ${p.energySeparate === true ? "checked" : ""}>Mostrar el recargo energético por separado al cliente</label><p class="muted">Sin marcar, se incluye en el precio del vidrio. El total no cambia.</p><p class="muted">Peso real × tarifa. El canto pulido no modifica el recargo energético. En doble acristalamiento suma el espesor de las dos piezas de vidrio, sin la cámara. En monolítico usa el espesor de una pieza. No se aplica el metraje mínimo al peso.</p>${p.energyMode && p.energyMode !== "kg" && num(p.energy) ? "<p>Este presupuesto conserva un recargo anterior. Cambia la tarifa para calcularlo por kg.</p>" : ""}</fieldset>`;
+    return `<fieldset class="quote-energy"><legend>Recargo energético</legend><label>Tarifa de energía (€/kg)<input id="quote-energy" type="text" inputmode="decimal" readonly value="${esc(p.energyMode === "kg" ? (p.energy ?? "") : "")}"></label><label class="quote-energy-presentation"><input id="quote-energy-separate" type="checkbox" ${p.energySeparate === true ? "checked" : ""}>Mostrar el recargo energético por separado al cliente</label><p class="muted">Sin marcar, se incluye en el precio del vidrio. El total no cambia.</p><p class="muted">Tarifa tomada de Ajustes → Configuración general. Los presupuestos guardados conservan su tarifa. Peso real × tarifa. El canto pulido no modifica el recargo energético. En doble acristalamiento suma el espesor de las dos piezas de vidrio, sin la cámara. En monolítico usa el espesor de una pieza. No se aplica el metraje mínimo al peso.</p>${p.energyMode && p.energyMode !== "kg" && num(p.energy) ? "<p>Este presupuesto conserva un recargo anterior. Los nuevos usan la tarifa en €/kg de Ajustes.</p>" : ""}</fieldset>`;
   }
-  function readEnergy() {
-    const input = document.querySelector("#quote-energy");
+  function readEnergyPresentation() {
+    const input = document.querySelector("#quote-energy-separate");
     if (!input) return;
-    const p = pricing(draft);
-    draft.pricing ||= { ...p };
-    draft.pricing.energySeparate =
-      document.querySelector("#quote-energy-separate")?.checked === true;
-    if (!p.energyMode || p.energyMode === "kg" || input.value !== "") {
-      draft.pricing ||= { ...p };
-      draft.pricing.energyMode = "kg";
-      draft.pricing.energy =
-        input.value.trim() === "" ? "" : String(num(input.value));
-    }
+    draft.pricing ||= { ...pricing(draft) };
+    draft.pricing.energySeparate = input.checked;
   }
   function readMinimumArea() {
     const input = document.querySelector("#quote-minimum-area");
@@ -611,7 +603,7 @@
       width = document.querySelector("#quick-w");
     if (!client || !width) return;
     readMinimumArea();
-    readEnergy();
+    readEnergyPresentation();
     const previousClient = draft.client;
     draft.client = client.value.trim();
     if (previousClient !== draft.client) applyClientProfile();
@@ -786,7 +778,7 @@
     if (!validPriceFields()) return;
     const previous = JSON.stringify(draft);
     readMinimumArea();
-    readEnergy();
+    readEnergyPresentation();
     const previousClient = draft.client;
     draft.client = document.querySelector("#quote-client").value.trim();
     if (previousClient !== draft.client) {
@@ -1317,6 +1309,12 @@
           draft = structuredClone(
             quotes().find((q) => q.id === b.dataset.duplicate),
           );
+          const c = config();
+          draft.pricing = {
+            ...pricing(draft),
+            energyMode: "kg",
+            energy: c.energyMode === "kg" ? (c.energy ?? "") : "",
+          };
           draft.id = null;
           draft.status = "Borrador";
           draft.date = localToday();

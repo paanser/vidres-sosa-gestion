@@ -5,6 +5,9 @@ const path = require("node:path");
 
 // Se ejecuta desde check-browser.cjs contra su servidor simulado y datos ficticios.
 module.exports = async function checkQuotes(page, context, root) {
+  const originalConfig = await page.evaluate(() =>
+    VSStorage.read("vs-config-v1", {}),
+  );
   await page.evaluate(() => window.vidresNavigate("presupuestos"));
   await page.locator("#quote-new").click();
   const set = async (selector, value) => {
@@ -314,7 +317,19 @@ module.exports = async function checkQuotes(page, context, root) {
   );
   await page.locator("#quote-pdf").click();
   assert.match(await page.locator("#quote-print").textContent(), /121,00/);
+  await page.evaluate(() => window.vidresNavigate("ajustes-general"));
+  await set("#cfg-energy", "0.5");
+  await page.locator("#cfg-save").click();
+  await page
+    .getByText("Configuración guardada en el servidor.", { exact: true })
+    .waitFor();
+  await page.evaluate(() => window.vidresNavigate("presupuestos"));
   await page.locator("#quote-quick").click();
+  assert.equal(await page.locator("#quote-energy").inputValue(), "0.5");
+  assert.equal(
+    await page.locator("#quote-energy").getAttribute("readonly"),
+    "",
+  );
   await set("#quick-w", "1.000");
   await set("#quick-h", "1.000");
   await page.locator('[data-field="doubleGlazing"]').check();
@@ -322,6 +337,7 @@ module.exports = async function checkQuotes(page, context, root) {
   assert.match(await page.locator(".quick-double").textContent(), /35,98/);
   await selectBySearch(page, '[data-field="faceTwo"]', "reuglass-4-1");
   assert.match(await page.locator(".quick-double").textContent(), /46,73/);
+  await set('[data-field="thickness"]', "10");
   await page.locator("#quick-save").click();
   await page.waitForFunction(
     (key) =>
@@ -342,7 +358,11 @@ module.exports = async function checkQuotes(page, context, root) {
     "PASS doble acristalamiento en presupuesto rápido: base, ambas sustituciones y guardado",
   );
   await set('[data-field="thickness"]', "10");
-  await set("#quote-energy", "0,5");
+  assert.equal(await page.locator("#quote-energy").inputValue(), "0.5");
+  assert.equal(
+    await page.locator("#quote-energy").getAttribute("readonly"),
+    "",
+  );
   await page.locator('[data-edge="top"]').check();
   const before = await page.locator(".quote-total-breakdown").textContent();
   await page.locator('[data-edge="bottom"]').check();
@@ -387,6 +407,35 @@ module.exports = async function checkQuotes(page, context, root) {
   );
   console.log(
     "PASS energía independiente del pulido, doble con 8 ml y persistencia tras recargar",
+  );
+  const savedId = await page.evaluate(
+    () =>
+      VSStorage.read("vs-quote-prototype-v1", []).find(
+        (q) => q.pricing.energy === "0.5",
+      ).id,
+  );
+  await page.evaluate(() => window.vidresNavigate("ajustes-general"));
+  await set("#cfg-energy", "0.8");
+  await page.locator("#cfg-save").click();
+  await page
+    .getByText("Configuración guardada en el servidor.", { exact: true })
+    .waitFor();
+  await page.evaluate((id) => window.vidresQuoteOpenSaved(id), savedId);
+  assert.equal(await page.locator("#quote-energy").inputValue(), "0.5");
+  await page.locator("#quote-close").click();
+  const duplicate = page.locator(`[data-duplicate="${savedId}"]`);
+  const options = duplicate.locator("xpath=ancestor::details");
+  if (await options.count()) await options.locator("summary").click();
+  await duplicate.click();
+  assert.equal(await page.locator("#quote-energy").inputValue(), "0.8");
+  await page.locator("#quote-new").click();
+  assert.equal(await page.locator("#quote-energy").inputValue(), "0.8");
+  await page.evaluate(
+    (c) => VSStorage.write("vs-config-v1", c),
+    originalConfig,
+  );
+  console.log(
+    "PASS tarifa desde Ajustes: normal, rápido, duplicado y conservación de guardados",
   );
   await page.evaluate(() => window.vidresNavigate("inicio"));
   console.log(

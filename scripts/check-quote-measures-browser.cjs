@@ -16,7 +16,12 @@ module.exports = async function checkQuoteMeasures(page, context, root) {
         direccion: "Carrer de la Plata, 255",
       };
     await VSStorage.patchValues({
-      [VSStorage.keys.configuracion]: { ...config, unit: "cm" },
+      [VSStorage.keys.configuracion]: {
+        ...config,
+        unit: "cm",
+        energyMode: "kg",
+        energy: "0.5",
+      },
       [VSStorage.keys.trabajos]: [...jobs, second],
       [VSStorage.keys.mediciones]: measures.map((m) => ({
         ...m,
@@ -126,7 +131,7 @@ module.exports = async function checkQuoteMeasures(page, context, root) {
     await page.locator('[data-field="thickness"]').inputValue(),
     "6",
   );
-  await page.locator("#quote-energy").fill("0,5");
+  assert.equal(await page.locator("#quote-energy").inputValue(), "0.5");
   await page.locator("#quote-energy-separate").check();
   await page.locator("#quote-pdf").click();
   await page.locator("#quote-pdf-result").waitFor();

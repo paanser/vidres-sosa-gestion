@@ -235,6 +235,22 @@
     base[2] = face(line.faceTwo, line.faceTwoName, base[2]);
     return base.join("/");
   }
+  const thicknessSources = new WeakMap();
+  function fillThickness(line) {
+    const source = JSON.stringify([
+      line.doubleGlazing,
+      line.doubleComposition,
+      line.faceOne,
+      line.faceOneName,
+      line.faceTwo,
+      line.faceTwoName,
+      line.glass,
+    ]);
+    const previous = thicknessSources.get(line);
+    if (!num(line.thickness) || (previous !== undefined && previous !== source))
+      line.thickness = VSCalculations.inferThickness(line) || "";
+    thicknessSources.set(line, source);
+  }
   function doublePrice(line) {
     if (!line.doubleGlazing) return;
     line.price =
@@ -259,9 +275,10 @@
       line[name] = selected ? glassName({ glass: selected.name }) : "Float 4";
     }
     doublePrice(line);
+    fillThickness(line);
   }
   function weightFields(l) {
-    return `<label>Espesor total de vidrio (mm)<input data-field="thickness" type="number" min="0.01" step="any" inputmode="decimal" value="${esc(l.thickness ?? "")}" placeholder="Ej.: 8; doble 4/16/4 = 8"></label><p class="muted">Suma los espesores de vidrio, sin cámara de aire. Necesario para aplicar el recargo por kg.</p>`;
+    return `<label>Espesor total de vidrio (mm)<input data-field="thickness" type="number" min="0.01" step="any" inputmode="decimal" value="${esc(l.thickness ?? "")}" placeholder="Ej.: 8; doble 4/16/4 = 8"></label><p class="muted">Suma los espesores de vidrio, sin cámara de aire. Se obtiene de la composición o tarifa cuando es posible; revisa el espesor para aplicar el recargo por kg.</p>`;
   }
   function doubleFields(l) {
     const face = (field, label) =>
@@ -507,6 +524,7 @@
       return;
     }
     if (!draft) draft = fresh();
+    draft.lines.forEach(fillThickness);
     const list = quotes(),
       jobs = window.vidresGetJobs?.() || [],
       breakdown = details(draft);
@@ -622,6 +640,7 @@
         input.type === "checkbox" ? input.checked : input.value;
     });
     if (line.doubleGlazing) readDouble(line);
+    fillThickness(line);
     line.sides = [
       ...document.querySelectorAll("[data-quick-edge]:checked"),
     ].map((input) => input.dataset.quickEdge);
@@ -767,7 +786,7 @@
   }
   function lineResult(c) {
     const sale = `<p class="quote-line-sale"><strong>Precio de esta partida sin IVA: ${money(c.glassSale)}</strong>${c.energySale ? `<br>Recargo energético separado sin IVA: ${money(c.energySale)}` : ""}${c.separate && c.extraSale ? `<br>Concepto separado sin IVA: ${money(c.extraSale)}` : ""}${c.energySale || c.extraSale ? `<br>Total de la partida sin IVA: ${money(c.sale)}` : ""}</p>`;
-    return `${sale}<div class="quote-line-metrics"><span>Peso vidrio: ${c.weight.toFixed(2)} kg</span><span>Real: ${measures(c.w, c.h)} · ${c.real.toFixed(4)} m²</span><span>Aplicada: ${measures(c.aw, c.ah)} · ${c.area.toFixed(4)} m²</span><span>Canto: ${c.ml.toFixed(2)} ml × ${c.edgeParts} pieza(s) de vidrio · Unidades: ${c.qty} · Canto total: ${(c.ml * c.edgeParts * c.qty).toFixed(2)} ml</span><span>Coste de vidrio y cantos: ${money(c.total)}</span>${c.energy ? "<span>Recargo energético calculado: " + money(c.energy) + "</span>" : ""}</div>`;
+    return `${sale}<div class="quote-line-metrics"><span>Peso vidrio: ${c.thickness ? c.weight.toFixed(2) + " kg" : "pendiente de espesor"}</span><span>Real: ${measures(c.w, c.h)} · ${c.real.toFixed(4)} m²</span><span>Aplicada: ${measures(c.aw, c.ah)} · ${c.area.toFixed(4)} m²</span><span>Canto: ${c.ml.toFixed(2)} ml × ${c.edgeParts} pieza(s) de vidrio · Unidades: ${c.qty} · Canto total: ${(c.ml * c.edgeParts * c.qty).toFixed(2)} ml</span><span>Coste de vidrio y cantos: ${money(c.total)}</span>${c.thickness ? "<span>Recargo energético: " + money(c.energy) + " sin IVA</span>" : "<span>Recargo energético pendiente: indica el espesor del vidrio.</span>"}</div>`;
   }
   function totalResult(breakdown) {
     const total = breakdown.totals;
@@ -807,6 +826,7 @@
                 : input.value),
       );
       if (l.doubleGlazing) readDouble(l);
+      fillThickness(l);
       l.sides = [...el.querySelectorAll("[data-edge]:checked")].map(
         (x) => x.dataset.edge,
       );

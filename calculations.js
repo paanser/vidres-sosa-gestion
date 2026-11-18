@@ -4,6 +4,34 @@
     typeof module !== "undefined" ? require("./utils.js") : root.VSUtils;
   const { num, round6 } = U;
   const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+  // Solo espesores explícitos; los códigos de capas y las cámaras no son vidrio.
+  function glassThickness(name) {
+    const text = String(name || "").split("·")[0];
+    const plus = text.match(
+      /(?:^|\s)(\d+(?:[.,]\d+)?(?:\s*\+\s*\d+(?:[.,]\d+)?)+)(?:\s|$)/,
+    );
+    if (plus) return plus[1].split("+").reduce((sum, n) => sum + num(n), 0);
+    const laminate = text.match(/(?:^|\s)(\d{2}|\d{4})[.,][1-9](?=\s|$)/);
+    if (laminate) {
+      const digits = laminate[1],
+        half = digits.length / 2;
+      return Number(digits.slice(0, half)) + Number(digits.slice(half));
+    }
+    const parts = text
+      .split(/\s+/)
+      .filter((p) => /^\d+(?:[.,]\d+)?(?:mm)?$/i.test(p));
+    const value = num((parts.pop() || "").replace(/mm$/i, ""));
+    return value > 0 && value <= 30 ? value : 0;
+  }
+  function inferThickness(line) {
+    if (["concept", "aluminum"].includes(line.kind)) return 0;
+    if (!line.doubleGlazing) return glassThickness(line.glass);
+    const base = (line.doubleComposition || "4/16/4").split("/");
+    if (base.length !== 3) return 0;
+    const first = glassThickness(line.faceOne ? line.faceOneName : base[0]);
+    const second = glassThickness(line.faceTwo ? line.faceTwoName : base[2]);
+    return first && second ? first + second : 0;
+  }
   function calc(line, config = {}) {
     const w = num(line.w),
       h = num(line.h),
@@ -188,7 +216,14 @@
       pending,
     };
   }
-  const api = { calc, totals, quoteDetails, round2, jobGlassDetails };
+  const api = {
+    calc,
+    totals,
+    quoteDetails,
+    round2,
+    jobGlassDetails,
+    inferThickness,
+  };
   if (typeof module !== "undefined") module.exports = api;
   else root.VSCalculations = api;
 })(globalThis);

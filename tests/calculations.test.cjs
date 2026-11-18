@@ -436,3 +436,31 @@ test("expediente: peso real sin mínimo, tarifa decimal y piezas incompletas", (
     0,
   );
 });
+
+test("espesor desde la composición: excluye cámara y códigos de capas", () => {
+  const { inferThickness } = require("../calculations.js");
+  assert.equal(inferThickness({ doubleGlazing: true }), 8);
+  assert.equal(
+    inferThickness({ doubleGlazing: true, doubleComposition: "6/20/4" }),
+    10,
+  );
+  assert.equal(
+    inferThickness({
+      doubleGlazing: true,
+      faceOne: "sun",
+      faceOneName: "Guardian Sun 44.2 P2A",
+      faceTwo: "float",
+      faceTwoName: "Float 6",
+    }),
+    14,
+  );
+  for (const [glass, mm] of [
+    ["Float 6", 6],
+    ["Laminado 1010.2", 20],
+    ["Laminado 4+4", 8],
+    ["SN 70/35 44.1", 8],
+    ["Vidrio sin espesor", 0],
+    ["SN 70/35", 0],
+  ])
+    assert.equal(inferThickness({ glass }), mm, glass);
+});

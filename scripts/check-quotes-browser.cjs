@@ -337,7 +337,11 @@ module.exports = async function checkQuotes(page, context, root) {
   assert.match(await page.locator(".quick-double").textContent(), /35,98/);
   await selectBySearch(page, '[data-field="faceTwo"]', "reuglass-4-1");
   assert.match(await page.locator(".quick-double").textContent(), /46,73/);
-  await set('[data-field="thickness"]', "10");
+  assert.equal(
+    await page.locator('[data-field="thickness"]').inputValue(),
+    "11",
+  );
+  assert.match(await page.locator("#quick-result").textContent(), /27.50 kg/);
   await page.locator("#quick-save").click();
   await page.waitForFunction(
     (key) =>

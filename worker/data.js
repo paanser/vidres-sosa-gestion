@@ -357,6 +357,11 @@ export function checked(values) {
       )
         fail(400, "Metraje mínimo no válido");
       if (q.pricing.energy) number(q.pricing.energy);
+      if (
+        q.pricing.energySeparate != null &&
+        typeof q.pricing.energySeparate !== "boolean"
+      )
+        fail(400, "Presentación del recargo energético no válida");
       if (q.pricing.margin != null && q.pricing.margin !== "")
         number(q.pricing.margin);
       if (

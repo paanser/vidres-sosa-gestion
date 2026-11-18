@@ -55,7 +55,7 @@ module.exports = async function checkQuotes(page, context, root) {
   await page.locator('[data-edge="left"]').check();
   assert.match(
     await page.locator(".quote-result").textContent(),
-    /Canto por pieza: 2.00 ml · Unidades: 2/,
+    /Canto: 2.00 ml × 1 pieza\(s\) de vidrio · Unidades: 2/,
   );
   assert.match(await page.locator(".quote-result").textContent(), /74,79/);
   await page.locator('[data-edge="top"]').uncheck();
@@ -340,6 +340,53 @@ module.exports = async function checkQuotes(page, context, root) {
   );
   console.log(
     "PASS doble acristalamiento en presupuesto rápido: base, ambas sustituciones y guardado",
+  );
+  await set('[data-field="thickness"]', "10");
+  await set("#quote-energy", "0,5");
+  await page.locator('[data-edge="top"]').check();
+  const before = await page.locator(".quote-total-breakdown").textContent();
+  await page.locator('[data-edge="bottom"]').check();
+  await page.locator('[data-edge="left"]').check();
+  await page.locator('[data-edge="right"]').check();
+  assert.match(
+    await page.locator(".quote-line-metrics").textContent(),
+    /Canto total: 8.00 ml/,
+  );
+  assert.match(
+    await page.locator(".quote-line-metrics").textContent(),
+    /Peso vidrio: 25.00 kg/,
+  );
+  assert.match(before, /12,50/);
+  assert.match(
+    await page.locator(".quote-total-breakdown").textContent(),
+    /12,50/,
+  );
+  assert.equal(await page.locator("#quote-energy-polishing").count(), 0);
+  await page.locator("#quote-save").click();
+  await page.waitForFunction(
+    (key) =>
+      VSStorage.read(key, []).some(
+        (q) => q.pricing.energy === "0.5" && q.lines[0].sides.length === 4,
+      ),
+    key,
+  );
+  await page.reload();
+  await page.waitForFunction(
+    () => window.vidresQuoteOpenSaved && window.vidresNavigate,
+  );
+  await page.evaluate(() => {
+    const quote = VSStorage.read("vs-quote-prototype-v1", []).find(
+      (q) => q.pricing.energy === "0.5",
+    );
+    vidresQuoteOpenSaved(quote.id);
+  });
+  assert.equal(await page.locator("#quote-energy").inputValue(), "0.5");
+  assert.match(
+    await page.locator(".quote-line-metrics").textContent(),
+    /Canto total: 8.00 ml/,
+  );
+  console.log(
+    "PASS energía independiente del pulido, doble con 8 ml y persistencia tras recargar",
   );
   await page.evaluate(() => window.vidresNavigate("inicio"));
   console.log(

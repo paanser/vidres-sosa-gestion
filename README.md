@@ -204,3 +204,20 @@ El botón «Enviar por WhatsApp» conserva el envío del mensaje de texto.
 Para enviar el archivo, pulsa «PDF para cliente» y después «Compartir PDF»:
 elige la aplicación y el contacto en el menú del dispositivo. Si el navegador
 no permite compartir archivos, se descarga el PDF para adjuntarlo manualmente.
+
+## Recargo energético y destinatario de WhatsApp
+
+En el presupuesto normal y en el rápido, «Recargo energético» permite editar la
+tarifa en €/kg. El peso usa superficie real × cantidad × espesor total del vidrio
+× 2,5; en dobles se suman ambos vidrios sin incluir la cámara de aire.
+
+El canto pulido se calcula por los metros lineales de los lados seleccionados,
+multiplicados por dos en doble acristalamiento y por uno en monolítico, y por
+la cantidad de unidades. Por ejemplo, un doble de 1 × 1 m con todo el perímetro
+pulido suma 4 × 2 = 8 metros lineales. El pulido no modifica los kilos ni añade
+recargo energético. La energía se calcula únicamente sobre el peso del vidrio.
+
+Al abrir WhatsApp, tanto para presupuesto como para seguimiento, el diálogo
+permite elegir el teléfono de la ficha o escribir otro número con prefijo
+internacional. El número alternativo no modifica la ficha ni se conserva para
+el siguiente envío. No es necesario añadir el destinatario a los contactos.

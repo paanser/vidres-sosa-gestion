@@ -80,6 +80,12 @@ module.exports = async function checkQuoteMeasures(page, context, root) {
       normalPhoto: normalPhoto.id,
     };
   });
+  assert.equal(
+    await page
+      .locator("#quote-measures")
+      .evaluate((panel) => panel.nextElementSibling?.id),
+    "quote-lines",
+  );
   const fileRequests = [],
     track = (request) => {
       const id = new URL(request.url()).pathname.match(

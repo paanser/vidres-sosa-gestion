@@ -241,6 +241,12 @@ async function checkMobileFields(page) {
     "PASS inicio personal: ocultar bloques, recargar, calendario y restablecer",
   );
   console.log("PASS login, cambio obligatorio y carga privada");
+  if (process.env.SURCHARGES_ONLY === "1") {
+    await require("./check-surcharges-browser.cjs")(page);
+    assert.deepEqual(errors, []);
+    await browser.close();
+    return;
+  }
   if (process.env.OPERATIONS_ONLY === "1") {
     await fs.mkdir(path.join(root, "test-results"), { recursive: true });
     await require("./check-operations-browser.cjs")(page, context, root);
@@ -994,6 +1000,7 @@ async function checkMobileFields(page) {
   await page.locator("[data-exp-close]").click();
   console.log("PASS cambio directo de estado, historial y reapertura");
   await require("./check-quote-measures-browser.cjs")(page, context, root);
+  await require("./check-surcharges-browser.cjs")(page);
   for (const focus of ["undated", "today", "late", ""]) {
     await page.locator('[data-page="trabajos"]').click();
     await page.locator("#search").fill("búsqueda-que-no-coincide");

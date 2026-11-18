@@ -260,3 +260,30 @@ catálogo. Disponible en el presupuesto normal y rápido; se conservan al guarda
 El precio manual no cambia al seleccionar otro vidrio. Si la tarifa no tiene
 precio de pulido, se indica para que puedas introducirlo manualmente.
 El desglose muestra el importe del pulido y el recargo por separado.
+
+### Recargos de doble acristalamiento
+
+Al inicio del presupuesto normal y rápido, junto al metraje mínimo, el bloque
+«Recargos · doble acristalamiento» permite activar o desactivar las reglas de la
+tabla. Los nuevos presupuestos las activan; los anteriores conservan sus importes
+y pueden activarlas expresamente. Los ajustes se guardan con cada presupuesto.
+
+En líneas con «Calcular doble acristalamiento», se detecta por pieza un lado
+real superior a 2.400 mm (+20 %) y el tramo de superficie real: superior a 4 m²
+(+25 %), a 5 m² (+50 %) o a 8 m² (+100 %). Solo se aplica el tramo correspondiente,
+sin sumar los de superficie inferior ni sustituir un tramo desactivado por otro.
+El recargo de lado se suma al de superficie. La cantidad de piezas no cambia el
+tramo. El aviso de cada línea muestra los recargos detectados, incluso desactivados.
+
+«Formas y mecanizados de este vidrio» permite indicar las formas manualmente y
+contar los ángulos distintos de 90° y los lados curvos por pieza. Cada recargo se
+calcula sobre el coste facturable del vidrio (con su redondeo comercial y metraje
+mínimo), sin cantos, energía ni extras. Se toma el mayor entre porcentaje y mínimo
+en euros, por pieza y por ángulo/lado cuando corresponda, y se multiplica por la
+cantidad. Los recargos seleccionados se suman sin capitalización; no llevan margen
+en el modo actual de margen solo sobre vidrio y se mantienen con tarifa fija.
+El PDF interno detalla los recargos y el del cliente los incluye en el vidrio.
+La facturación automática usa el mismo cálculo.
+
+«Ver medidas del parte» está inmediatamente antes de las líneas de vidrio,
+después de los datos del cliente y del margen.

@@ -4977,3 +4977,33 @@ html {
 .quote-edge-controls > p {
   grid-column: 1 / -1;
 }
+
+.quote-surcharge-rules {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 12px;
+}
+.quote-surcharge-rules label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid #d8dfdc;
+  border-radius: 8px;
+  background: #fff;
+}
+.quote-surcharge-rules input[type="checkbox"] {
+  width: auto;
+  flex: 0 0 auto;
+}
+.quote-surcharge-rules input[type="number"] {
+  width: 80px;
+  min-width: 60px;
+}
+.quote-surcharge-notice {
+  margin: 12px 0;
+  padding: 12px;
+  border-left: 4px solid #b77916;
+  background: #fff6dd;
+  color: #63410c;
+}

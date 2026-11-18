@@ -36,6 +36,95 @@
     const second = glassThickness(line.faceTwo ? line.faceTwoName : base[2]);
     return first && second ? first + second : 0;
   }
+  // Tabla de recargos de doble acristalamiento. Medidas internas en cm.
+  const surchargeRules = [
+    {
+      id: "angles",
+      label: "Cada ángulo distinto de 90°",
+      percent: 15,
+      minimum: 12,
+      count: true,
+    },
+    { id: "blunt", label: "Punta roma", percent: 20, minimum: 10 },
+    {
+      id: "curves",
+      label: "Cada lado con forma curva",
+      percent: 50,
+      minimum: 30,
+      count: true,
+    },
+    { id: "circles", label: "Círculos", percent: 100, minimum: 50 },
+    {
+      id: "drills",
+      label: "Taquillas / Escuadras / Taladros",
+      percent: 100,
+      minimum: 50,
+    },
+    { id: "regular", label: "Formas regulares", percent: 100, minimum: 50 },
+    { id: "template", label: "Formas s/plantilla", percent: 150, minimum: 50 },
+    { id: "irregular", label: "Formas irregulares", percent: 200, minimum: 75 },
+    {
+      id: "longSide",
+      label: "Un lado superior a 2.400 mm",
+      percent: 20,
+      automatic: true,
+    },
+    {
+      id: "area4",
+      label: "Superficie superior a 4 m²",
+      percent: 25,
+      automatic: true,
+    },
+    {
+      id: "area5",
+      label: "Superficie superior a 5 m²",
+      percent: 50,
+      automatic: true,
+    },
+    {
+      id: "area8",
+      label: "Superficie superior a 8 m²",
+      percent: 100,
+      automatic: true,
+    },
+  ];
+  function glassSurcharges(line, config, area, qty) {
+    if (
+      !line.doubleGlazing ||
+      ["concept", "aluminum"].includes(line.kind) ||
+      num(line.w) <= 0 ||
+      num(line.h) <= 0
+    )
+      return [];
+    const real = Math.round(num(line.w) * num(line.h) * 10000) / 100000000;
+    const tier =
+      real > 8 ? "area8" : real > 5 ? "area5" : real > 4 ? "area4" : "";
+    return surchargeRules.flatMap((rule) => {
+      const count = rule.automatic
+        ? (
+            rule.id === "longSide"
+              ? Math.max(num(line.w), num(line.h)) > 240
+              : rule.id === tier
+          )
+          ? 1
+          : 0
+        : rule.count
+          ? Math.max(0, Math.floor(num(line["surcharge_" + rule.id])))
+          : line["surcharge_" + rule.id] === true
+            ? 1
+            : 0;
+      if (!count) return [];
+      const applied = config.surchargeRules?.[rule.id] === true;
+      const amount =
+        Math.max(
+          (area * num(line.price) * rule.percent) / 100,
+          rule.minimum || 0,
+        ) *
+        count *
+        qty;
+      return [{ ...rule, count, applied, amount: applied ? amount : 0 }];
+    });
+  }
   function calc(line, config = {}) {
     const w = num(line.w),
       h = num(line.h),
@@ -72,7 +161,11 @@
     if (config.energyMode === "percent")
       energy = (subtotal * num(config.energy)) / 100;
     if (config.energyMode === "m2") energy = area * qty * num(config.energy);
+    const surcharges = glassSurcharges(line, config, area, qty);
+    const surcharge = surcharges.reduce((sum, item) => sum + item.amount, 0);
     return {
+      surcharges,
+      surcharge,
       w,
       h,
       aw,
@@ -85,7 +178,7 @@
       weight,
       thickness,
       energy,
-      total: subtotal + energy,
+      total: subtotal + energy + surcharge,
     };
   }
   function totals(lines, config = {}) {
@@ -222,6 +315,7 @@
   }
   const api = {
     calc,
+    surchargeRules,
     totals,
     quoteDetails,
     round2,

@@ -318,6 +318,32 @@
       )
       .join("")}</select></label></div>`;
   }
+  function surchargeFields() {
+    const rules = pricing(draft).surchargeRules || {};
+    return `<details id="quote-surcharges" class="quote-measures"><summary>Recargos · doble acristalamiento</summary><div class="quote-measures-body"><p>Activa o quita los recargos de este presupuesto. Los de medidas se detectan automáticamente por pieza; indica las formas y mecanizados en cada vidrio.</p><div class="quote-surcharge-rules">${VSCalculations.surchargeRules.map((r) => `<label><input type="checkbox" data-surcharge-rule="${r.id}" ${rules[r.id] === true ? "checked" : ""}>${esc(r.label)} · ${r.percent} %${r.minimum ? ` · mínimo ${money(r.minimum)}` : ""}</label>`).join("")}</div><p class="muted">Por pieza, sobre el importe del vidrio, sin cantos ni energía. Mínimos de recargo por pieza y por ángulo/lado cuando corresponda. Solo se aplica un tramo de superficie; se suma al de lado superior a 2.400 mm. Mínimo de facturación del doble: 0,70 m² en modo automático.</p></div></details>`;
+  }
+  function readSurchargeRules() {
+    const inputs = document.querySelectorAll("[data-surcharge-rule]");
+    if (!inputs.length) return;
+    draft.pricing ||= { ...pricing(draft) };
+    draft.pricing.surchargeRules = Object.fromEntries(
+      [...inputs].map((input) => [input.dataset.surchargeRule, input.checked]),
+    );
+  }
+  function pieceSurchargeFields(line) {
+    if (!line.doubleGlazing) return "";
+    return `<details class="quote-measures"><summary>Formas y mecanizados de este vidrio</summary><div class="quote-measures-body quote-surcharge-rules">${VSCalculations.surchargeRules
+      .filter((r) => !r.automatic)
+      .map(
+        (r) =>
+          `<label>${r.count ? `${esc(r.label)} · cantidad por pieza<input type="number" min="0" max="100" step="1" data-field="surcharge_${r.id}" value="${esc(line["surcharge_" + r.id] || 0)}">` : `<input type="checkbox" data-field="surcharge_${r.id}" ${line["surcharge_" + r.id] === true ? "checked" : ""}>${esc(r.label)}`}</label>`,
+      )
+      .join("")}</div></details>`;
+  }
+  function surchargeResult(result) {
+    if (!result.surcharges?.length) return "";
+    return `<div class="quote-surcharge-notice" role="status" aria-live="polite"><strong>Recargos detectados · doble acristalamiento</strong>${result.surcharges.map((r) => `<div>${esc(r.label)} · ${r.percent} %${r.count > 1 ? ` × ${r.count}` : ""}: ${r.applied ? money(r.amount) : "desactivado en este presupuesto"}</div>`).join("")}<strong>Suplemento: ${money(result.surcharge)} sin IVA</strong></div>`;
+  }
   function energyFields() {
     const p = pricing(draft);
     return `<fieldset class="quote-energy"><legend>Recargo energético</legend><p><strong>Tarifa aplicada: ${VSUtils.energyMoney(num(p.energy))}/${p.energyMode === "percent" ? "100 €" : p.energyMode === "m2" ? "m²" : "kg"}</strong></p>${p.energyMode !== "kg" || num(p.energy) !== num(VSUtils.energyRate(config())) ? `<button type="button" id="quote-energy-refresh">Aplicar tarifa actual de Ajustes (${VSUtils.energyMoney(num(VSUtils.energyRate(config())))}/kg)</button>` : ""}${!num(p.energy) ? `<p role="status">${num(VSUtils.energyRate(config())) ? "Este presupuesto tiene el recargo a cero. Pulsa «Aplicar tarifa actual de Ajustes» para recalcularlo." : "La tarifa de Ajustes está a cero. Cambia el recargo en Ajustes → Configuración general y aplica la nueva tarifa aquí."}</p>` : ""}<label class="quote-energy-presentation"><input id="quote-energy-separate" type="checkbox" ${p.energySeparate === true ? "checked" : ""}>Mostrar el recargo energético por separado al cliente</label><p class="muted">Sin marcar, se incluye en el precio del vidrio. El total no cambia.</p><p class="muted">Tarifa tomada de Ajustes → Configuración general. Los presupuestos guardados conservan su tarifa. Peso real × tarifa. El canto pulido no modifica el recargo energético. En doble acristalamiento suma el espesor de las dos piezas de vidrio, sin la cámara. En monolítico usa el espesor de una pieza. No se aplica el metraje mínimo al peso.</p>${p.energyMode && p.energyMode !== "kg" && num(p.energy) ? "<p>Este presupuesto conserva un recargo anterior. Los nuevos usan la tarifa en €/kg de Ajustes.</p>" : ""}</fieldset>`;
@@ -352,6 +378,9 @@
         marginMode: "cost",
         marginScope: "glass",
         minimumArea: "auto",
+        surchargeRules: Object.fromEntries(
+          VSCalculations.surchargeRules.map((r) => [r.id, true]),
+        ),
       },
       lines: [emptyLine()],
     };
@@ -531,7 +560,7 @@
     const previousMeasures = document.querySelector("#quote-measures");
     document.querySelector("#content").innerHTML = `${toolbar()}
  <section class="panel quote-editor"><h2>Presupuesto · ${esc(draft.id || "Sin guardar")}</h2><div class="quote-fields">${clientPicker()}<label>Cliente · escribe para buscar<input id="quote-client" type="search" autocomplete="off" aria-controls="quote-client-matches" maxlength="100" value="${esc(draft.client)}"></label><div id="quote-client-matches" class="quote-client-matches" role="group" aria-label="Coincidencias de clientes"></div><datalist id="quote-clients">${(window.vidresClientNames?.() || []).map((name) => `<option value="${esc(name)}"></option>`).join("")}</datalist><label>Parte relacionado<select id="quote-job" data-search-select="Cliente, referencia o dirección"><option value="">Sin vincular</option>${jobs.map((j) => VSSelectSearch.jobOption(j, draft.job)).join("")}</select></label><label>Estado<select id="quote-status">${statuses.map((s) => `<option ${s === (draft.status || "Borrador") ? "selected" : ""}>${s}</option>`).join("")}</select></label></div>
- ${draft.id ? VSMilestones.badges(quotes().find((q) => q.id === draft.id) || draft, "quote") : ""}${minimumAreaFields()}${energyFields()}${measurePanel()}${customerFields()}<div class="quote-margin"><label>Precio para este presupuesto<select id="quote-price-mode" data-search-select="Margen, recargo o tarifa"><option value="markup" ${pricing(draft).priceMode !== "fixed" ? "selected" : ""}>Recargo porcentual</option><option value="fixed" ${pricing(draft).priceMode === "fixed" ? "selected" : ""}>Tarifa de venta por m²</option></select></label><label>Tarifa de venta del vidrio (€/m²)<input id="quote-fixed-price" type="text" inputmode="decimal" data-price-input value="${esc(pricing(draft).fixedPrice ?? "")}"></label><p>Perfil copiado del cliente al seleccionarlo; editable solo para esta oferta. La tarifa fija sustituye el precio de venta del vidrio, con cantos, energía y extras aparte.</p><label>Margen (%)<input id="quote-margin" type="text" inputmode="decimal" data-price-input value="${esc(pricing(draft).margin || "")}"></label><p>Incremento sobre el precio del vidrio: 100 € con 20 % → 120 €. Mano de obra, cantos, recargos y conceptos adicionales sin margen. Antes del IVA; solo visible en la copia interna.</p>${pricing(draft).marginScope !== "glass" && num(pricing(draft).margin) ? "<p>Presupuesto anterior: conserva el cálculo guardado. Al editar se aplicará el incremento solo al vidrio.</p>" : ""}</div><div id="quote-lines">${draft.lines.map(row).join("")}</div><button type="button" id="quote-add">+ Añadir otro vidrio</button><button type="button" id="quote-add-aluminum">+ Añadir aluminio con dibujo</button><button type="button" id="quote-add-concept">+ Añadir concepto libre</button><div class="quote-total"><div class="quote-total-breakdown">${totalResult(breakdown)}</div></div>${documentFields()}<div class="quote-toolbar"><button type="button" class="primary" id="quote-save">Guardar presupuesto</button><button type="button" id="quote-whatsapp">Enviar por WhatsApp</button><button type="button" id="quote-pdf">PDF para cliente</button><button type="button" id="quote-pdf-internal">PDF interno · Vidres Sosa</button>${window.VSFacturaDirecta?.button(list.find((q) => q.id === draft.id)?.id) || ""}</div></section>
+ ${draft.id ? VSMilestones.badges(quotes().find((q) => q.id === draft.id) || draft, "quote") : ""}${minimumAreaFields()}${surchargeFields()}${energyFields()}${customerFields()}<div class="quote-margin"><label>Precio para este presupuesto<select id="quote-price-mode" data-search-select="Margen, recargo o tarifa"><option value="markup" ${pricing(draft).priceMode !== "fixed" ? "selected" : ""}>Recargo porcentual</option><option value="fixed" ${pricing(draft).priceMode === "fixed" ? "selected" : ""}>Tarifa de venta por m²</option></select></label><label>Tarifa de venta del vidrio (€/m²)<input id="quote-fixed-price" type="text" inputmode="decimal" data-price-input value="${esc(pricing(draft).fixedPrice ?? "")}"></label><p>Perfil copiado del cliente al seleccionarlo; editable solo para esta oferta. La tarifa fija sustituye el precio de venta del vidrio, con cantos, energía y extras aparte.</p><label>Margen (%)<input id="quote-margin" type="text" inputmode="decimal" data-price-input value="${esc(pricing(draft).margin || "")}"></label><p>Incremento sobre el precio del vidrio: 100 € con 20 % → 120 €. Mano de obra, cantos, recargos y conceptos adicionales sin margen. Antes del IVA; solo visible en la copia interna.</p>${pricing(draft).marginScope !== "glass" && num(pricing(draft).margin) ? "<p>Presupuesto anterior: conserva el cálculo guardado. Al editar se aplicará el incremento solo al vidrio.</p>" : ""}</div>${measurePanel()}<div id="quote-lines">${draft.lines.map(row).join("")}</div><button type="button" id="quote-add">+ Añadir otro vidrio</button><button type="button" id="quote-add-aluminum">+ Añadir aluminio con dibujo</button><button type="button" id="quote-add-concept">+ Añadir concepto libre</button><div class="quote-total"><div class="quote-total-breakdown">${totalResult(breakdown)}</div></div>${documentFields()}<div class="quote-toolbar"><button type="button" class="primary" id="quote-save">Guardar presupuesto</button><button type="button" id="quote-whatsapp">Enviar por WhatsApp</button><button type="button" id="quote-pdf">PDF para cliente</button><button type="button" id="quote-pdf-internal">PDF interno · Vidres Sosa</button>${window.VSFacturaDirecta?.button(list.find((q) => q.id === draft.id)?.id) || ""}</div></section>
  ${savedPanel(list)}`;
     const panel = document.querySelector("#quote-measures");
     if (panel && previousMeasures?.dataset.job === draft.job) {
@@ -591,7 +620,7 @@
       <section class="panel quick-quote-editor">
         <h2>⚡ Presupuesto rápido</h2>
         <p class="muted">Calcula un precio sin crear antes un parte.</p>
-        ${minimumAreaFields()}${energyFields()}
+        ${minimumAreaFields()}${surchargeFields()}${energyFields()}
         <div class="quote-fields">
           <label>Cliente (opcional)<input id="quick-client" list="quick-quote-clients" maxlength="100" value="${esc(draft.client)}"></label>
           <datalist id="quick-quote-clients">${names.map((name) => `<option value="${esc(name)}"></option>`).join("")}</datalist>
@@ -605,7 +634,7 @@
             )
             .join("")}</select></label>
         </div>
-        ${customerFields()}<section class="quick-double">${doubleFields(line)}${weightFields(line)}</section>
+        ${customerFields()}<section class="quick-double">${doubleFields(line)}${pieceSurchargeFields(line)}${weightFields(line)}</section>
         ${edgeFields(line, true)}
         <div id="quick-result" class="quote-result quick-result">${quickResultHtml(result, total)}</div>
         ${documentFields()}<div class="quote-toolbar"><button type="button" id="quote-pdf">PDF para cliente</button><button type="button" id="quick-copy">Copiar mensaje</button><button type="button" id="quick-whatsapp">Enviar por WhatsApp</button><button type="button" class="primary" id="quick-save">Guardar como presupuesto</button></div>
@@ -613,7 +642,7 @@
     initMeasures();
   }
   function quickResultHtml(result, total) {
-    return `Medida real: ${measures(result.w, result.h)}<br>Medida aplicada: ${measures(result.aw, result.ah)}<br>Superficie aplicada: ${result.area.toFixed(4)} m² por pieza<br>Canto pulido: ${result.ml.toFixed(2)} ml × ${result.edgeParts} vidrio(s) × ${result.qty} ud. = ${(result.ml * result.edgeParts * result.qty).toFixed(2)} ml<br>Importe del pulido: ${money(result.ml * result.edgeParts * result.qty * num(draft.lines[0].edgePrice))} sin IVA<br>Peso vidrio: ${result.weight.toFixed(2)} kg<br>Recargo energético calculado: <strong>${money(result.energy)}</strong><br>Base: <strong>${money(total.base)}</strong><br>IVA (${esc(pricing(draft).vat ?? 21)} %): <strong>${money(total.iva)}</strong><br>Total: <strong class="quote-grand-total">${money(total.total)}</strong>`;
+    return `${surchargeResult(result)}Medida real: ${measures(result.w, result.h)}<br>Medida aplicada: ${measures(result.aw, result.ah)}<br>Superficie aplicada: ${result.area.toFixed(4)} m² por pieza<br>Canto pulido: ${result.ml.toFixed(2)} ml × ${result.edgeParts} vidrio(s) × ${result.qty} ud. = ${(result.ml * result.edgeParts * result.qty).toFixed(2)} ml<br>Importe del pulido: ${money(result.ml * result.edgeParts * result.qty * num(draft.lines[0].edgePrice))} sin IVA<br>Peso vidrio: ${result.weight.toFixed(2)} kg<br>Recargo energético calculado: <strong>${money(result.energy)}</strong><br>Base: <strong>${money(total.base)}</strong><br>IVA (${esc(pricing(draft).vat ?? 21)} %): <strong>${money(total.iva)}</strong><br>Total: <strong class="quote-grand-total">${money(total.total)}</strong>`;
   }
   function readQuickForm() {
     const line = draft.lines[0] || emptyLine(),
@@ -621,6 +650,7 @@
       width = document.querySelector("#quick-w");
     if (!client || !width) return;
     readMinimumArea();
+    readSurchargeRules();
     readEnergyPresentation();
     const previousClient = draft.client;
     draft.client = client.value.trim();
@@ -802,11 +832,11 @@
       )
       .join(
         "",
-      )}</select></label><label>Tipo de vidrio<input data-field="glass" ${l.doubleGlazing ? "readonly" : ""} value="${esc(glassName(l))}"></label><label>Precio vidrio (€/m², editable sin tarifa)<input type="text" inputmode="decimal" data-price-input data-field="price" ${l.doubleGlazing ? "readonly" : ""} value="${esc(l.price)}"></label></div>${weightFields(l)}${edgeFields(l)}<div class="quote-fields quote-extras"><label>Descripción del concepto adicional<input data-field="extraDescription" maxlength="160" placeholder="Ej.: montaje, transporte, herrajes" value="${esc(l.extraDescription || "")}"></label><label>Coste adicional (€ por toda esta línea)<input type="text" inputmode="decimal" data-price-input data-field="extraAmount" value="${esc(l.extraAmount ?? "")}"></label><label>Presentación al cliente<select data-field="extraMode"><option value="included" ${l.extraMode !== "separate" ? "selected" : ""}>Integrado en el precio del vidrio</option><option value="separate" ${l.extraMode === "separate" ? "selected" : ""}>Como concepto separado</option></select></label></div><div class="quote-result">${lineResult(c, l)}</div></div>`;
+      )}</select></label><label>Tipo de vidrio<input data-field="glass" ${l.doubleGlazing ? "readonly" : ""} value="${esc(glassName(l))}"></label><label>Precio vidrio (€/m², editable sin tarifa)<input type="text" inputmode="decimal" data-price-input data-field="price" ${l.doubleGlazing ? "readonly" : ""} value="${esc(l.price)}"></label></div>${pieceSurchargeFields(l)}${weightFields(l)}${edgeFields(l)}<div class="quote-fields quote-extras"><label>Descripción del concepto adicional<input data-field="extraDescription" maxlength="160" placeholder="Ej.: montaje, transporte, herrajes" value="${esc(l.extraDescription || "")}"></label><label>Coste adicional (€ por toda esta línea)<input type="text" inputmode="decimal" data-price-input data-field="extraAmount" value="${esc(l.extraAmount ?? "")}"></label><label>Presentación al cliente<select data-field="extraMode"><option value="included" ${l.extraMode !== "separate" ? "selected" : ""}>Integrado en el precio del vidrio</option><option value="separate" ${l.extraMode === "separate" ? "selected" : ""}>Como concepto separado</option></select></label></div><div class="quote-result">${lineResult(c, l)}</div></div>`;
   }
   function lineResult(c, line) {
     const sale = `<p class="quote-line-sale"><strong>Precio de esta partida sin IVA: ${money(c.glassSale)}</strong>${c.energySale ? `<br>Recargo energético separado sin IVA: ${money(c.energySale)}` : ""}${c.separate && c.extraSale ? `<br>Concepto separado sin IVA: ${money(c.extraSale)}` : ""}${c.energySale || c.extraSale ? `<br>Total de la partida sin IVA: ${money(c.sale)}` : ""}</p>`;
-    return `${sale}<div class="quote-line-metrics"><span>Peso vidrio: ${c.thickness ? c.weight.toFixed(2) + " kg" : "pendiente de espesor"}</span><span>Real: ${measures(c.w, c.h)} · ${c.real.toFixed(4)} m²</span><span>Aplicada: ${measures(c.aw, c.ah)} · ${c.area.toFixed(4)} m²</span><span>Canto: ${c.ml.toFixed(2)} ml × ${c.edgeParts} pieza(s) de vidrio · Unidades: ${c.qty} · Canto total: ${(c.ml * c.edgeParts * c.qty).toFixed(2)} ml</span><span>Coste de vidrio y cantos: ${money(c.total - c.energy)}</span><span>Importe del pulido: ${money(c.ml * c.edgeParts * c.qty * num(line?.edgePrice))} sin IVA</span>${c.thickness ? `<span>Recargo energético: ${money(c.energy)} sin IVA${pricing(draft).energyMode === "kg" ? ` (${c.weight.toFixed(2)} kg × ${VSUtils.energyMoney(num(pricing(draft).energy))}/kg)` : ""}</span>` : "<span>Recargo energético pendiente: indica el espesor del vidrio.</span>"}</div>`;
+    return `${sale}${surchargeResult(c)}<div class="quote-line-metrics"><span>Peso vidrio: ${c.thickness ? c.weight.toFixed(2) + " kg" : "pendiente de espesor"}</span><span>Real: ${measures(c.w, c.h)} · ${c.real.toFixed(4)} m²</span><span>Aplicada: ${measures(c.aw, c.ah)} · ${c.area.toFixed(4)} m²</span><span>Canto: ${c.ml.toFixed(2)} ml × ${c.edgeParts} pieza(s) de vidrio · Unidades: ${c.qty} · Canto total: ${(c.ml * c.edgeParts * c.qty).toFixed(2)} ml</span><span>Coste de vidrio y cantos: ${money(c.total - c.energy - c.surcharge)}</span><span>Importe del pulido: ${money(c.ml * c.edgeParts * c.qty * num(line?.edgePrice))} sin IVA</span>${c.thickness ? `<span>Recargo energético: ${money(c.energy)} sin IVA${pricing(draft).energyMode === "kg" ? ` (${c.weight.toFixed(2)} kg × ${VSUtils.energyMoney(num(pricing(draft).energy))}/kg)` : ""}</span>` : "<span>Recargo energético pendiente: indica el espesor del vidrio.</span>"}</div>`;
   }
   function totalResult(breakdown) {
     const total = breakdown.totals;
@@ -817,6 +847,7 @@
     if (!validPriceFields()) return;
     const previous = JSON.stringify(draft);
     readMinimumArea();
+    readSurchargeRules();
     readEnergyPresentation();
     const previousClient = draft.client;
     draft.client = document.querySelector("#quote-client").value.trim();
@@ -965,6 +996,25 @@
     ) {
       alert(
         "Revisa el margen y los importes: deben ser positivos o cero. Escribe un nombre para los conceptos separados.",
+      );
+      return false;
+    }
+    if (
+      draft.lines.some((line) =>
+        ["angles", "curves"].some((key) => {
+          const value = line["surcharge_" + key];
+          return (
+            value != null &&
+            value !== "" &&
+            (!Number.isInteger(Number(value)) ||
+              Number(value) < 0 ||
+              Number(value) > 100)
+          );
+        }),
+      )
+    ) {
+      alert(
+        "Indica entre 0 y 100 ángulos o lados curvos por pieza, sin decimales.",
       );
       return false;
     }
@@ -1131,7 +1181,12 @@
           return `<tr><td>${l.kind === "aluminum" ? aluminumDescription(l) : esc(l.description)}</td>${internal ? `<td>${money(a.cost)}</td><td>${money(a.margin)}</td>` : ""}<td>${money(a.sale)}</td></tr>`;
         const label = `${esc(glassName(l) || "Vidrio")} · ${measures(a.w, a.h)} · ${a.qty} ud.`;
         if (internal)
-          return `<tr><td>${label}<br>Precio vidrio: ${money(num(l.price))}/m² · canto: ${money(num(l.edgePrice))}/ml<br>Real: ${a.real.toFixed(4)} m²/pieza · aplicada: ${a.area.toFixed(4)} m²/pieza · canto: ${a.ml.toFixed(2)} ml × ${a.edgeParts} vidrio(s)/pieza<br>Peso vidrio: ${a.weight.toFixed(2)} kg<br>Vidrio y cantos: ${money(a.glassCost - a.energy)} · recargo energético: ${money(a.energy)}<br>Otros conceptos: ${esc(l.extraDescription || "Sin concepto")} · ${money(a.extraCost)} (${a.separate ? "separado" : "integrado en vidrio"})</td><td>${money(a.cost)}</td><td>${money(a.margin)}</td><td>${money(a.sale)}</td></tr>`;
+          return `<tr><td>${label}<br>Precio vidrio: ${money(num(l.price))}/m² · canto: ${money(num(l.edgePrice))}/ml<br>Real: ${a.real.toFixed(4)} m²/pieza · aplicada: ${a.area.toFixed(4)} m²/pieza · canto: ${a.ml.toFixed(2)} ml × ${a.edgeParts} vidrio(s)/pieza<br>Peso vidrio: ${a.weight.toFixed(2)} kg<br>Vidrio y cantos: ${money(a.glassCost - a.energy - a.surcharge)} · recargos de formas/medidas: ${money(a.surcharge)}${
+            a.surcharges
+              ?.filter((r) => r.applied)
+              .map((r) => ` (${esc(r.label)}: ${money(r.amount)})`)
+              .join("") || ""
+          } · recargo energético: ${money(a.energy)}<br>Otros conceptos: ${esc(l.extraDescription || "Sin concepto")} · ${money(a.extraCost)} (${a.separate ? "separado" : "integrado en vidrio"})</td><td>${money(a.cost)}</td><td>${money(a.margin)}</td><td>${money(a.sale)}</td></tr>`;
         return `<tr><td>${label}</td><td>${money(a.glassSale)}</td></tr>${a.energySale ? `<tr><td>Recargo energético</td><td>${money(a.energySale)}</td></tr>` : ""}${a.separate && a.extraCost ? `<tr><td>${esc(l.extraDescription || "Otros conceptos")}</td><td>${money(a.extraSale)}</td></tr>` : ""}`;
       })
       .join("");
@@ -1445,7 +1500,8 @@
     if (quickMode) {
       updateQuickResult();
       if (
-        e.target.closest(".quick-double") ||
+        (e.target.closest(".quick-double") &&
+          !e.target.dataset.field?.startsWith("surcharge_")) ||
         ["quick-client", "quick-glass"].includes(e.target.id) ||
         ["edgeMode", "edgeTariff"].includes(e.target.dataset.field)
       )

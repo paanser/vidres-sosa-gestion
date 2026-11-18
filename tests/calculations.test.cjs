@@ -485,3 +485,31 @@ test("recargo de 0,314 €/kg multiplica el peso antes de redondear el importe",
   assert.equal(quoteDetails({ lines: [line], pricing }).totals.base, 3.14);
   assert.equal(calc({ ...line, qty: 10 }, pricing).energy, 31.4);
 });
+
+test("suplementos por medidas y metraje: umbrales reales, tramos y desactivación", () => {
+  const line = {
+    w: 300,
+    h: 300,
+    qty: 2,
+    price: 100,
+    doubleGlazing: false,
+    sizeSupplement: true,
+    areaSupplement: true,
+  };
+  const c = calc(line);
+  assert.equal(c.size, 360);
+  assert.equal(c.surface, 360);
+  assert.equal(c.total, 2520);
+  assert.equal(
+    calc({ ...line, sizeSupplement: false, areaSupplement: false }).total,
+    1800,
+  );
+  assert.equal(calc({ ...line, w: 240, h: 100 }).size, 0);
+  assert.equal(calc({ ...line, w: 200, h: 200 }).surface, 0);
+  assert.equal(
+    calc({ ...line, doubleGlazing: false, glass: "Laminado 4+4", w: 322 })
+      .sizeRate,
+    30,
+  );
+  assert.equal(calc({ w: 300, h: 300, price: 100 }).supplementTotal, 0);
+});

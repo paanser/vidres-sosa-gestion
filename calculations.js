@@ -125,6 +125,76 @@
       return [{ ...rule, count, applied, amount: applied ? amount : 0 }];
     });
   }
+  function supplements(line, area, qty) {
+    if (line.doubleGlazing)
+      return { size: 0, surface: 0, shape: 0, supplementTotal: 0 };
+    const family =
+      line.supplementFamily ||
+      (line.doubleGlazing
+        ? "double"
+        : /laminad|\+|\b\d{2}[.,][1-9]/i.test(line.glass || "")
+          ? "laminated"
+          : "mono");
+    const side = Math.max(num(line.w), num(line.h));
+    const real = (num(line.w) * num(line.h)) / 10000;
+    const sizeRate =
+      side > 321 && family === "laminated" ? 30 : side > 240 ? 20 : 0;
+    const areaRate =
+      family === "double"
+        ? real > 8
+          ? 100
+          : real > 5
+            ? 50
+            : real > 4
+              ? 25
+              : 0
+        : real > 6
+          ? 20
+          : real > 4
+            ? 10
+            : 0;
+    const base = area * num(line.price) * qty;
+    const size = line.sizeSupplement === true ? (base * sizeRate) / 100 : 0;
+    const surface = line.areaSupplement === true ? (base * areaRate) / 100 : 0;
+    const rules =
+      family === "double"
+        ? [
+            [15, 12],
+            [20, 10],
+            [50, 30],
+            [100, 50],
+            [150, 50],
+            [200, 75],
+          ]
+        : family === "laminated"
+          ? [
+              [15, 10],
+              [20, 10],
+              [40, 20],
+              [100, 30],
+              [150, 50],
+              [200, 75],
+            ]
+          : [
+              [12, 7],
+              [15, 7],
+              [30, 15],
+              [100, 25],
+              [150, 50],
+              [200, 75],
+            ];
+    const rule = rules[Number(line.shape) - 1];
+    const shape =
+      rule && real > 0 ? Math.max((base * rule[0]) / 100, rule[1] * qty) : 0;
+    return {
+      size,
+      surface,
+      shape,
+      sizeRate,
+      areaRate,
+      supplementTotal: size + surface + shape,
+    };
+  }
   function calc(line, config = {}) {
     const w = num(line.w),
       h = num(line.h),
@@ -161,9 +231,11 @@
     if (config.energyMode === "percent")
       energy = (subtotal * num(config.energy)) / 100;
     if (config.energyMode === "m2") energy = area * qty * num(config.energy);
+    const extras = supplements(line, area, qty);
     const surcharges = glassSurcharges(line, config, area, qty);
     const surcharge = surcharges.reduce((sum, item) => sum + item.amount, 0);
     return {
+      ...extras,
       surcharges,
       surcharge,
       w,
@@ -178,7 +250,7 @@
       weight,
       thickness,
       energy,
-      total: subtotal + energy + surcharge,
+      total: subtotal + energy + surcharge + extras.supplementTotal,
     };
   }
   function totals(lines, config = {}) {

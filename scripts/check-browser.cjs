@@ -1018,6 +1018,30 @@ async function checkMobileFields(page) {
   await checkMobileFields(page);
   await page.locator("[data-exp-close]").click();
   console.log("PASS cambio directo de estado, historial y reapertura");
+  await page.locator('[data-page="trabajos"]').click();
+  await page.locator("#search").fill(closedJob.id);
+  const listStatus = page.getByRole("combobox", {
+    name: "Cambiar estado de " + closedJob.id,
+  });
+  await listStatus.selectOption({ label: "Cobrar" });
+  await page.getByText(/Estado actualizado a Cobrar/).waitFor();
+  assert.equal(await listStatus.inputValue(), "Instalado");
+  assert.equal(await page.locator("#search").inputValue(), closedJob.id);
+  assert.equal(await page.locator("#expediente").isVisible(), false);
+  assert.equal(
+    await page.evaluate(() => vidresGetJobs()[0].historial.at(-1).a),
+    "Instalado",
+  );
+  await listStatus.selectOption("Finalizado");
+  await page.getByText(/Estado actualizado a Finalizado/).waitFor();
+  assert.equal(await listStatus.count(), 0);
+  await page.locator("#job-scope").selectOption("finalizados");
+  assert.equal(await listStatus.inputValue(), "Finalizado");
+  await listStatus.selectOption("Pendiente");
+  await page.getByText(/Estado actualizado a Pendiente/).waitFor();
+  await page.locator("#job-scope").selectOption("activos");
+  assert.equal(await listStatus.inputValue(), "Pendiente");
+  console.log("PASS selector de estado en el listado, historial y filtros");
   await require("./check-quote-measures-browser.cjs")(page, context, root);
   await require("./check-surcharges-browser.cjs")(page);
   for (const focus of ["undated", "today", "late", ""]) {

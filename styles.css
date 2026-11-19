@@ -1222,6 +1222,51 @@ textarea:focus {
   justify-content: space-between;
   gap: 8px;
 }
+.job-status-select {
+  position: relative;
+  padding: 0;
+}
+.job-status-select::after {
+  position: absolute;
+  inset-inline-end: 13px;
+  top: calc(50% - 4px);
+  width: 7px;
+  height: 7px;
+  border: solid currentColor;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  pointer-events: none;
+  content: "";
+}
+.job-status-select select {
+  appearance: none;
+  min-height: 44px;
+  padding: 6px 30px 6px 12px;
+  border: 1px solid currentColor;
+  border-radius: inherit;
+  background: transparent;
+  color: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+.job-status-select select:disabled {
+  cursor: wait;
+}
+#job-status-message:not(:empty) {
+  position: fixed;
+  z-index: 20;
+  inset-inline: 12px;
+  bottom: calc(92px + env(safe-area-inset-bottom));
+  width: fit-content;
+  max-width: min(32rem, calc(100% - 24px));
+  margin-inline: auto;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #183a27;
+  color: #fff;
+  box-shadow: 0 2px 12px #103c2040;
+  overflow-wrap: anywhere;
+}
 .job-ref {
   font-size: 12px;
   font-weight: 800;

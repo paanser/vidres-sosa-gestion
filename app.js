@@ -112,21 +112,62 @@ window.vidresAppReady = (async () => {
   async function save() {
     await VSStorage.local.setItem(KEY, JSON.stringify(jobs));
   }
-  function status(s) {
+  function statusClass(state) {
+    return (
+      {
+        Crítico: "critico",
+        Pendiente: "pendiente",
+        Finalizado: "finalizado",
+        Instalado: "finalizado",
+        "En medición": "medicion",
+      }[state] || ""
+    );
+  }
+  function status(state) {
     return (
       '<span class="pill ' +
-      (s === "Crítico"
-        ? "critico"
-        : s === "Pendiente"
-          ? "pendiente"
-          : s === "Finalizado" || s === "Instalado"
-            ? "finalizado"
-            : s === "En medición"
-              ? "medicion"
-              : "") +
+      statusClass(state) +
       '">' +
-      esc(VSUtils.jobStatusLabel(s)) +
+      esc(VSUtils.jobStatusLabel(state)) +
       "</span>"
+    );
+  }
+  let savingListStatus = false;
+  let listStatusTimer;
+  function listStatusSelect(job) {
+    const states = [...form.elements.estado.options].map(
+      (option) => option.value,
+    );
+    const fallback = states.includes(job.estado)
+      ? ""
+      : '<option value="" selected disabled>' +
+        esc(job.estado || "Sin estado") +
+        "</option>";
+    return (
+      '<span class="pill job-status-select ' +
+      statusClass(job.estado) +
+      '">' +
+      '<select data-job-status="' +
+      esc(job.id) +
+      '" aria-label="Cambiar estado de ' +
+      esc(job.id) +
+      '"' +
+      (savingListStatus ? " disabled" : "") +
+      ">" +
+      fallback +
+      states
+        .map(
+          (state) =>
+            '<option value="' +
+            esc(state) +
+            '"' +
+            (state === job.estado ? " selected" : "") +
+            ">" +
+            esc(VSUtils.jobStatusLabel(state)) +
+            "</option>",
+        )
+        .join("") +
+      "</select></span>"
     );
   }
   function table(items) {
@@ -215,7 +256,7 @@ window.vidresAppReady = (async () => {
       .join("");
   let milestoneFilter = "",
     milestoneCompletion = "done";
-  function jobCards(items) {
+  function jobCards(items, editableStatus = false) {
     if (!items.length)
       return '<div class="empty-state"><strong>No hay trabajos que coincidan</strong><p>Prueba otros filtros o crea un nuevo parte.</p></div>';
     return (
@@ -226,7 +267,7 @@ window.vidresAppReady = (async () => {
             '<article class="job-card"><div class="job-card-top"><span class="job-ref">' +
             esc(j.id) +
             "</span>" +
-            status(j.estado) +
+            (editableStatus ? listStatusSelect(j) : status(j.estado)) +
             "</div><h3>" +
             esc(j.cliente) +
             "</h3>" +
@@ -1063,7 +1104,7 @@ window.vidresAppReady = (async () => {
         '<p role="status" class="muted">' +
         filtered.length +
         " expedientes encontrados</p>" +
-        jobCards(VSUtils.sortJobs(filtered, jobOrder));
+        jobCards(VSUtils.sortJobs(filtered, jobOrder), true);
     } else if (page === "criticos") {
       const criticalJobs = jobs.filter((j) => j.estado === "Crítico");
       html =
@@ -1990,7 +2031,49 @@ window.vidresAppReady = (async () => {
     const b = e.target.closest("[data-id]");
     if (b) open(b.dataset.id);
   });
-  $("#content").addEventListener("change", (e) => {
+  const listStatusMessage = $("#job-status-message");
+  $("#content").addEventListener("change", async (e) => {
+    const select = e.target;
+    if (select.matches("[data-job-status]")) {
+      const id = select.dataset.jobStatus;
+      const state = select.value;
+      const currentState = jobs.find((job) => job.id === id)?.estado;
+      if (savingListStatus || state === currentState) return;
+      const restoreFocus = document.activeElement === select;
+      savingListStatus = true;
+      const statusControls = () =>
+        document.querySelectorAll("[data-job-status]");
+      statusControls().forEach((control) => (control.disabled = true));
+      clearTimeout(listStatusTimer);
+      listStatusMessage.textContent = "Guardando estado de " + id + "…";
+      try {
+        await window.vidresChangeJobStatus(id, state);
+        render();
+        listStatusMessage.textContent =
+          id + " · Estado actualizado a " + VSUtils.jobStatusLabel(state) + ".";
+      } catch (error) {
+        select.value = currentState || "";
+        listStatusMessage.textContent =
+          id + " · No se pudo guardar el estado. " + error.message;
+      } finally {
+        listStatusTimer = setTimeout(() => {
+          listStatusMessage.textContent = "";
+        }, 6000);
+        savingListStatus = false;
+        const controls = [...statusControls()];
+        controls.forEach((control) => (control.disabled = false));
+        if (
+          restoreFocus &&
+          page === "trabajos" &&
+          document.activeElement === document.body
+        )
+          (
+            controls.find((control) => control.dataset.jobStatus === id) ||
+            $("#job-scope")
+          )?.focus({ preventScroll: true });
+      }
+      return;
+    }
     if (page === "ajustes-copias" && e.target.id === "backup-import") {
       importBackup(e.target.files?.[0]);
       return;

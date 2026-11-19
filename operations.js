@@ -79,7 +79,7 @@
             (j) => j.fecha === date && (!person || j.responsable === person),
           )
           .sort((a, b) => (a.hora || "99").localeCompare(b.hora || "99"));
-        return `<section><h3>${esc(d.toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" }))}</h3>${items.map((j) => `<article>${button("job", `${esc(j.hora || "Sin hora")} · ${esc(j.cliente)}`, j.id)}<p>${esc(j.responsable || "Sin responsable")} · ${esc(j.descripcion || j.estado)}${j.duracion ? ` · ${esc(j.duracion)} min` : ""}</p>${all.some((b) => overlaps(j, b)) ? '<strong class="operations-warning">Horario solapado</strong>' : ""}${!j.hora || !j.duracion ? "<small>Falta hora o duración para comprobar conflictos</small>" : ""}</article>`).join("") || '<p class="muted">Sin trabajos</p>'}</section>`;
+        return `<section><h3>${esc(d.toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" }))}</h3>${items.map((j) => `<article>${button("job", `${esc(j.hora || "Sin hora")} · ${esc(j.cliente)}`, j.id)}<p>${esc(j.responsable || "Sin responsable")} · ${esc(j.descripcion || VSUtils.jobStatusLabel(j.estado))}${j.duracion ? ` · ${esc(j.duracion)} min` : ""}</p>${all.some((b) => overlaps(j, b)) ? '<strong class="operations-warning">Horario solapado</strong>' : ""}${!j.hora || !j.duracion ? "<small>Falta hora o duración para comprobar conflictos</small>" : ""}</article>`).join("") || '<p class="muted">Sin trabajos</p>'}</section>`;
       },
     ).join("")}</div>`;
   }
@@ -104,10 +104,10 @@
       ? `<ul class="operations-alerts">${items.join("")}</ul>`
       : '<p class="muted">No hay avisos de material o montaje.</p>';
   }
-  function showJob(id, section) {
+  function showJob(id) {
     const j = job(id);
     if (!j) throw Error("Expediente no encontrado");
-    panel = section || (selected === id ? panel : "pedidos");
+    if (selected !== id) panel = "pedidos";
     selected = id;
     const o = j.operativa || {},
       f = finances(o);
@@ -734,8 +734,21 @@
           firma: structuredClone(signature),
           fotos: ids,
         };
-        await mutate(id, (o) => {
+        await mutate(id, (o, target) => {
           o.cierre = cierre;
+          if (
+            cierre.conforme &&
+            !cierre.pendiente &&
+            !["Instalado", "Finalizado"].includes(target.estado)
+          ) {
+            (target.historial ||= []).push({
+              de: target.estado,
+              a: "Instalado",
+              fecha: new Date().toISOString(),
+              responsable: target.responsable || "Sin indicar",
+            });
+            target.estado = "Instalado";
+          }
         });
       }
       showJob(id);
@@ -930,21 +943,6 @@
     );
   }
   window.VSOperations = {
-    pendingPaymentsHtml() {
-      const pending = jobs()
-        .map((j) => ({ job: j, balance: finances(j.operativa || {}).balance }))
-        .filter(({ balance }) => balance > 0);
-      return `<section class="panel"><h2>Pendiente de cobro</h2>${
-        pending.length
-          ? `<div class="home-job-list">${pending
-              .map(
-                ({ job, balance }) =>
-                  `<button type="button" class="home-job" data-operations-payment="${esc(job.id)}"><span><strong>${esc(job.cliente)}</strong><span>${esc(job.descripcion || job.id)}</span></span><span><strong>${money(balance)}</strong></span></button>`,
-              )
-              .join("")}</div>`
-          : '<p class="muted">No hay trabajos con saldo pendiente.</p>'
-      }</section>`;
-    },
     mount(host, id) {
       VSOperations.unmount();
       embedded = true;
@@ -960,9 +958,9 @@
       dialog.classList.remove("operations-embedded");
       embedded = false;
     },
-    open(id = "", section) {
+    open(id = "") {
       VSOperations.unmount();
-      if (id) showJob(id, section);
+      if (id) showJob(id);
       else overview();
       if (!dialog.open) dialog.showModal();
     },
@@ -977,14 +975,11 @@
   };
   document.addEventListener("click", async (e) => {
     const b = e.target.closest(
-      "[data-operations-job], [data-operations-payment], .operations-summary [data-op]",
+      "[data-operations-job], .operations-summary [data-op]",
     );
     if (!b) return;
     try {
-      if (b.dataset.operationsPayment)
-        VSOperations.open(b.dataset.operationsPayment, "cobros");
-      else if (b.dataset.operationsJob)
-        VSOperations.open(b.dataset.operationsJob);
+      if (b.dataset.operationsJob) VSOperations.open(b.dataset.operationsJob);
       else {
         VSOperations.open();
         if (b.dataset.op === "drafts") await draftsView();

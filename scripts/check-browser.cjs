@@ -279,7 +279,7 @@ async function checkMobileFields(page) {
     await page
       .locator("#nav [data-page]")
       .evaluateAll((nodes) => nodes.map((node) => node.dataset.page)),
-    ["inicio", "trabajos", "presupuestos", "cobrar", "clientes"],
+    ["inicio", "trabajos", "presupuestos", "clientes"],
   );
   assert.equal(await page.locator(".global-text-controls").count(), 0);
   assert.equal(await page.locator("[data-text-scale]").count(), 0);
@@ -629,7 +629,7 @@ async function checkMobileFields(page) {
           };
         }),
       );
-      assert.equal(tabs.length, 5);
+      assert.equal(tabs.length, 4);
       assert.ok(
         tabs.every(
           (tab) =>

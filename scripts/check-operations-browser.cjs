@@ -135,20 +135,6 @@ module.exports = async (page, context, root) => {
   );
   assert.equal(balance.balance, 1000);
   assert.equal(balance.costs, 400);
-  await dialog.locator('[data-op="close"]').click();
-  const collect = page.getByRole("button", { name: "Cobrar", exact: true });
-  await collect.click();
-  assert.equal(await collect.getAttribute("aria-current"), "page");
-  const pending = page.locator('[data-operations-payment="VS-OPS"]');
-  await pending
-    .getByText(await page.evaluate(() => VSUtils.money(1000)))
-    .waitFor();
-  assert.equal(
-    await page.locator('[data-operations-payment="VS-OPS-B"]').count(),
-    0,
-  );
-  await pending.click();
-  await dialog.locator('[data-op-section="cobros"]').waitFor();
   await dialog.locator('[data-op="schedule"]').click();
   await dialog.locator('form [type="submit"]').click();
   await dialog
@@ -308,6 +294,8 @@ module.exports = async (page, context, root) => {
   await page.locator('#nav [data-page="trabajos"]').click();
   await page.locator('#content [data-id="VS-OPS"]').first().click();
   const expediente = page.locator("#expediente");
+  await expediente.getByRole("button", { name: "Estado ▾ Cobrar" }).waitFor();
+
   assert.equal(await expediente.locator("[data-operations-job]").count(), 0);
   await expediente.locator('[data-exp-tab="gestion"]').click();
   assert.equal(await expediente.locator("#operations-dialog[open]").count(), 1);

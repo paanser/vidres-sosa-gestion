@@ -182,16 +182,18 @@
       '<div class="exp-details"><div><button type="button" class="exp-status-trigger" data-exp-status-open aria-expanded="false" aria-controls="exp-status-editor"><small>Estado ▾</small><strong class="' +
       (j.estado === "Crítico" ? "critical-heading" : "") +
       '">' +
-      esc(j.estado) +
+      esc(VSUtils.jobStatusLabel(j.estado)) +
       "</strong></button>" +
       '<div id="exp-status-editor" hidden><label for="exp-status">Nuevo estado</label><select id="exp-status">' +
       [...document.querySelectorAll('#form [name="estado"] option')]
         .map(
           (option) =>
-            "<option" +
+            '<option value="' +
+            esc(option.value) +
+            '"' +
             (option.value === j.estado ? " selected" : "") +
             ">" +
-            esc(option.value) +
+            esc(option.textContent) +
             "</option>",
         )
         .join("") +
@@ -488,9 +490,9 @@
               .map(
                 (h) =>
                   "<li><strong>" +
-                  esc(h.de || "Nuevo") +
+                  esc(VSUtils.jobStatusLabel(h.de || "Nuevo")) +
                   " → " +
-                  esc(h.a) +
+                  esc(VSUtils.jobStatusLabel(h.a)) +
                   "</strong><span>" +
                   esc(date(h.fecha)) +
                   " · " +

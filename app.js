@@ -125,7 +125,7 @@ window.vidresAppReady = (async () => {
               ? "medicion"
               : "") +
       '">' +
-      esc(s) +
+      esc(VSUtils.jobStatusLabel(s)) +
       "</span>"
     );
   }
@@ -197,7 +197,7 @@ window.vidresAppReady = (async () => {
     const saved = localStorage.getItem(jobOrderKey);
     if (Object.hasOwn(jobOrders, saved)) jobOrder = saved;
   } catch {}
-  const options = (values, selected) =>
+  const options = (values, selected, label = (v) => v) =>
     '<option value="">Todos</option>' +
     values
       .filter(Boolean)
@@ -209,7 +209,7 @@ window.vidresAppReady = (async () => {
           '" ' +
           (v === selected ? "selected" : "") +
           ">" +
-          esc(v) +
+          esc(label(v)) +
           "</option>",
       )
       .join("");
@@ -306,7 +306,7 @@ window.vidresAppReady = (async () => {
         )
         .join("") +
       '</select></label></div><details class="advanced-work-filters"><summary>Más filtros</summary><div class="work-filters"><label>Estado<select data-filter="estado">' +
-      options(states, filters.estado) +
+      options(states, filters.estado, VSUtils.jobStatusLabel) +
       '</select></label><label>Responsable<select data-filter="responsable">' +
       options(
         [...new Set(jobs.map((j) => j.responsable))],
@@ -959,7 +959,6 @@ window.vidresAppReady = (async () => {
       clientes: "Clientes",
       mediciones: "Mediciones",
       presupuestos: "Presupuestos",
-      cobrar: "Cobrar",
       herramientas: "Herramientas",
       consultor: "Consultor de tarifas",
       ajustes: "Ajustes",
@@ -995,8 +994,6 @@ window.vidresAppReady = (async () => {
         '">Calendario</button></div>' +
         (homeView === "calendar" ? calendarHtml() : dashboardHtml()) +
         homeSettingsHtml();
-    } else if (page === "cobrar") {
-      html = window.VSOperations.pendingPaymentsHtml();
     } else if (page === "trabajos") {
       const q =
         !/\d{4}-\d{2}|\d{2}\/\d{2}/.test(search) && /^[+\d\s()-]+$/.test(search)
@@ -1011,8 +1008,8 @@ window.vidresAppReady = (async () => {
             (jobScope === "archivo"
               ? isArchived(j)
               : jobScope === "finalizados"
-                ? isClosed(j) && !isArchived(j)
-                : !isClosed(j) && !isArchived(j))) &&
+                ? j.estado === "Finalizado" && !isArchived(j)
+                : j.estado !== "Finalizado" && !isArchived(j))) &&
           VSMilestones.matches(
             j,
             "job",
@@ -1613,7 +1610,6 @@ window.vidresAppReady = (async () => {
       "inicio",
       "trabajos",
       "criticos",
-      "cobrar",
       "calendario",
       "clientes",
       "mediciones",

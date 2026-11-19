@@ -104,10 +104,10 @@
       ? `<ul class="operations-alerts">${items.join("")}</ul>`
       : '<p class="muted">No hay avisos de material o montaje.</p>';
   }
-  function showJob(id) {
+  function showJob(id, section) {
     const j = job(id);
     if (!j) throw Error("Expediente no encontrado");
-    if (selected !== id) panel = "pedidos";
+    panel = section || (selected === id ? panel : "pedidos");
     selected = id;
     const o = j.operativa || {},
       f = finances(o);
@@ -930,6 +930,21 @@
     );
   }
   window.VSOperations = {
+    pendingPaymentsHtml() {
+      const pending = jobs()
+        .map((j) => ({ job: j, balance: finances(j.operativa || {}).balance }))
+        .filter(({ balance }) => balance > 0);
+      return `<section class="panel"><h2>Pendiente de cobro</h2>${
+        pending.length
+          ? `<div class="home-job-list">${pending
+              .map(
+                ({ job, balance }) =>
+                  `<button type="button" class="home-job" data-operations-payment="${esc(job.id)}"><span><strong>${esc(job.cliente)}</strong><span>${esc(job.descripcion || job.id)}</span></span><span><strong>${money(balance)}</strong></span></button>`,
+              )
+              .join("")}</div>`
+          : '<p class="muted">No hay trabajos con saldo pendiente.</p>'
+      }</section>`;
+    },
     mount(host, id) {
       VSOperations.unmount();
       embedded = true;
@@ -945,9 +960,9 @@
       dialog.classList.remove("operations-embedded");
       embedded = false;
     },
-    open(id = "") {
+    open(id = "", section) {
       VSOperations.unmount();
-      if (id) showJob(id);
+      if (id) showJob(id, section);
       else overview();
       if (!dialog.open) dialog.showModal();
     },
@@ -962,11 +977,14 @@
   };
   document.addEventListener("click", async (e) => {
     const b = e.target.closest(
-      "[data-operations-job], .operations-summary [data-op]",
+      "[data-operations-job], [data-operations-payment], .operations-summary [data-op]",
     );
     if (!b) return;
     try {
-      if (b.dataset.operationsJob) VSOperations.open(b.dataset.operationsJob);
+      if (b.dataset.operationsPayment)
+        VSOperations.open(b.dataset.operationsPayment, "cobros");
+      else if (b.dataset.operationsJob)
+        VSOperations.open(b.dataset.operationsJob);
       else {
         VSOperations.open();
         if (b.dataset.op === "drafts") await draftsView();

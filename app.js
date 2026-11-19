@@ -959,6 +959,7 @@ window.vidresAppReady = (async () => {
       clientes: "Clientes",
       mediciones: "Mediciones",
       presupuestos: "Presupuestos",
+      cobrar: "Cobrar",
       herramientas: "Herramientas",
       consultor: "Consultor de tarifas",
       ajustes: "Ajustes",
@@ -994,6 +995,8 @@ window.vidresAppReady = (async () => {
         '">Calendario</button></div>' +
         (homeView === "calendar" ? calendarHtml() : dashboardHtml()) +
         homeSettingsHtml();
+    } else if (page === "cobrar") {
+      html = window.VSOperations.pendingPaymentsHtml();
     } else if (page === "trabajos") {
       const q =
         !/\d{4}-\d{2}|\d{2}\/\d{2}/.test(search) && /^[+\d\s()-]+$/.test(search)
@@ -1610,6 +1613,7 @@ window.vidresAppReady = (async () => {
       "inicio",
       "trabajos",
       "criticos",
+      "cobrar",
       "calendario",
       "clientes",
       "mediciones",

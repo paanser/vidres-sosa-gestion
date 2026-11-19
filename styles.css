@@ -3489,7 +3489,9 @@ body:not(.authenticated) > #quote-print {
     bottom: 0;
     z-index: 70;
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr)) minmax(0, 1.4fr)
+      repeat(2, minmax(0, 1fr));
     gap: 4px;
     padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
     background: #fff;
@@ -3740,7 +3742,7 @@ input[data-measure] {
   color: #b42318;
 }
 
-/* Navegación: cuatro destinos y ajustes en la cabecera. */
+/* Navegación principal y ajustes en la cabecera. */
 #nav button {
   display: flex;
   align-items: center;
@@ -3779,15 +3781,6 @@ input[data-measure] {
   .layout > main > header > div:first-child {
     flex: 1;
     overflow-wrap: anywhere;
-  }
-}
-
-/* En pantallas estrechas, la etiqueta más larga necesita algo más de ancho. */
-@media (max-width: 360px) {
-  #nav {
-    grid-template-columns:
-      minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.3fr)
-      minmax(0, 1fr);
   }
 }
 

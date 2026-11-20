@@ -719,15 +719,6 @@
       </div>
     </dialog>
 
-    <script>
-      document.addEventListener("click", function (event) {
-        if (!event.target.closest("#exp-responsabilidad")) return;
-        const title = document.querySelector("#exp-title")?.textContent?.trim() || "";
-        const params = new URLSearchParams();
-        if (title) params.set("cliente", title.slice(0, 120));
-        window.location.href = "carta-responsabilidad.html" + (params.size ? "?" + params : "");
-      });
-    </script>
     <script src="ai-config.js"></script>
     <script src="auth.js"></script>
     <script src="pwa.js"></script>

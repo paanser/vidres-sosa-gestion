@@ -739,15 +739,15 @@
           if (
             cierre.conforme &&
             !cierre.pendiente &&
-            !["Instalado", "Finalizado"].includes(target.estado)
+            !["Instalado", "Colocado", "Pendiente de cobro", "Instalado pendiente de cobro", "Finalizado"].includes(target.estado)
           ) {
             (target.historial ||= []).push({
               de: target.estado,
-              a: "Instalado",
+              a: "Instalado pendiente de cobro",
               fecha: new Date().toISOString(),
               responsable: target.responsable || "Sin indicar",
             });
-            target.estado = "Instalado";
+            target.estado = "Instalado pendiente de cobro";
           }
         });
       }

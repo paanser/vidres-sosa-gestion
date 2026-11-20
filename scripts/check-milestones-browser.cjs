@@ -24,10 +24,26 @@ module.exports = async (page) => {
       ).hitos?.M === true,
   );
   assert.equal(await badge.getAttribute("aria-pressed"), "true");
+  const advanced = page.locator(".advanced-work-filters");
+  if (await advanced.evaluate((details) => details.open))
+    await advanced.locator("summary").click();
+  const filters = ["#job-scope", "#jobs-milestone", "#jobs-completion"].map(
+    (selector) => advanced.locator(selector),
+  );
+  for (const filter of filters) assert.equal(await filter.isVisible(), false);
+  await advanced.locator("summary").click();
+  for (const filter of filters) assert.equal(await filter.isVisible(), true);
   await page.locator("#jobs-milestone").selectOption("M");
   assert.equal(await page.locator(".job-card").count(), 1);
   await page.locator("#jobs-completion").selectOption("pending");
   assert.equal(await page.locator(".job-card").count(), 0);
+  await advanced.locator("summary").click();
+  await page.locator("#search").fill("HITO-TEST");
+  for (const filter of filters) assert.equal(await filter.isVisible(), false);
+  assert.equal(await page.locator(".job-card").count(), 0);
+  await advanced.locator("summary").click();
+  assert.equal(await page.locator("#jobs-milestone").inputValue(), "M");
+  assert.equal(await page.locator("#jobs-completion").inputValue(), "pending");
   await page.locator("#jobs-milestone").selectOption("");
   await page.locator("#search").fill("13/11/2026");
   assert.ok(await page.locator('[data-milestone-id="HITO-TEST"]').count());

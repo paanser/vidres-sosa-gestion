@@ -76,6 +76,7 @@ module.exports = async (page) => {
     .locator("#job-order")
     .selectOption(previousPreferences.order || "id:asc");
   await page.locator("[data-jobs-clear]").click();
+  await page.locator(".advanced-work-filters summary").click();
   await page.locator("#job-scope").selectOption("activos");
   await page.evaluate(async (previous) => {
     for (const [key, value] of [

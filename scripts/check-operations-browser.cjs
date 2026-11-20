@@ -292,6 +292,9 @@ module.exports = async (page, context, root) => {
   assert.ok((await page.locator(".new-measure-piece").count()) > 0);
   await page.locator("#cancel").click();
   await page.locator('#nav [data-page="trabajos"]').click();
+  const advanced = page.locator(".advanced-work-filters");
+  if (!(await advanced.evaluate((details) => details.open)))
+    await advanced.locator("summary").click();
   const jobScope = await page.locator("#job-scope").inputValue();
   await page.locator("#job-scope").selectOption("cobros");
   await page.locator('#content [data-id="VS-OPS"]').first().click();

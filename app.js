@@ -358,7 +358,20 @@ window.vidresAppReady = (async () => {
     return (
       '<div class="simple-work-search"><label>Buscar trabajo<input id="search" type="search" placeholder="Cliente, fecha, dirección o referencia" value="' +
       esc(search) +
-      '"></label><label>Mostrar<select id="job-scope">' +
+      '"></label><label>Ordenar por<select id="job-order">' +
+      Object.entries(jobOrders)
+        .map(
+          ([value, label]) =>
+            '<option value="' +
+            value +
+            '"' +
+            (jobOrder === value ? " selected" : "") +
+            ">" +
+            label +
+            "</option>",
+        )
+        .join("") +
+      '</select></label></div><details class="advanced-work-filters"><summary>Más filtros</summary><div class="work-filters"><label>Mostrar<select id="job-scope">' +
       [
         ["activos", "Activos"],
         ["cobros", "Pendientes de cobro"],
@@ -377,20 +390,7 @@ window.vidresAppReady = (async () => {
             "</option>",
         )
         .join("") +
-      '</select></label><label>Ordenar por<select id="job-order">' +
-      Object.entries(jobOrders)
-        .map(
-          ([value, label]) =>
-            '<option value="' +
-            value +
-            '"' +
-            (jobOrder === value ? " selected" : "") +
-            ">" +
-            label +
-            "</option>",
-        )
-        .join("") +
-      '</select></label></div><details class="advanced-work-filters"><summary>Más filtros</summary><div class="work-filters"><label>Estado<select data-filter="estado">' +
+      '</select></label><label>Estado<select data-filter="estado">' +
       options(states, filters.estado, VSUtils.jobStatusLabel) +
       '</select></label><label>Responsable<select data-filter="responsable">' +
       options(
@@ -410,7 +410,9 @@ window.vidresAppReady = (async () => {
       esc(filters.createdTo) +
       '"' +
       (filters.createdFrom ? ' min="' + esc(filters.createdFrom) + '"' : "") +
-      '></label></div><p class="muted">El rango incluye ambos días. Los expedientes sin fecha de creación registrada no aparecen al filtrar por creación.</p></details>' +
+      "></label></div>" +
+      VSMilestones.controls("jobs") +
+      '<p class="muted">El rango incluye ambos días. Los expedientes sin fecha de creación registrada no aparecen al filtrar por creación.</p></details>' +
       '<button type="button" data-jobs-clear>Limpiar filtros</button><p role="status" class="muted">' +
       esc(jobOrderNotice) +
       "</p>"
@@ -1024,6 +1026,7 @@ window.vidresAppReady = (async () => {
     if (!$("#content .section-customize")) customizeSection();
   }).observe($("#content"), { childList: true });
   function render() {
+    const advancedFiltersOpen = $(".advanced-work-filters")?.open ?? false;
     if (usagePanel) {
       document.querySelector("main").appendChild(usagePanel);
       usagePanel.hidden = true;
@@ -1161,7 +1164,6 @@ window.vidresAppReady = (async () => {
             "</button>"
           : "") +
         workFilters() +
-        VSMilestones.controls("jobs") +
         '<p role="status" class="muted">' +
         filtered.length +
         " expedientes encontrados</p>" +
@@ -1267,7 +1269,7 @@ window.vidresAppReady = (async () => {
     );
     customizeSection();
     const advanced = $(".advanced-work-filters");
-    if (advanced && Object.values(filters).some(Boolean)) advanced.open = true;
+    if (advanced) advanced.open = advancedFiltersOpen;
     const order = $("#job-order");
     if (order)
       order.onchange = () => {
@@ -1299,6 +1301,7 @@ window.vidresAppReady = (async () => {
         jobScope = scope.value;
         jobFocus = "";
         render();
+        $("#job-scope").focus();
       });
     document.querySelectorAll("[data-filter]").forEach((el) =>
       el.addEventListener("change", () => {
@@ -1317,10 +1320,12 @@ window.vidresAppReady = (async () => {
       mf.onchange = () => {
         milestoneFilter = mf.value;
         render();
+        $("#jobs-milestone").focus();
       };
       mc.onchange = () => {
         milestoneCompletion = mc.value;
         render();
+        $("#jobs-completion").focus();
       };
     }
     const input = $("#search");
@@ -2142,7 +2147,7 @@ window.vidresAppReady = (async () => {
         )
           (
             controls.find((control) => control.dataset.jobStatus === id) ||
-            $("#job-scope")
+            $("#search")
           )?.focus({ preventScroll: true });
       }
       return;

@@ -1078,6 +1078,7 @@ async function checkMobileFields(page) {
     .getByText(/Estado actualizado a Instalado pendiente de cobro/)
     .waitFor();
   assert.equal(await listStatus.count(), 0);
+  await page.locator(".advanced-work-filters summary").click();
   await page.locator("#job-scope").selectOption("cobros");
   assert.equal(await listStatus.inputValue(), "Instalado pendiente de cobro");
   assert.equal(await page.locator("#search").inputValue(), closedJob.id);

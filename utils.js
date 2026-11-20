@@ -170,7 +170,7 @@
   const api = {
     energyMoney,
     energyRate,
-    jobStatusLabel: (status) => (status === "Instalado" ? "Cobrar" : status),
+    jobStatusLabel: (status) => (["Instalado", "Colocado", "Pendiente de cobro"].includes(status) ? "Instalado pendiente de cobro" : status),
     jobCreatedDate,
     jobMatchesCreation,
     sortJobs,

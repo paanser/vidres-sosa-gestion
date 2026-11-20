@@ -1,7 +1,7 @@
 "use strict";
 const RELEASE = "__BUILD_VERSION__";
 const VERSION = RELEASE.startsWith("__")
-  ? "20261120-descripcion-medidas"
+  ? "20261120-botones-presupuesto"
   : RELEASE;
 const PREFIX = "vidres-sosa:" + self.registration.scope + ":",
   CACHE = PREFIX + VERSION;

@@ -523,8 +523,6 @@ textarea:focus-visible {
 }
 .quote-toolbar button,
 .quote-saved button,
-#quote-add,
-#quote-add-concept,
 .quiet {
   border: 1px solid #c5d8cc;
   background: white;
@@ -808,8 +806,6 @@ textarea:focus {
 }
 .quote-toolbar button,
 .quote-saved button,
-#quote-add,
-#quote-add-concept,
 .quiet {
   min-height: 42px;
   border-radius: 10px;
@@ -937,14 +933,27 @@ textarea:focus {
   font-weight: 800;
   color: var(--vs-green);
 }
-#quote-add,
-#quote-add-concept {
-  border: 1px dashed #81b89a;
-  background: #f4faf6;
+.quote-add-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.quote-add-actions button {
+  min-height: 44px;
+  padding: 12px 14px;
+  border: 1px solid #81b89a;
+  border-radius: 10px;
+  background: #eff8f3;
   color: var(--vs-green);
-  width: 100%;
-  margin-top: 3px;
-  padding: 14px;
+  font-weight: 650;
+}
+.quote-add-actions button:hover {
+  background: #dcefe3;
+}
+@media (max-width: 720px) {
+  .quote-add-actions {
+    grid-template-columns: 1fr;
+  }
 }
 .quote-total {
   display: block;

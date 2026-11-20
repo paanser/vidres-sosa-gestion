@@ -9,8 +9,9 @@ window.vidresAppReady = (async () => {
     Instalado: "Instalado pendiente de cobro",
     Colocado: "Instalado pendiente de cobro",
     "Pendiente de cobro": "Instalado pendiente de cobro",
-    "En medición": "En curso",
-    "En producción": "En curso",
+    "En curso": "Medido",
+    "En medición": "Medido",
+    "En producción": "Medido",
     Presupuestado: "Presupuesto entregado",
   };
   const normalizeJobs = (items) =>
@@ -135,11 +136,9 @@ window.vidresAppReady = (async () => {
         Instalado: "cobro",
         Colocado: "cobro",
         "Pendiente de cobro": "cobro",
-        "En curso": "encurso",
+        Medido: "medido",
         "Presupuesto entregado": "presupuesto-entregado",
         "Para instalar": "para-instalar",
-        "En medición": "encurso",
-        "En producción": "encurso",
         Presupuestado: "presupuesto-entregado",
       }[state] || ""
     );
@@ -350,7 +349,7 @@ window.vidresAppReady = (async () => {
   function workFilters() {
     const states = [
       "Pendiente",
-      "En curso",
+      "Medido",
       "Presupuesto entregado",
       "Para instalar",
       "Instalado pendiente de cobro",

@@ -429,6 +429,8 @@ test("guarda estados nuevos y anteriores en una misma lista sin cambiar el histo
     { ...job, id: "VS-0002", estado: "Instalado", historial },
     { ...job, id: "VS-0003", estado: "En producción" },
     { ...job, id: "VS-0004", estado: "Presupuestado" },
+    { ...job, id: "VS-0005", estado: "En curso" },
+    { ...job, id: "VS-0006", estado: "Medido" },
   ];
   const saved = await call(
     env,
@@ -444,8 +446,10 @@ test("guarda estados nuevos y anteriores en una misma lista sin cambiar el histo
     [
       "Instalado pendiente de cobro",
       "Instalado pendiente de cobro",
-      "En curso",
+      "Medido",
       "Presupuesto entregado",
+      "Medido",
+      "Medido",
     ],
   );
   assert.deepEqual(persisted.data.values[key][1].historial, historial);

@@ -126,8 +126,9 @@ export function validateValues(values) {
     Instalado: "Instalado pendiente de cobro",
     Colocado: "Instalado pendiente de cobro",
     "Pendiente de cobro": "Instalado pendiente de cobro",
-    "En medición": "En curso",
-    "En producción": "En curso",
+    "En curso": "Medido",
+    "En medición": "Medido",
+    "En producción": "Medido",
     Presupuestado: "Presupuesto entregado",
   };
   for (const j of result[KEYS.trabajos]) {
@@ -152,7 +153,7 @@ export function validateValues(values) {
     if (
       ![
         "Pendiente",
-        "En curso",
+        "Medido",
         "Presupuesto entregado",
         "Instalado pendiente de cobro",
         "Para instalar",

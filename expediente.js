@@ -5,7 +5,8 @@
   const dialog = document.querySelector("#expediente");
   if (!dialog) return;
   const body = dialog.querySelector("#exp-body"),
-    heading = dialog.querySelector("#exp-title");
+    heading = dialog.querySelector("#exp-title"),
+    tabs = [...dialog.querySelectorAll("[data-exp-tab]")];
   let current = null,
     tab = "resumen",
     revision = 0;
@@ -465,9 +466,12 @@
     }
     heading.textContent = j.cliente + " · " + j.id;
     window.VSOperations?.unmount();
-    dialog.querySelectorAll("[data-exp-tab]").forEach((b) => {
-      b.classList.toggle("selected", b.dataset.expTab === tab);
-      b.setAttribute("aria-selected", String(b.dataset.expTab === tab));
+    tabs.forEach((button) => {
+      const selected = button.dataset.expTab === tab;
+      button.classList.toggle("selected", selected);
+      button.setAttribute("aria-selected", String(selected));
+      button.tabIndex = selected ? 0 : -1;
+      if (selected) body.setAttribute("aria-labelledby", button.id);
     });
     const measures = (window.vidresGetMeasurements?.() || []).filter(
       (m) => m.trabajo === current,
@@ -798,12 +802,41 @@
           : "<p>Este trabajo todavía no tiene cambios de estado registrados.</p>") +
         "</section>";
   }
+  function showTab(section) {
+    tab = section;
+    body.scrollTop = 0;
+    return render();
+  }
   function open(id) {
     current = id;
-    tab = "resumen";
-    render();
+    showTab("resumen");
     dialog.showModal();
+    tabs[0].parentElement.scrollLeft = 0;
   }
+  dialog.querySelector(".exp-tabs").addEventListener("keydown", (event) => {
+    const index = tabs.indexOf(event.target);
+    if (index === -1) return;
+    let next;
+    switch (event.key) {
+      case "ArrowLeft":
+        next = (index + tabs.length - 1) % tabs.length;
+        break;
+      case "ArrowRight":
+        next = (index + 1) % tabs.length;
+        break;
+      case "Home":
+        next = 0;
+        break;
+      case "End":
+        next = tabs.length - 1;
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+    tabs[next].focus();
+    tabs[next].click();
+  });
   document.querySelector("#content").addEventListener(
     "click",
     (e) => {
@@ -912,12 +945,9 @@
         b.disabled = select.disabled = false;
       }
     } else if (b.hasAttribute("data-exp-view-photos")) {
-      tab = "fotos";
-      await render();
+      await showTab("fotos");
     } else if (b.dataset.expTab) {
-      tab = b.dataset.expTab;
-      await render();
-      b.scrollIntoView({ block: "nearest", inline: "nearest" });
+      await showTab(b.dataset.expTab);
     } else if (b.hasAttribute("data-exp-delete")) {
       if (await window.vidresDeleteJob(current)) dialog.close();
     } else if (b.hasAttribute("data-exp-quote-measures")) {

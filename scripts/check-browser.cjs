@@ -948,6 +948,36 @@ async function checkMobileFields(page) {
   );
   await page.locator('[data-page="trabajos"]').click();
   await page.locator(".job-card [data-id]").first().click();
+  const expTabs = page.locator(".exp-tabs");
+  const expPanel = page.locator("#exp-body");
+  await page.setViewportSize({ width: 320, height: 600 });
+  const bottomBar = await expTabs.boundingBox();
+  assert.equal(Math.round(bottomBar.y + bottomBar.height), 600);
+  assert.equal(await expTabs.getByRole("tab").count(), 7);
+  assert.equal(await expTabs.locator("button svg").count(), 7);
+  assert.equal(
+    await expTabs.evaluate((nav) => nav.scrollWidth === nav.clientWidth),
+    true,
+    "Las siete secciones caben en la barra a 320 px",
+  );
+  await expPanel.evaluate((panel) => (panel.scrollTop = panel.scrollHeight));
+  assert.ok(await expPanel.evaluate((panel) => panel.scrollTop > 0));
+  assert.deepEqual(await expTabs.boundingBox(), bottomBar);
+  const measurementsTab = expTabs.getByRole("tab", { name: "Mediciones" });
+  await measurementsTab.click();
+  assert.equal(await measurementsTab.getAttribute("aria-selected"), "true");
+  assert.equal(await expPanel.evaluate((panel) => panel.scrollTop), 0);
+  await page.keyboard.press("ArrowRight");
+  const photosTab = expTabs.getByRole("tab", { name: "Fotos" });
+  assert.equal(await photosTab.getAttribute("aria-selected"), "true");
+  await page.keyboard.press("Home");
+  assert.equal(
+    await expTabs
+      .getByRole("tab", { name: "Resumen" })
+      .getAttribute("aria-selected"),
+    "true",
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
   const tabsBeforeSheet = await page.locator(".exp-tabs").boundingBox();
   await page.locator("[data-exp-sheet]").click();
   assert.deepEqual(

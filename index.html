@@ -719,6 +719,12 @@
             hidden
           ></div>
         </dialog>
+        <div
+          id="exp-body"
+          class="exp-body"
+          role="tabpanel"
+          aria-labelledby="exp-tab-resumen"
+        ></div>
         <nav
           class="exp-tabs"
           aria-label="Secciones del expediente"
@@ -727,24 +733,107 @@
           <button
             type="button"
             role="tab"
+            id="exp-tab-resumen"
             data-exp-tab="resumen"
+            aria-controls="exp-body"
+            aria-selected="true"
             class="selected"
           >
-            Resumen</button
-          ><button type="button" role="tab" data-exp-tab="medidas">
-            Mediciones</button
-          ><button type="button" role="tab" data-exp-tab="fotos">Fotos</button
-          ><button type="button" role="tab" data-exp-tab="presupuestos">
-            Presupuestos</button
-          ><button type="button" role="tab" data-exp-tab="gestion">
-            Gestión</button
-          ><button type="button" role="tab" data-exp-tab="documentos">
-            Documentos</button
-          ><button type="button" role="tab" data-exp-tab="historial">
-            Historial
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M4 4h7v7H4zM15 4h5v5h-5zM4 15h7v5H4zM15 13h5v7h-5z" />
+            </svg>
+            <span>Resumen</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="exp-tab-medidas"
+            data-exp-tab="medidas"
+            aria-controls="exp-body"
+            aria-selected="false"
+            tabindex="-1"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="m3 17 14-14 4 4L7 21zM7 13l2 2m2-6 2 2m2-6 2 2" />
+            </svg>
+            <span class="exp-tab-label">Mediciones</span>
+            <span class="exp-tab-short" aria-hidden="true">Medidas</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="exp-tab-fotos"
+            data-exp-tab="fotos"
+            aria-controls="exp-body"
+            aria-selected="false"
+            tabindex="-1"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path
+                d="M3 7h4l2-3h6l2 3h4v13H3zM16 13a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"
+              />
+            </svg>
+            <span>Fotos</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="exp-tab-presupuestos"
+            data-exp-tab="presupuestos"
+            aria-controls="exp-body"
+            aria-selected="false"
+            tabindex="-1"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M6 3h9l4 4v14H6zM15 3v5h4M9 12h7m-7 4h7" />
+            </svg>
+            <span class="exp-tab-label">Presupuestos</span>
+            <span class="exp-tab-short" aria-hidden="true">Presup.</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="exp-tab-gestion"
+            data-exp-tab="gestion"
+            aria-controls="exp-body"
+            aria-selected="false"
+            tabindex="-1"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M8 5H5v16h14V5h-3M9 3h6v4H9zM8 14l2 2 5-5" />
+            </svg>
+            <span>Gestión</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="exp-tab-documentos"
+            data-exp-tab="documentos"
+            aria-controls="exp-body"
+            aria-selected="false"
+            tabindex="-1"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M3 6h7l2 2h9v12H3z" />
+            </svg>
+            <span class="exp-tab-label">Documentos</span>
+            <span class="exp-tab-short" aria-hidden="true">Docs.</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="exp-tab-historial"
+            data-exp-tab="historial"
+            aria-controls="exp-body"
+            aria-selected="false"
+            tabindex="-1"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M3 12a9 9 0 1 1 2.6 6.4M3 7v5h5m4-5v5l4 2" />
+            </svg>
+            <span>Historial</span>
           </button>
         </nav>
-        <div id="exp-body" class="exp-body"></div>
       </div>
     </dialog>
 

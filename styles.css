@@ -1678,28 +1678,52 @@ textarea:focus {
   position: static;
   flex: 0 0 auto;
   width: auto;
-  gap: 8px;
-  padding: 12px 26px;
-  background: #f6f9f7;
-  border-bottom: 1px solid #dce7df;
+  gap: 4px;
+  padding: 7px 16px;
+  background: #15382c;
+  border: 0;
   overflow-x: auto;
-  box-shadow: none;
 }
-.exp-tabs button {
-  flex: 0 0 auto;
+#expediente .exp-tabs button {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 44px;
+  min-height: 54px;
+  padding: 5px 4px;
   background: transparent;
   border: 0;
   border-radius: 9px;
-  padding: 12px 20px;
-  min-height: 46px;
-  color: #315c42;
-  font-weight: 750;
-  font-size: 15px;
+  color: #dfebe3;
+  font-size: calc(13px * var(--vs-reading-scale));
+  font-weight: 650;
+  line-height: 1.2;
+  text-align: center;
   white-space: nowrap;
 }
-.exp-tabs button.selected {
-  background: #15523e;
-  color: white;
+.exp-tabs svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.exp-tab-short {
+  display: none;
+}
+#expediente .exp-tabs button:hover,
+#expediente .exp-tabs button.selected {
+  background: #2f654e;
+  color: #fff;
+}
+#expediente .exp-tabs button:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: -3px;
 }
 .exp-body {
   overflow-y: auto;
@@ -1855,12 +1879,13 @@ textarea:focus {
     font-size: 12px;
   }
   #expediente .exp-tabs {
-    padding: 9px 12px;
-    gap: 4px;
+    padding: 5px env(safe-area-inset-right)
+      calc(5px + env(safe-area-inset-bottom)) env(safe-area-inset-left);
+    gap: 0;
   }
-  .exp-tabs button {
-    font-size: 13px;
-    padding: 10px 13px;
+  #expediente .exp-tabs button {
+    font-size: calc(10px * var(--vs-reading-scale));
+    padding-inline: 1px;
   }
   .exp-body {
     padding: 14px;
@@ -2027,8 +2052,17 @@ body {
 .exp-header h2 {
   font-size: calc(19px * var(--vs-reading-scale));
 }
-.exp-tabs button {
-  font-size: calc(15px * var(--vs-reading-scale));
+@media (max-width: 480px) {
+  .exp-tab-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .exp-tab-short {
+    display: inline;
+  }
 }
 .exp-doc-list,
 .exp-quote-list {

@@ -118,8 +118,15 @@ window.vidresAppReady = (async () => {
         Crítico: "critico",
         Pendiente: "pendiente",
         Finalizado: "finalizado",
-        Instalado: "finalizado",
-        "En medición": "medicion",
+        Instalado: "cobro",
+        Colocado: "cobro",
+        "Pendiente de cobro": "cobro",
+        "En curso": "encurso",
+        "Presupuesto entregado": "presupuesto-entregado",
+        "Para instalar": "para-instalar",
+        "En medición": "encurso",
+        "En producción": "encurso",
+        Presupuestado: "presupuesto-entregado",
       }[state] || ""
     );
   }
@@ -162,6 +169,7 @@ window.vidresAppReady = (async () => {
             esc(state) +
             '"' +
             (state === job.estado ? " selected" : "") +
+            ' class="' + statusClass(state) + '"' +
             ">" +
             esc(VSUtils.jobStatusLabel(state)) +
             "</option>",
@@ -305,15 +313,11 @@ window.vidresAppReady = (async () => {
   function workFilters() {
     const states = [
       "Pendiente",
-      "En medición",
-      "Presupuestado",
-      "En producción",
+      "En curso",
+      "Presupuesto entregado",
       "Para instalar",
-      "Instalado",
-      "Colocado",
       "Pendiente de cobro",
       "Finalizado",
-      "Crítico",
     ];
     return (
       '<div class="simple-work-search"><label>Buscar trabajo<input id="search" type="search" placeholder="Cliente, fecha, dirección o referencia" value="' +

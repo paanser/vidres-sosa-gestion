@@ -163,46 +163,110 @@
       const fields = new FormData(form.querySelector("form"));
       const cliente = String(fields.get("cliente") || "").trim();
       if (!cliente) return alert("Introduce el cliente.");
-      const doc = new jspdf.jsPDF({ unit:"mm",format:"a4",compress:true });
-      const brand = window.VSBrandLogo;
-      if (brand?.draw) brand.draw(doc, 16, 12, 82);
-      else { doc.setFont("helvetica","bold");doc.setFontSize(18);doc.text("VIDRES SOSA",16,23); }
-      doc.setDrawColor(23,119,78);doc.setLineWidth(.8);doc.line(16,36,194,36);
-      doc.setTextColor(28,51,41);doc.setFontSize(15);doc.setFont("helvetica","bold");
-      doc.text("CARTA DE RESPONSABILIDAD",16,47);
-      doc.setFontSize(9);doc.setFont("helvetica","normal");
+      const doc = new jspdf.jsPDF({ unit: "mm", format: "a4", compress: true });
+      const navy = [21, 49, 75], pale = [235, 243, 249], ink = [30, 43, 55];
       const date = new Date().toLocaleDateString("es-ES");
-      const work = String(fields.get("trabajo")||"").trim();
-      let y = 57;
-      function paragraph(title, content) {
-        const lines = doc.splitTextToSize(content, 177);
-        if (y + 11 + lines.length * 4.7 > 270) {doc.addPage();y=20;}
-        doc.setFont("helvetica","bold");doc.setFontSize(10);doc.text(title,16,y);y+=7;
-        doc.setFont("helvetica","normal");doc.setFontSize(9);
-        doc.text(lines,16,y);y+=lines.length*4.7+8;
+      const work = String(fields.get("trabajo") || "").trim();
+      const robot = /robot|grúa|grua|elevador/i.test(work);
+      const brand = window.VSBrandLogo;
+      if (brand?.draw) brand.draw(doc, 13, 8, 85);
+      else {
+        doc.setTextColor(200, 22, 39); doc.setFont("helvetica", "bold"); doc.setFontSize(17);
+        doc.text("VIDRES", 14, 23); doc.setTextColor(0, 160, 95); doc.text("SOSA", 45, 23);
       }
-      paragraph("DATOS DEL TRABAJO", "Cliente: "+cliente+"\nExpediente: "+job.id+"\nFecha: "+date+"\nDirección: "+String(fields.get("direccion")||"")+"\nIntervención: "+work);
-      paragraph("1. OBJETO", "Este documento recoge los riesgos previsibles y responsabilidades correspondientes a la intervención indicada.");
+      doc.setTextColor(...ink); doc.setFont("helvetica", "normal"); doc.setFontSize(8);
+      doc.text(["Carrer de la Plata, 8", "43006 Tarragona", "www.vidressosa.com"], 195, 14, { align: "right" });
+      doc.setDrawColor(...navy); doc.setLineWidth(.7); doc.line(12, 35, 198, 35);
+      function banner(x, y, w, h, label) {
+        doc.setFillColor(...navy); doc.roundedRect(x, y, w, h, 1.4, 1.4, "F");
+        doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(10);
+        doc.text(label, x + 5, y + h/2 + 3.2);
+      }
+      banner(12, 40, 186, 23, "CARTA DE RESPONSABILIDAD Y ACEPTACIÓN DE RIESGOS");
+      // Draw a robot lifting a pane only for robot / crane interventions.
+      if (robot) {
+        doc.setDrawColor(255,255,255); doc.setLineWidth(1.15);
+        doc.roundedRect(170, 54, 17, 5, 1, 1, "S");
+        doc.line(174, 53, 179, 46); doc.line(179, 46, 187, 50);
+        doc.line(187, 50, 190, 50); doc.line(190, 50, 190, 55);
+        doc.rect(187, 55, 7, 5); doc.circle(190, 57, 1.1);
+      }
+      banner(12, 67, 91, 9, "DATOS DEL CLIENTE");
+      banner(107, 67, 91, 9, "DATOS DEL TRABAJO");
+      doc.setDrawColor(195, 207, 217); doc.setLineWidth(.3);
+      doc.roundedRect(12, 76, 91, 32, 1, 1);
+      doc.roundedRect(107, 76, 91, 32, 1, 1);
+      doc.setTextColor(...ink); doc.setFont("helvetica", "normal"); doc.setFontSize(8);
+      const clientLines = [
+        "Cliente: " + cliente,
+        "Dirección: " + String(fields.get("direccion") || ""),
+        "Teléfono: " + String(job.telefono || ""),
+      ];
+      const workLines = [
+        "Expediente: " + job.id,
+        "Fecha: " + date,
+        "Trabajo: " + work,
+      ];
+      function details(lines, x) {
+        let y = 82;
+        for (const line of lines) {
+          const wrapped = doc.splitTextToSize(line, 83).slice(0, 2);
+          doc.text(wrapped, x, y); y += Math.max(7, wrapped.length * 4);
+        }
+      }
+      details(clientLines, 16); details(workLines, 111);
+      banner(12, 113, 186, 10, "CONDICIONES Y RESPONSABILIDADES");
       const rotura = {
-        evaluar:"La responsabilidad por roturas durante la manipulación o instalación se determinará según las causas acreditadas y las obligaciones legales y contractuales.",
-        empresa:"Vidres Sosa responderá de las roturas que legalmente le sean imputables durante la instalación.",
-        preexistentes:"Se tendrán en cuenta los defectos preexistentes y las causas acreditadas, sin excluir responsabilidades legalmente exigibles."
+        evaluar: "En caso de rotura, la responsabilidad se determinará atendiendo a las circunstancias, causas acreditadas y obligaciones legales y contractuales de las partes.",
+        empresa: "Vidres Sosa responderá de las roturas que legalmente le sean imputables durante la intervención.",
+        preexistentes: "Se valorarán los defectos preexistentes y las causas acreditadas, sin excluir las responsabilidades legalmente exigibles.",
       };
       const danos = {
-        preexistentes:"El cliente declara haber sido informado de los riesgos previsibles sobre superficies y elementos preexistentes. Los daños se atribuirán según su causa acreditada; esta cláusula no exime de negligencias imputables a Vidres Sosa.",
-        evaluar:"Los daños a elementos existentes se valorarán según su causa acreditada y la responsabilidad legal de cada parte.",
-        empresa:"Vidres Sosa responderá de los daños a elementos existentes que le sean legalmente imputables."
+        preexistentes: "El cliente declara haber sido informado de los riesgos previsibles sobre elementos existentes. Los daños se atribuirán según su causa acreditada. Esta cláusula no exime a Vidres Sosa de negligencias o incumplimientos imputables.",
+        evaluar: "Los daños a elementos preexistentes se evaluarán según las causas acreditadas y la responsabilidad legal de cada parte.",
+        empresa: "Vidres Sosa responderá por los daños a elementos existentes que le sean legalmente imputables.",
       };
-      paragraph("2. ROTURA DE VIDRIOS",rotura[fields.get("rotura")]);
-      paragraph("3. DAÑOS A ELEMENTOS PREEXISTENTES",danos[fields.get("danos")]);
-      paragraph("4. SEGURIDAD","Vidres Sosa podrá suspender o aplazar los trabajos cuando las condiciones de acceso, estabilidad, climatología o seguridad no permitan una intervención adecuada.");
-      if (String(fields.get("observaciones")||"").trim()) paragraph("5. OBSERVACIONES",String(fields.get("observaciones")));
-      paragraph("6. CONFORMIDAD","Las partes declaran haber recibido información sobre los riesgos previsibles. La firma no supone renuncia a derechos irrenunciables ni exoneración de responsabilidades legalmente exigibles.");
-      if(y>248){doc.addPage();y=25;}
-      doc.setFont("helvetica","bold");doc.setFontSize(9);
-      doc.text("Por Vidres Sosa",16,y);doc.text("Por el cliente",112,y);
-      y+=20;doc.line(16,y,88,y);doc.line(112,y,188,y);
-      doc.setFont("helvetica","normal");doc.text("Nombre, firma y fecha",16,y+5);doc.text("Nombre, firma y fecha",112,y+5);
+      const clauses = [
+        ["1. OBJETO", "Este documento establece las condiciones de ejecución, los riesgos previsibles y las responsabilidades correspondientes a los trabajos de " + (work || "la intervención indicada") + "."],
+        ["2. ROTURA DE VIDRIOS", rotura[fields.get("rotura")] || rotura.evaluar],
+        ["3. DAÑOS A ELEMENTOS PREEXISTENTES", danos[fields.get("danos")] || danos.preexistentes],
+        ["4. SEGURIDAD", "Vidres Sosa podrá suspender o aplazar los trabajos cuando las condiciones de acceso, estabilidad, climatología o seguridad no permitan realizarlos con garantías suficientes."],
+        ["5. CONFORMIDAD", "Las partes manifiestan haber leído las condiciones descritas, sin renunciar a derechos legalmente irrenunciables ni excluir responsabilidades exigibles."],
+      ];
+      let y = 123;
+      for (const [label, content] of clauses) {
+        const lines = doc.splitTextToSize(content, 140);
+        const h = Math.max(16, 7 + lines.length * 4.25);
+        if (y + h > 224) { doc.addPage(); y = 20; }
+        doc.setFillColor(...pale); doc.rect(12, y, 43, h, "F");
+        doc.setDrawColor(206, 215, 222); doc.rect(12, y, 186, h, "S");
+        doc.setTextColor(...navy); doc.setFont("helvetica", "bold"); doc.setFontSize(8.5);
+        doc.text(doc.splitTextToSize(label, 37), 15, y + 7);
+        doc.setTextColor(...ink); doc.setFont("helvetica", "normal"); doc.setFontSize(8.4);
+        doc.text(lines, 59, y + 6);
+        y += h;
+      }
+      const observations = String(fields.get("observaciones") || "").trim();
+      if (y + 32 + (observations ? doc.splitTextToSize(observations, 177).length * 4 : 0) > 252) {
+        doc.addPage(); y = 20;
+      }
+      banner(12, y + 5, 186, 9, "OBSERVACIONES");
+      const observationLines = doc.splitTextToSize(observations || "Sin observaciones adicionales.", 177);
+      const obsH = Math.max(16, observationLines.length * 4.4 + 7);
+      doc.setDrawColor(195, 207, 217); doc.rect(12, y + 14, 186, obsH);
+      doc.setTextColor(...ink); doc.setFont("helvetica","normal"); doc.setFontSize(8.5);
+      doc.text(observationLines, 16, y + 21);
+      y += 19 + obsH;
+      if (y + 36 > 285) { doc.addPage(); y = 20; }
+      banner(12, y, 90, 9, "POR VIDRES SOSA");
+      banner(108, y, 90, 9, "POR EL CLIENTE");
+      doc.setTextColor(...ink); doc.setFont("helvetica","normal"); doc.setFontSize(8);
+      doc.text("Nombre: ______________________", 16, y + 16);
+      doc.text("Nombre: " + cliente.slice(0, 32), 112, y + 16);
+      doc.text("Firma:", 16, y + 29); doc.text("Firma:", 112, y + 29);
+      doc.line(32, y + 31, 97, y + 31); doc.line(127, y + 31, 193, y + 31);
+      doc.text("Fecha: ____ / ____ / ______", 16, y + 38);
+      doc.text("Fecha: ____ / ____ / ______", 112, y + 38);
       const blob = doc.output("blob");
       const filename = "Carta-responsabilidad-"+String(job.id).replace(/[^a-zA-Z0-9_-]/g,"-")+"-"+new Date().toISOString().slice(0,10)+".pdf";
       if(save){

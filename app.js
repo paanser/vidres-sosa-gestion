@@ -5,8 +5,19 @@ window.vidresAppReady = (async () => {
   const { esc, num, money, round6 } = VSUtils;
 
   const KEY = "vidres-sosa-demo-v01";
-  const legacyStatuses = { "Instalado": "Instalado pendiente de cobro", "Colocado": "Instalado pendiente de cobro", "Pendiente de cobro": "Instalado pendiente de cobro", "En medición": "En curso", "En producción": "En curso", "Presupuestado": "Presupuesto entregado" };
-  const normalizeJobs = (items) => items.map((j) => ({ ...j, estado: legacyStatuses[j.estado] || j.estado }));
+  const legacyStatuses = {
+    Instalado: "Instalado pendiente de cobro",
+    Colocado: "Instalado pendiente de cobro",
+    "Pendiente de cobro": "Instalado pendiente de cobro",
+    "En medición": "En curso",
+    "En producción": "En curso",
+    Presupuestado: "Presupuesto entregado",
+  };
+  const normalizeJobs = (items) =>
+    items.map((j) => ({
+      ...j,
+      estado: legacyStatuses[j.estado] || j.estado,
+    }));
   let jobs = normalizeJobs(VSStorage.read(KEY, []));
   let page = "inicio",
     editing = null,

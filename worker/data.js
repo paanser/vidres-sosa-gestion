@@ -142,6 +142,10 @@ export function validateValues(values) {
     if (
       ![
         "Pendiente",
+        "En curso",
+        "Presupuesto entregado",
+        "Pendiente de cobro",
+        "Colocado",
         "En medición",
         "Presupuestado",
         "En producción",

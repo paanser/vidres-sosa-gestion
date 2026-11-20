@@ -1163,7 +1163,7 @@ textarea:focus {
   aside {
     position: static;
     height: auto;
-    padding: 12px 12px 0;
+    padding: calc(12px + env(safe-area-inset-top, 0px)) 12px 0;
     background: #fff;
   }
   nav {
@@ -5634,9 +5634,11 @@ select[name="estado"]:has(option:nth-child(6):checked) {
     padding-top: 0;
   }
   .clients-page > main > header {
+    --header-safe-top: env(safe-area-inset-top, 0px);
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 20px 8px;
+    padding-top: var(--header-safe-top);
     position: relative;
     isolation: isolate;
   }
@@ -5645,6 +5647,7 @@ select[name="estado"]:has(option:nth-child(6):checked) {
     grid-column: 1 / -1;
     grid-row: 1;
     align-self: stretch;
+    margin-top: calc(-1 * var(--header-safe-top));
     margin-inline: -18px;
     z-index: -1;
     background: #fff;

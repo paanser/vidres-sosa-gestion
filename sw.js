@@ -1,6 +1,8 @@
 "use strict";
 const RELEASE = "__BUILD_VERSION__";
-const VERSION = RELEASE.startsWith("__") ? "20261120-diseno-clientes" : RELEASE;
+const VERSION = RELEASE.startsWith("__")
+  ? "20261120-logo-area-segura"
+  : RELEASE;
 const PREFIX = "vidres-sosa:" + self.registration.scope + ":",
   CACHE = PREFIX + VERSION;
 const ASSETS = [

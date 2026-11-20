@@ -122,7 +122,14 @@ export function validateValues(values) {
     result[key] = value;
   }
   const jobs = new Set(result[KEYS.trabajos].map((j) => j.id));
-  const legacyStatuses = { "Instalado": "Instalado pendiente de cobro", "Colocado": "Instalado pendiente de cobro", "Pendiente de cobro": "Instalado pendiente de cobro", "En medición": "En curso", "En producción": "En curso", "Presupuestado": "Presupuesto entregado" };
+  const legacyStatuses = {
+    Instalado: "Instalado pendiente de cobro",
+    Colocado: "Instalado pendiente de cobro",
+    "Pendiente de cobro": "Instalado pendiente de cobro",
+    "En medición": "En curso",
+    "En producción": "En curso",
+    Presupuestado: "Presupuesto entregado",
+  };
   for (const j of result[KEYS.trabajos]) {
     if (legacyStatuses[j.estado]) j.estado = legacyStatuses[j.estado];
     text(j.cliente, 100, 1);

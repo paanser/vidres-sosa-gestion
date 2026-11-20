@@ -286,12 +286,64 @@ module.exports = async function checkQuoteMeasures(page, context, root) {
     .filter({ hasText: "No hay fotos de medidas" })
     .waitFor();
   page.off("request", track);
+  const quoteSummary = await page.evaluate(
+    async ({ job, saved }) => {
+      const quotes = VSStorage.read(VSStorage.keys.presupuestos, []);
+      const second = {
+        id: "P-RESUMEN-2",
+        client: "Cliente de prueba",
+        job,
+        pricing: { vat: 10 },
+        lines: [{ kind: "concept", description: "Montaje <img>", amount: 180 }],
+      };
+      await VSStorage.patchValues({
+        [VSStorage.keys.presupuestos]: [second, ...quotes],
+      });
+      return [second, quotes.find((q) => q.id === saved)].map((quote) => {
+        const { base, total } = VSCalculations.quoteDetails(quote).totals;
+        return {
+          id: quote.id,
+          base: VSUtils.money(base),
+          total: VSUtils.money(total),
+        };
+      });
+    },
+    { job: fixture.first, saved },
+  );
+
   await page.locator('[data-page="trabajos"]').click();
   await page.locator(`.job-card [data-id="${fixture.first}"]`).first().click();
-  const glassSummary = await page.locator("#exp-body").textContent();
-  assert.match(glassSummary, /Peso del vidrio y recargo energético/);
-  assert.match(glassSummary, /12.00 kg/);
-  assert.ok(glassSummary.includes(saved));
+  const summary = page.locator("#exp-body");
+  assert.doesNotMatch(
+    await summary.textContent(),
+    /Peso del vidrio|Recargo energético/,
+  );
+  const cards = summary.locator("[data-exp-quote-summary]");
+  assert.equal(await cards.count(), quoteSummary.length);
+  for (const quote of quoteSummary) {
+    const card = cards.filter({ hasText: quote.id });
+    assert.deepEqual(await card.locator("p strong").allTextContents(), [
+      quote.base,
+      quote.total,
+    ]);
+  }
+  assert.match(
+    await cards.filter({ hasText: saved }).textContent(),
+    /1000 × 800 mm/,
+  );
+  const concept = cards.filter({ hasText: "P-RESUMEN-2" });
+  assert.equal(await concept.locator("li").textContent(), "Montaje <img>");
+  assert.equal(await concept.locator("img").count(), 0);
+  await page.locator("[data-exp-close]").click();
+
+  await page.locator(`.job-card [data-id="${fixture.second}"]`).first().click();
+  assert.equal(await cards.count(), 0);
+  assert.equal(
+    await summary
+      .getByRole("heading", { name: "Presupuestos", exact: true })
+      .count(),
+    0,
+  );
   await page.locator("[data-exp-close]").click();
 
   await page.evaluate(async (f) => {

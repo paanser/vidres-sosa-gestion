@@ -1625,14 +1625,28 @@
   window.vidresQuotesForJob = (id) =>
     quotes()
       .filter((q) => q.job === id)
-      .map((q) => ({
-        id: q.id,
-        client: q.client,
-        date: q.date,
-        status: q.status || "Borrador",
-        ...sum(q),
-        lines: q.lines.length,
-      }));
+      .map((q) => {
+        const breakdown = details(q);
+        const selectedUnit = unit();
+        return {
+          id: q.id,
+          client: q.client,
+          date: q.date,
+          status: q.status || "Borrador",
+          ...breakdown.totals,
+          lines: q.lines.length,
+          descriptions: q.lines.map((line, index) => {
+            if (line.kind === "concept")
+              return line.description || "Concepto libre";
+            if (line.kind === "aluminum") return line.description || "Aluminio";
+
+            const { w, h, qty, ml } = breakdown.lines[index];
+            const dimensions = `${VSMeasureInput.display(w, selectedUnit)} × ${VSMeasureInput.display(h, selectedUnit)} ${selectedUnit}`;
+            const edge = ml > 0 ? " · canto pulido" : "";
+            return `${glassName(line) || "Vidrio"} · ${dimensions} · ${qty} ud.${edge}`;
+          }),
+        };
+      });
   window.vidresQuoteStartForJob = (id, client, measures) => {
     if (!discard()) return;
     quickMode = false;

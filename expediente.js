@@ -430,26 +430,20 @@
   }
 
   const date = (v) => (v ? new Date(v).toLocaleString("es-ES") : "—");
-  function glassSummary(measures, jobId) {
-    const config = VSStorage.read(VSStorage.keys.configuracion, {});
-    const result = VSCalculations.jobGlassDetails(measures, config);
-    const quotes = VSStorage.read(VSStorage.keys.presupuestos, []).filter(
-      (q) => q.job === jobId,
-    );
-    return `<h3>Peso del vidrio y recargo energético</h3>
-      <p>${measures.length ? `Peso ${result.pending ? "conocido" : "total"} de las medidas: <strong>${result.weight.toFixed(2)} kg</strong><br>Recargo energético${result.pending ? " parcial" : ""}: <strong>${result.energy == null ? "Pendiente de configurar tarifa €/kg" : money(result.energy) + " sin IVA"}</strong>` : "Añade las medidas y el espesor para calcular el peso y el recargo."}</p>
-      ${result.pending ? `<p>Faltan medidas o espesor en ${result.pending} pieza(s). Completa el espesor total de vidrio, sin la cámara de aire.</p>` : ""}
-      ${measures.length ? `<p class="muted">Superficie real × unidades × espesor total (mm) × 2,5. ${result.rate == null ? "" : `Tarifa actual: ${VSUtils.energyMoney(result.rate)}/kg.`} Sin metraje mínimo.</p>` : ""}
+  function quoteSummary(jobId) {
+    const quotes = window.vidresQuotesForJob(jobId);
+    if (!quotes.length) return "";
+
+    return `<h3>Presupuestos</h3>
       ${quotes
-        .map((q) => {
-          const d = VSCalculations.quoteDetails(q);
-          const pending = q.lines.filter(
-            (l) =>
-              !["concept", "aluminum"].includes(l.kind) &&
-              num(l.thickness) <= 0,
-          ).length;
-          return `<p>Presupuesto ${esc(q.id)}: <strong>${d.lines.reduce((n, l) => n + l.weight, 0).toFixed(2)} kg</strong> · Recargo energético: <strong>${money(d.lines.reduce((n, l) => n + l.energy, 0))} sin IVA</strong> (tarifa guardada en el presupuesto).${pending ? ` Pendiente de espesor en ${pending} línea(s).` : ""}</p>`;
-        })
+        .map(
+          (q) => `<article data-exp-quote-summary>
+            <h4>Presupuesto ${esc(q.id)}</h4>
+            <ul>${q.descriptions.map((description) => `<li>${esc(description)}</li>`).join("")}</ul>
+            <p>Total sin IVA · <strong>${money(q.base)}</strong><br>
+            Total con IVA · <strong>${money(q.total)}</strong></p>
+          </article>`,
+        )
         .join("")}`;
   }
 
@@ -519,7 +513,7 @@
         '<div class="exp-two"><section class="exp-section"><h3>Descripción del trabajo</h3><p>' +
         esc(j.descripcion) +
         "</p>" +
-        glassSummary(measures, j.id) +
+        quoteSummary(j.id) +
         "<h3>Dirección</h3><p>" +
         esc(j.direccion || "No indicada") +
         "</p><h3>Población</h3><p>" +

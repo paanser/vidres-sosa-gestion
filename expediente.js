@@ -257,7 +257,7 @@
       doc.setTextColor(...ink); doc.setFont("helvetica","normal"); doc.setFontSize(8.5);
       doc.text(observationLines, 16, y + 21);
       y += 19 + obsH;
-      if (y + 36 > 285) { doc.addPage(); y = 20; }
+      if (y + 42 > 285) { doc.addPage(); y = 20; }
       banner(12, y, 90, 9, "POR VIDRES SOSA");
       banner(108, y, 90, 9, "POR EL CLIENTE");
       doc.setTextColor(...ink); doc.setFont("helvetica","normal"); doc.setFontSize(8);

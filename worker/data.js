@@ -145,6 +145,7 @@ export function validateValues(values) {
         "En curso",
         "Presupuesto entregado",
         "Pendiente de cobro",
+        "Instalado pendiente de cobro",
         "Colocado",
         "En medición",
         "Presupuestado",

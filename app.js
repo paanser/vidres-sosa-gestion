@@ -630,6 +630,8 @@ window.vidresAppReady = (async () => {
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .toLocaleLowerCase("es");
+  const clientCountLabel = (count) =>
+    count + (count === 1 ? " cliente" : " clientes");
   function clientsHtml() {
     clients = VSStorage.read(CLIENT_KEY, []);
     const list = [
@@ -640,114 +642,111 @@ window.vidresAppReady = (async () => {
         )
         .map((nombre) => ({ nombre, key: nombre })),
     ];
-    return panel(
-      "Clientes",
-      '<p class="muted">Fichas compartidas: teléfono y dirección vinculados al historial de trabajos.</p><label for="client-search">Buscar clientes</label><input id="client-search" type="search" placeholder="Nombre, dirección, teléfono…" aria-controls="client-results" autocomplete="off"><p id="client-count" class="muted" role="status">' +
-        list.length +
-        ' cliente(s)</p><div id="client-results">' +
-        (!list.length
-          ? '<div class="empty-state">Todavía no hay clientes. Crea un trabajo para empezar.</div>'
-          : list
-              .map((c) => {
-                const name = c.nombre;
-                const quotes = VSStorage.read(
-                  "vs-quote-prototype-v1",
-                  [],
-                ).filter((q) =>
+    $("#client-count").textContent = clientCountLabel(list.length);
+    return (
+      '<div class="client-search-row"><div class="client-search-field"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg><input id="client-search" type="search" aria-label="Buscar clientes" placeholder="Nombre, dirección o teléfono" aria-controls="client-results" autocomplete="off"></div></div><div id="client-results">' +
+      (!list.length
+        ? '<div class="empty-state">Todavía no hay clientes. Añade una ficha para empezar.</div>'
+        : list
+            .map((c) => {
+              const name = c.nombre;
+              const quotes = VSStorage.read("vs-quote-prototype-v1", []).filter(
+                (q) =>
                   q.clientId
                     ? q.clientId === c.id
                     : normName(q.client) === normName(name) && !c.id,
-                );
-                const items = jobs.filter(
-                  (j) => normName(j.cliente) === normName(name),
-                );
-                const tel = phoneClean(c.telefono);
-                return (
-                  '<article class="client-card" data-client-search="' +
-                  esc(
-                    clientSearchText(
-                      [
-                        name,
-                        c.direccion,
-                        c.telefono,
-                        c.email,
-                        ...items.flatMap((j) => [
-                          j.direccion,
-                          j.telefono,
-                          j.descripcion,
-                          j.id,
-                        ]),
-                      ].join(" "),
-                    ),
-                  ) +
-                  '" data-client-phone="' +
-                  esc(String(c.telefono || "").replace(/\D/g, "")) +
-                  '"><div class="client-heading"><div><h3>' +
-                  esc(name) +
-                  '</h3><span class="muted">' +
-                  items.length +
-                  ' trabajo(s)</span></div><button type="button" data-client-edit="' +
-                  esc(c.key) +
-                  '">Editar ficha</button></div><p>' +
-                  esc(c.direccion || "Dirección no indicada") +
-                  '</p><p class="muted">' +
-                  (c.priceProfile?.mode === "fixed"
-                    ? "Tarifa de venta del vidrio: " +
-                      esc(c.priceProfile.value) +
-                      " €/m²"
-                    : "Margen personalizado: " +
-                      esc(
-                        c.priceProfile?.mode === "markup"
-                          ? c.priceProfile.value
-                          : 0,
-                      ) +
-                      " %") +
-                  '</p><div class="client-actions"><span>' +
-                  esc(c.telefono || "Sin teléfono") +
-                  "</span>" +
-                  (tel
-                    ? '<a href="tel:' +
-                      esc(tel) +
-                      '">Llamar</a><a target="_blank" rel="noopener noreferrer" href="https://wa.me/' +
-                      esc(tel.replace(/^\+/, "")) +
-                      '">WhatsApp</a>'
-                    : "") +
-                  (c.direccion
-                    ? '<a target="_blank" rel="noopener noreferrer" href="https://www.google.com/maps/search/?api=1&query=' +
-                      encodeURIComponent(c.direccion) +
-                      '">Mapa</a>'
-                    : "") +
-                  "</div><details><summary>Historial de trabajos (" +
-                  items.length +
-                  ")</summary>" +
-                  jobCards(items) +
-                  "</details><details><summary>Presupuestos (" +
-                  quotes.length +
-                  ")</summary>" +
-                  (quotes
-                    .map(
-                      (q) =>
-                        "<p>" +
-                        esc(q.id) +
-                        " · " +
-                        esc(q.status || "Borrador") +
-                        ' <button type="button" data-client-quote="' +
-                        esc(q.id) +
-                        '">Abrir presupuesto</button></p>',
-                    )
-                    .join("") || '<p class="muted">Sin presupuestos.</p>') +
-                  "</details></article>"
-                );
-              })
-              .join("")) +
-        '</div><p id="client-no-results" class="empty-state" hidden>No hay clientes que coincidan con la búsqueda.</p>',
+              );
+              const items = jobs.filter(
+                (j) => normName(j.cliente) === normName(name),
+              );
+              const tel = phoneClean(c.telefono);
+              return (
+                '<article class="client-card" data-client-search="' +
+                esc(
+                  clientSearchText(
+                    [
+                      name,
+                      c.direccion,
+                      c.telefono,
+                      c.email,
+                      ...items.flatMap((j) => [
+                        j.direccion,
+                        j.telefono,
+                        j.descripcion,
+                        j.id,
+                      ]),
+                    ].join(" "),
+                  ),
+                ) +
+                '" data-client-phone="' +
+                esc(String(c.telefono || "").replace(/\D/g, "")) +
+                '"><div class="client-heading"><div><h3>' +
+                esc(name) +
+                '</h3><span class="muted">' +
+                items.length +
+                (items.length === 1 ? " trabajo" : " trabajos") +
+                '</span></div><button type="button" data-client-edit="' +
+                esc(c.key) +
+                '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6 4 4M4 20l4.5-1 11-11a2.8 2.8 0 0 0-4-4l-11 11L4 20Z"/></svg>Editar ficha</button></div><p>' +
+                esc(c.direccion || "Dirección no indicada") +
+                '</p><p class="muted">' +
+                (c.priceProfile?.mode === "fixed"
+                  ? "Tarifa de venta del vidrio: " +
+                    esc(c.priceProfile.value) +
+                    " €/m²"
+                  : "Margen personalizado: " +
+                    esc(
+                      c.priceProfile?.mode === "markup"
+                        ? c.priceProfile.value
+                        : 0,
+                    ) +
+                    " %") +
+                '</p><div class="client-actions"><span>' +
+                esc(c.telefono || "Sin teléfono") +
+                "</span>" +
+                (tel
+                  ? '<a href="tel:' +
+                    esc(tel) +
+                    '">Llamar</a><a target="_blank" rel="noopener noreferrer" href="https://wa.me/' +
+                    esc(tel.replace(/^\+/, "")) +
+                    '">WhatsApp</a>'
+                  : "") +
+                (c.direccion
+                  ? '<a target="_blank" rel="noopener noreferrer" href="https://www.google.com/maps/search/?api=1&query=' +
+                    encodeURIComponent(c.direccion) +
+                    '">Mapa</a>'
+                  : "") +
+                "</div><details><summary>Historial de trabajos (" +
+                items.length +
+                ")</summary>" +
+                jobCards(items) +
+                "</details><details><summary>Presupuestos (" +
+                quotes.length +
+                ")</summary>" +
+                (quotes
+                  .map(
+                    (q) =>
+                      "<p>" +
+                      esc(q.id) +
+                      " · " +
+                      esc(q.status || "Borrador") +
+                      ' <button type="button" data-client-quote="' +
+                      esc(q.id) +
+                      '">Abrir presupuesto</button></p>',
+                  )
+                  .join("") || '<p class="muted">Sin presupuestos.</p>') +
+                "</details></article>"
+              );
+            })
+            .join("")) +
+      '</div><p id="client-no-results" class="empty-state" hidden>No hay clientes que coincidan con la búsqueda.</p>'
     );
   }
   document.addEventListener("click", (e) => {
     const button = e.target.closest("[data-client-quote]");
     if (button) window.vidresQuoteOpenSaved?.(button.dataset.clientQuote);
   });
-  function clientEditor(name) {
+  function clientEditor(name = "") {
     const existing = clients.find((c) => (c.id || c.nombre) === name) || {};
     const dialog = document.querySelector("#client-editor");
     dialog.dataset.clientKey = name;
@@ -927,7 +926,7 @@ window.vidresAppReady = (async () => {
               milestones: ["Hitos de trabajos", ".job-card > .milestones"],
             };
     const defaults = {
-      view: ["clientes", "presupuestos"].includes(page) ? "compact" : "cards",
+      view: page === "presupuestos" ? "compact" : "cards",
       hidden:
         page === "clientes" ? ["address", "price", "contact", "history"] : [],
     };
@@ -958,7 +957,9 @@ window.vidresAppReady = (async () => {
         )
         .join("") +
       '</fieldset><button type="button" data-section-reset>Restablecer vista</button><p role="status" data-section-status></p></dialog>';
-    host.prepend(toolbar);
+    const clientSearchRow = host.querySelector(".client-search-row");
+    if (clientSearchRow) clientSearchRow.append(toolbar);
+    else host.prepend(toolbar);
     const dialog = toolbar.querySelector("dialog");
     toolbar.querySelector("[data-section-customize]").onclick = () =>
       dialog.showModal();
@@ -1020,7 +1021,7 @@ window.vidresAppReady = (async () => {
     apply();
   }
   new MutationObserver(() => {
-    if (!$("#content > .section-customize")) customizeSection();
+    if (!$("#content .section-customize")) customizeSection();
   }).observe($("#content"), { childList: true });
   function render() {
     if (usagePanel) {
@@ -1067,6 +1068,10 @@ window.vidresAppReady = (async () => {
       avisos: "Avisos",
       calendario: "Calendario",
     };
+    const clientsPage = page === "clientes";
+    $(".layout").classList.toggle("clients-page", clientsPage);
+    $("#client-count").hidden = !clientsPage;
+    $("#client-add").hidden = !clientsPage;
     $("#title").textContent = names[page];
     $("#title").classList.toggle("critical-heading", page === "criticos");
     let html = "";
@@ -1805,6 +1810,7 @@ window.vidresAppReady = (async () => {
   window.vidresGetMeasurements = () => measurements;
   window.vidresOpenMeasurement = measurementEditor;
   $("#add").addEventListener("click", () => open(null));
+  $("#client-add").addEventListener("click", () => clientEditor());
   $("#cancel").addEventListener("click", () => dlg.close());
   form.addEventListener("change", async (e) => {
     if (!e.target.classList.contains("job-measure-photo")) return;
@@ -2165,7 +2171,9 @@ window.vidresAppReady = (async () => {
         card.hidden = !match;
         if (match) count++;
       });
-      $("#client-count").textContent = count + " cliente(s) encontrado(s)";
+      $("#client-count").textContent =
+        clientCountLabel(count) +
+        (terms.length ? (count === 1 ? " encontrado" : " encontrados") : "");
       $("#client-no-results").hidden = count > 0 || !terms.length;
     } else if (page === "consultor") window.vidresToolsInput?.(e);
     else if (page === "presupuestos") window.vidresQuoteInput?.(e);
@@ -2203,7 +2211,7 @@ window.vidresAppReady = (async () => {
       try {
         await VSStorage.updateValues((state) => {
           state[CLIENT_KEY] = nextClients;
-          if (previousName === nombre) return;
+          if (!previousName || previousName === nombre) return;
           // Los partes antiguos enlazan por nombre; los presupuestos con ID
           // conservan su identidad, incluso entre clientes homónimos.
           state[KEY] = (state[KEY] || []).map((job) =>

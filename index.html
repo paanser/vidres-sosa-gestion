@@ -176,10 +176,24 @@
       </aside>
       <main>
         <header>
-          <div>
+          <div class="clients-page-heading">
             <p class="muted">VIDRES SOSA · GESTIÓN</p>
             <h1 id="title">Buenos días, equipo 👋</h1>
+            <p id="client-count" role="status" hidden></p>
           </div>
+          <img
+            class="clients-mobile-logo"
+            src="icons/vidres-sosa-horizontal.svg"
+            width="890"
+            height="163"
+            alt="Vidres Sosa · Cristalleria i alumini"
+          />
+          <button id="client-add" class="primary" type="button" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            Añadir
+          </button>
           <div
             class="header-actions"
             role="group"

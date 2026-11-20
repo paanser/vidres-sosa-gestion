@@ -492,26 +492,26 @@ async function checkMobileFields(page) {
   });
   await page.evaluate(() => window.vidresNavigate("clientes"));
   await checkMobileFields(page);
-  assert.equal(await page.locator("#content.section-compact").count(), 1);
+  assert.equal(await page.locator("#content.section-compact").count(), 0);
   assert.equal(
     await page.locator(".client-card > p").first().isVisible(),
     false,
   );
   await page.locator("[data-section-customize]").click();
-  await page.locator("[data-section-view]").selectOption("cards");
+  await page.locator("[data-section-view]").selectOption("compact");
   await page.locator('[data-section-field="address"]').check();
   await page.evaluate(() => {
     vidresNavigate("inicio");
     vidresNavigate("clientes");
   });
-  assert.equal(await page.locator("#content.section-compact").count(), 0);
+  assert.equal(await page.locator("#content.section-compact").count(), 1);
   assert.equal(
     await page.locator(".client-card > p").first().isVisible(),
     true,
   );
   await page.locator("[data-section-customize]").click();
   await page.locator("[data-section-reset]").click();
-  assert.equal(await page.locator("#content.section-compact").count(), 1);
+  assert.equal(await page.locator("#content.section-compact").count(), 0);
   await page.locator("[data-section-close]").click();
   for (const query of [
     "registrado",
@@ -531,6 +531,26 @@ async function checkMobileFields(page) {
   await page.locator("#client-search").fill("");
   assert.equal(await page.locator(".client-card:visible").count(), 1);
   assert.equal(await page.locator("#client-no-results").isVisible(), false);
+  await page.locator("#client-add").click();
+  const newClient = page.locator("#client-editor");
+  const newClientName = newClient.locator('[name="nombre"]');
+  assert.equal(await newClientName.inputValue(), "");
+  await newClientName.fill("Cliente nuevo de prueba");
+  await newClient.getByRole("button", { name: "Guardar ficha" }).click();
+  await page
+    .getByRole("heading", { name: "Cliente nuevo de prueba" })
+    .waitFor();
+  assert.equal(await newClient.isVisible(), false);
+  await page.evaluate(async () => {
+    const key = VSStorage.keys.clientes;
+    await VSStorage.write(
+      key,
+      VSStorage.read(key, []).filter(
+        (client) => client.nombre !== "Cliente nuevo de prueba",
+      ),
+    );
+    vidresReloadData();
+  });
   await page.evaluate(() => window.vidresNavigate("inicio"));
   console.log(
     "PASS buscador de clientes por nombre, dirección y sin resultados",

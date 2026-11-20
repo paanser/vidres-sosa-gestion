@@ -5,7 +5,9 @@ window.vidresAppReady = (async () => {
   const { esc, num, money, round6 } = VSUtils;
 
   const KEY = "vidres-sosa-demo-v01";
-  let jobs = VSStorage.read(KEY, []);
+  const legacyStatuses = { "Instalado": "Instalado pendiente de cobro", "Colocado": "Instalado pendiente de cobro", "Pendiente de cobro": "Instalado pendiente de cobro", "En medición": "En curso", "En producción": "En curso", "Presupuestado": "Presupuesto entregado" };
+  const normalizeJobs = (items) => items.map((j) => ({ ...j, estado: legacyStatuses[j.estado] || j.estado }));
+  let jobs = normalizeJobs(VSStorage.read(KEY, []));
   let page = "inicio",
     editing = null,
     search = "";
@@ -1076,7 +1078,7 @@ window.vidresAppReady = (async () => {
             filters.createdFrom,
             filters.createdTo,
           ) &&
-          (!filters.estado || j.estado === filters.estado) &&
+          (!filters.estado || (legacyStatuses[j.estado] || j.estado) === filters.estado) &&
           (!filters.responsable || j.responsable === filters.responsable) &&
           (!filters.tipoCliente ||
             (j.tipoCliente || "Particular") === filters.tipoCliente) &&
@@ -1632,14 +1634,14 @@ window.vidresAppReady = (async () => {
     }
   };
   window.vidresSyncMilestones = () => {
-    jobs = VSStorage.read(KEY, []);
+    jobs = normalizeJobs(VSStorage.read(KEY, []));
   };
   window.addEventListener("vidres-milestones-saved", () => {
     if (page === "trabajos") render();
   });
   window.vidresRefresh = render;
   window.vidresReloadData = () => {
-    jobs = VSStorage.read(KEY, []);
+    jobs = normalizeJobs(VSStorage.read(KEY, []));
     clients = VSStorage.read(CLIENT_KEY, []);
     notes = VSStorage.read(NOTE_KEY, []);
     measurements = VSStorage.measurements.get();
@@ -2182,7 +2184,7 @@ window.vidresAppReady = (async () => {
         return;
       }
       clients = nextClients;
-      jobs = VSStorage.read(KEY, []);
+      jobs = normalizeJobs(VSStorage.read(KEY, []));
       document.querySelector("#client-editor").close();
       render();
     }),

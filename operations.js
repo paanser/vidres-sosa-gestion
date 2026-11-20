@@ -739,7 +739,13 @@
           if (
             cierre.conforme &&
             !cierre.pendiente &&
-            !["Instalado", "Colocado", "Pendiente de cobro", "Instalado pendiente de cobro", "Finalizado"].includes(target.estado)
+            ![
+              "Instalado",
+              "Colocado",
+              "Pendiente de cobro",
+              "Instalado pendiente de cobro",
+              "Finalizado",
+            ].includes(target.estado)
           ) {
             (target.historial ||= []).push({
               de: target.estado,

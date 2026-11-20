@@ -1023,19 +1023,23 @@ async function checkMobileFields(page) {
   const listStatus = page.getByRole("combobox", {
     name: "Cambiar estado de " + closedJob.id,
   });
-  await listStatus.selectOption({ label: "Cobrar" });
-  await page.getByText(/Estado actualizado a Cobrar/).waitFor();
-  assert.equal(await listStatus.inputValue(), "Instalado");
+  await listStatus.selectOption({ label: "Instalado pendiente de cobro" });
+  await page
+    .getByText(/Estado actualizado a Instalado pendiente de cobro/)
+    .waitFor();
+  assert.equal(await listStatus.count(), 0);
+  await page.locator("#job-scope").selectOption("cobros");
+  assert.equal(await listStatus.inputValue(), "Instalado pendiente de cobro");
   assert.equal(await page.locator("#search").inputValue(), closedJob.id);
   assert.equal(await page.locator("#expediente").isVisible(), false);
   assert.equal(
     await page.evaluate(() => vidresGetJobs()[0].historial.at(-1).a),
-    "Instalado",
+    "Instalado pendiente de cobro",
   );
   await listStatus.selectOption("Finalizado");
   await page.getByText(/Estado actualizado a Finalizado/).waitFor();
   assert.equal(await listStatus.count(), 0);
-  await page.locator("#job-scope").selectOption("finalizados");
+  await page.locator("#job-scope").selectOption("archivo");
   assert.equal(await listStatus.inputValue(), "Finalizado");
   await listStatus.selectOption("Pendiente");
   await page.getByText(/Estado actualizado a Pendiente/).waitFor();

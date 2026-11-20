@@ -416,6 +416,40 @@ test("datos compartidos, validación, conflictos sin sobrescritura y transacció
     1,
   );
 });
+test("guarda estados nuevos y anteriores en una misma lista sin cambiar el historial", async () => {
+  const env = setup();
+  const { token } = await admin(env);
+  const values = empty();
+  const key = "vidres-sosa-demo-v01";
+  const historial = [
+    { de: "En producción", a: "Instalado", fecha: "2026-11-16" },
+  ];
+  values[key] = [
+    { ...job, estado: "Instalado pendiente de cobro" },
+    { ...job, id: "VS-0002", estado: "Instalado", historial },
+    { ...job, id: "VS-0003", estado: "En producción" },
+    { ...job, id: "VS-0004", estado: "Presupuestado" },
+  ];
+  const saved = await call(
+    env,
+    "/api/state",
+    "PUT",
+    { revision: 0, values },
+    token,
+  );
+  assert.equal(saved.status, 200, JSON.stringify(saved.data));
+  const persisted = await call(env, "/api/state", "GET", undefined, token);
+  assert.deepEqual(
+    persisted.data.values[key].map((j) => j.estado),
+    [
+      "Instalado pendiente de cobro",
+      "Instalado pendiente de cobro",
+      "En curso",
+      "Presupuesto entregado",
+    ],
+  );
+  assert.deepEqual(persisted.data.values[key][1].historial, historial);
+});
 test("las piezas admiten croquis sin medidas escritas y rechazan medidas inválidas", async () => {
   const env = setup(),
     a = await admin(env),

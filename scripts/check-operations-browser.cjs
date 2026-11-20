@@ -292,9 +292,12 @@ module.exports = async (page, context, root) => {
   assert.ok((await page.locator(".new-measure-piece").count()) > 0);
   await page.locator("#cancel").click();
   await page.locator('#nav [data-page="trabajos"]').click();
+  await page.locator("#job-scope").selectOption("cobros");
   await page.locator('#content [data-id="VS-OPS"]').first().click();
   const expediente = page.locator("#expediente");
-  await expediente.getByRole("button", { name: "Estado ▾ Cobrar" }).waitFor();
+  await expediente
+    .getByRole("button", { name: "Estado ▾ Instalado pendiente de cobro" })
+    .waitFor();
 
   assert.equal(await expediente.locator("[data-operations-job]").count(), 0);
   await expediente.locator('[data-exp-tab="gestion"]').click();

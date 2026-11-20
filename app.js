@@ -159,7 +159,13 @@ window.vidresAppReady = (async () => {
     const states = [...form.elements.estado.options].map(
       (option) => option.value,
     );
-    const displayedStatus = ["Instalado", "Colocado", "Pendiente de cobro"].includes(job.estado) ? "Instalado pendiente de cobro" : job.estado;
+    const displayedStatus = [
+      "Instalado",
+      "Colocado",
+      "Pendiente de cobro",
+    ].includes(job.estado)
+      ? "Instalado pendiente de cobro"
+      : job.estado;
     const fallback = states.includes(displayedStatus)
       ? ""
       : '<option value="" selected disabled>' +
@@ -184,7 +190,9 @@ window.vidresAppReady = (async () => {
             esc(state) +
             '"' +
             (state === displayedStatus ? " selected" : "") +
-            ' class="' + statusClass(state) + '"' +
+            ' class="' +
+            statusClass(state) +
+            '"' +
             ">" +
             esc(VSUtils.jobStatusLabel(state)) +
             "</option>",
@@ -219,8 +227,22 @@ window.vidresAppReady = (async () => {
       "</tbody></table>"
     );
   }
-  const isClosed = (j) => ["Instalado pendiente de cobro", "Instalado", "Colocado", "Pendiente de cobro", "Finalizado"].includes(j.estado);
-  const awaitingPayment = (j) => !isArchived(j) && ["Instalado pendiente de cobro", "Instalado", "Colocado", "Pendiente de cobro"].includes(j.estado);
+  const isClosed = (j) =>
+    [
+      "Instalado pendiente de cobro",
+      "Instalado",
+      "Colocado",
+      "Pendiente de cobro",
+      "Finalizado",
+    ].includes(j.estado);
+  const awaitingPayment = (j) =>
+    !isArchived(j) &&
+    [
+      "Instalado pendiente de cobro",
+      "Instalado",
+      "Colocado",
+      "Pendiente de cobro",
+    ].includes(j.estado);
   const isArchived = (j) => Boolean(j.archivadoEn);
   const localToday = () => {
     const d = new Date();
@@ -418,7 +440,11 @@ window.vidresAppReady = (async () => {
       ],
       ["Notas", pendingNotes.length],
       ["Por reclamar", followups.length],
-      ["Pnt Cobro", jobs.filter(awaitingPayment).length, 'data-payment-focus="true"'],
+      [
+        "Pnt Cobro",
+        jobs.filter(awaitingPayment).length,
+        'data-payment-focus="true"',
+      ],
     ];
     const preview = [...active]
       .sort(
@@ -436,7 +462,11 @@ window.vidresAppReady = (async () => {
                 "<" +
                 (action ? 'button type="button" ' + action : "div") +
                 ' class="stat ' +
-                (label === "Críticos" ? "critical-stat" : label === "Pnt Cobro" ? "payment-stat" : "") +
+                (label === "Críticos"
+                  ? "critical-stat"
+                  : label === "Pnt Cobro"
+                    ? "payment-stat"
+                    : "") +
                 '"><small>' +
                 label +
                 "</small><b>" +
@@ -1089,7 +1119,8 @@ window.vidresAppReady = (async () => {
             filters.createdFrom,
             filters.createdTo,
           ) &&
-          (!filters.estado || (legacyStatuses[j.estado] || j.estado) === filters.estado) &&
+          (!filters.estado ||
+            (legacyStatuses[j.estado] || j.estado) === filters.estado) &&
           (!filters.responsable || j.responsable === filters.responsable) &&
           (!filters.tipoCliente ||
             (j.tipoCliente || "Particular") === filters.tipoCliente) &&
@@ -1580,7 +1611,8 @@ window.vidresAppReady = (async () => {
       throw new Error("Estado no válido");
     const job = jobs.find((j) => j.id === id);
     if (!job) throw new Error("Expediente no encontrado");
-    if (["Instalado", "Colocado", "Pendiente de cobro"].includes(status)) status = "Instalado pendiente de cobro";
+    if (["Instalado", "Colocado", "Pendiente de cobro"].includes(status))
+      status = "Instalado pendiente de cobro";
     if (job.estado === status) return;
     const next = jobs.map((j) =>
       j.id === id
@@ -1589,7 +1621,8 @@ window.vidresAppReady = (async () => {
             estado: status,
             finalizadoEn:
               status === "Finalizado" ? new Date().toISOString() : null,
-            archivadoEn: status === "Finalizado" ? new Date().toISOString() : null,
+            archivadoEn:
+              status === "Finalizado" ? new Date().toISOString() : null,
             historial: [
               ...(j.historial || []),
               {
@@ -2292,7 +2325,10 @@ window.vidresAppReady = (async () => {
         alert("Revisa la duración: de 1 a 1440 minutos");
         return;
       }
-      if (["Instalado", "Colocado", "Pendiente de cobro"].includes(values.estado)) values.estado = "Instalado pendiente de cobro";
+      if (
+        ["Instalado", "Colocado", "Pendiente de cobro"].includes(values.estado)
+      )
+        values.estado = "Instalado pendiente de cobro";
       let nextJobs = [...jobs],
         nextMeasurements = measurements;
       let createdJobId = "";
@@ -2327,7 +2363,9 @@ window.vidresAppReady = (async () => {
           facturado: Boolean(old.facturado),
           cobrado: Boolean(old.cobrado),
           archivadoEn:
-            values.estado === "Finalizado" ? old.archivadoEn || new Date().toISOString() : null,
+            values.estado === "Finalizado"
+              ? old.archivadoEn || new Date().toISOString()
+              : null,
         };
       } else {
         const max = jobs.reduce(
@@ -2344,7 +2382,8 @@ window.vidresAppReady = (async () => {
             values.estado === "Finalizado" ? new Date().toISOString() : null,
           facturado: false,
           cobrado: false,
-          archivadoEn: values.estado === "Finalizado" ? new Date().toISOString() : null,
+          archivadoEn:
+            values.estado === "Finalizado" ? new Date().toISOString() : null,
           historial: [
             {
               de: "",

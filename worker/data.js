@@ -131,7 +131,8 @@ export function validateValues(values) {
     Presupuestado: "Presupuesto entregado",
   };
   for (const j of result[KEYS.trabajos]) {
-    if (legacyStatuses[j.estado]) j.estado = legacyStatuses[j.estado];
+    if (typeof j.estado === "string" && Object.hasOwn(legacyStatuses, j.estado))
+      j.estado = legacyStatuses[j.estado];
     text(j.cliente, 100, 1);
     validateOperations(j);
     strings(j, {
@@ -153,14 +154,8 @@ export function validateValues(values) {
         "Pendiente",
         "En curso",
         "Presupuesto entregado",
-        "Pendiente de cobro",
         "Instalado pendiente de cobro",
-        "Colocado",
-        "En medición",
-        "Presupuestado",
-        "En producción",
         "Para instalar",
-        "Instalado",
         "Finalizado",
         "Crítico",
       ].includes(j.estado)

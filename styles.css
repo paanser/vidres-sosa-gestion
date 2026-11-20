@@ -5303,32 +5303,113 @@ html {
 }
 
 /* Cobros pendientes: aviso pastel discreto. */
-.simple-stats .stat.payment-stat { background: #fff1f2; border-color: #f4b6bd; color: #c94b56; }
-.simple-stats .stat.payment-stat small { color: #704b51; }
-.simple-stats .stat.payment-stat b { color: #c94b56; }
+.simple-stats .stat.payment-stat {
+  background: #fff1f2;
+  border-color: #f4b6bd;
+  color: #c94b56;
+}
+.simple-stats .stat.payment-stat small {
+  color: #704b51;
+}
+.simple-stats .stat.payment-stat b {
+  color: #c94b56;
+}
 
 /* Estados simplificados: paleta pastel compartida entre tarjetas y selectores. */
-.pill.pendiente, select[name="estado"]:has(option:checked[value="Pendiente"]) {background:#FFF0D9;color:#865515}
-.pill.encurso {background:#E5EEFF;color:#285B9B}
-.pill.presupuesto-entregado {background:#F1E7FC;color:#7651A0}
-.pill.para-instalar {background:#E3F2E9;color:#246849}
-.pill.cobro {background:#FBE6E9;color:#A34657}
-.pill.finalizado {background:#ECEEF0;color:#475569}
-.job-status-select select {background:transparent;color:inherit}
-.job-status-select option.pendiente {background:#FFF0D9;color:#865515}
-.job-status-select option.encurso {background:#E5EEFF;color:#285B9B}
-.job-status-select option.presupuesto-entregado {background:#F1E7FC;color:#7651A0}
-.job-status-select option.para-instalar {background:#E3F2E9;color:#246849}
-.job-status-select option.cobro {background:#FBE6E9;color:#A34657}
-.job-status-select option.finalizado {background:#ECEEF0;color:#475569}
-select[name="estado"] option:nth-child(1){background:#FFF0D9;color:#865515}
-select[name="estado"] option:nth-child(2){background:#E5EEFF;color:#285B9B}
-select[name="estado"] option:nth-child(3){background:#F1E7FC;color:#7651A0}
-select[name="estado"] option:nth-child(4){background:#E3F2E9;color:#246849}
-select[name="estado"] option:nth-child(5){background:#FBE6E9;color:#A34657}
-select[name="estado"] option:nth-child(6){background:#ECEEF0;color:#475569}
-select[name="estado"]:has(option:nth-child(2):checked){background:#E5EEFF;color:#285B9B}
-select[name="estado"]:has(option:nth-child(3):checked){background:#F1E7FC;color:#7651A0}
-select[name="estado"]:has(option:nth-child(4):checked){background:#E3F2E9;color:#246849}
-select[name="estado"]:has(option:nth-child(5):checked){background:#FBE6E9;color:#A34657}
-select[name="estado"]:has(option:nth-child(6):checked){background:#ECEEF0;color:#475569}
+.pill.pendiente,
+select[name="estado"]:has(option:checked[value="Pendiente"]) {
+  background: #fff0d9;
+  color: #865515;
+}
+.pill.encurso {
+  background: #e5eeff;
+  color: #285b9b;
+}
+.pill.presupuesto-entregado {
+  background: #f1e7fc;
+  color: #7651a0;
+}
+.pill.para-instalar {
+  background: #e3f2e9;
+  color: #246849;
+}
+.pill.cobro {
+  background: #fbe6e9;
+  color: #a34657;
+}
+.pill.finalizado {
+  background: #eceef0;
+  color: #475569;
+}
+.job-status-select select {
+  background: transparent;
+  color: inherit;
+}
+.job-status-select option.pendiente {
+  background: #fff0d9;
+  color: #865515;
+}
+.job-status-select option.encurso {
+  background: #e5eeff;
+  color: #285b9b;
+}
+.job-status-select option.presupuesto-entregado {
+  background: #f1e7fc;
+  color: #7651a0;
+}
+.job-status-select option.para-instalar {
+  background: #e3f2e9;
+  color: #246849;
+}
+.job-status-select option.cobro {
+  background: #fbe6e9;
+  color: #a34657;
+}
+.job-status-select option.finalizado {
+  background: #eceef0;
+  color: #475569;
+}
+select[name="estado"] option:nth-child(1) {
+  background: #fff0d9;
+  color: #865515;
+}
+select[name="estado"] option:nth-child(2) {
+  background: #e5eeff;
+  color: #285b9b;
+}
+select[name="estado"] option:nth-child(3) {
+  background: #f1e7fc;
+  color: #7651a0;
+}
+select[name="estado"] option:nth-child(4) {
+  background: #e3f2e9;
+  color: #246849;
+}
+select[name="estado"] option:nth-child(5) {
+  background: #fbe6e9;
+  color: #a34657;
+}
+select[name="estado"] option:nth-child(6) {
+  background: #eceef0;
+  color: #475569;
+}
+select[name="estado"]:has(option:nth-child(2):checked) {
+  background: #e5eeff;
+  color: #285b9b;
+}
+select[name="estado"]:has(option:nth-child(3):checked) {
+  background: #f1e7fc;
+  color: #7651a0;
+}
+select[name="estado"]:has(option:nth-child(4):checked) {
+  background: #e3f2e9;
+  color: #246849;
+}
+select[name="estado"]:has(option:nth-child(5):checked) {
+  background: #fbe6e9;
+  color: #a34657;
+}
+select[name="estado"]:has(option:nth-child(6):checked) {
+  background: #eceef0;
+  color: #475569;
+}

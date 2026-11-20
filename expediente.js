@@ -134,6 +134,100 @@
     return VSFiles.compressImage(file);
   }
   const getJob = () => window.vidresGetJobs?.().find((j) => j.id === current);
+
+  async function createResponsibilityLetter() {
+    const job = getJob();
+    if (!job) return alert("No se encontró el expediente.");
+    const form = document.createElement("dialog");
+    form.className = "responsibility-dialog";
+    form.style.cssText = "width:min(92vw,620px);max-height:90vh;overflow:auto;border:1px solid #b9d6c4;border-radius:14px;padding:24px";
+    const field = (label, name, value = "") =>
+      '<label style="display:grid;gap:5px;margin:12px 0">' + label +
+      '<input name="' + name + '" maxlength="180" value="' + esc(value) + '" style="padding:10px;width:100%;box-sizing:border-box"></label>';
+    form.innerHTML = '<form method="dialog"><h2>Carta de responsabilidad</h2><p>Documento vinculado al expediente · Revisa las cláusulas antes de firmar.</p>' +
+      field("Cliente", "cliente", job.cliente) +
+      field("Dirección de intervención", "direccion", [job.direccion,job.poblacion].filter(Boolean).join(", ")) +
+      field("Trabajo (editable)", "trabajo", job.descripcion || "Montaje con robot grúa elevador") +
+      '<label style="display:grid;gap:5px;margin:12px 0">Responsabilidad por rotura<select name="rotura"><option value="evaluar">Evaluar según causa acreditada</option><option value="empresa">Vidres Sosa: daños imputables</option><option value="preexistentes">Considerar defectos preexistentes</option></select></label>' +
+      '<label style="display:grid;gap:5px;margin:12px 0">Daños a elementos existentes<select name="danos"><option value="preexistentes">Riesgos preexistentes informados</option><option value="evaluar">Evaluar según causa acreditada</option><option value="empresa">Vidres Sosa: daños imputables</option></select></label>' +
+      '<label style="display:grid;gap:5px;margin:12px 0">Observaciones<textarea name="observaciones" maxlength="1200" rows="3"></textarea></label>' +
+      '<p style="font-size:12px">Borrador sujeto a revisión jurídica. La firma no elimina responsabilidades legalmente exigibles.</p>' +
+      '<div style="display:flex;gap:10px;flex-wrap:wrap"><button type="button" data-save-letter class="primary">Guardar PDF en expediente</button><button type="button" data-preview-letter>Vista previa PDF</button><button value="cancel">Cancelar</button></div><p data-letter-status role="status"></p></form>';
+    document.body.appendChild(form);
+    const cleanup = () => form.remove();
+    form.addEventListener("close", cleanup, { once: true });
+    form.showModal();
+    async function generate(save) {
+      const fields = new FormData(form.querySelector("form"));
+      const cliente = String(fields.get("cliente") || "").trim();
+      if (!cliente) return alert("Introduce el cliente.");
+      const doc = new jspdf.jsPDF({ unit:"mm",format:"a4",compress:true });
+      const brand = window.VSBrandLogo;
+      if (brand?.draw) brand.draw(doc, 16, 12, 82);
+      else { doc.setFont("helvetica","bold");doc.setFontSize(18);doc.text("VIDRES SOSA",16,23); }
+      doc.setDrawColor(23,119,78);doc.setLineWidth(.8);doc.line(16,36,194,36);
+      doc.setTextColor(28,51,41);doc.setFontSize(15);doc.setFont("helvetica","bold");
+      doc.text("CARTA DE RESPONSABILIDAD",16,47);
+      doc.setFontSize(9);doc.setFont("helvetica","normal");
+      const date = new Date().toLocaleDateString("es-ES");
+      const work = String(fields.get("trabajo")||"").trim();
+      let y = 57;
+      function paragraph(title, content) {
+        const lines = doc.splitTextToSize(content, 177);
+        if (y + 11 + lines.length * 4.7 > 270) {doc.addPage();y=20;}
+        doc.setFont("helvetica","bold");doc.setFontSize(10);doc.text(title,16,y);y+=7;
+        doc.setFont("helvetica","normal");doc.setFontSize(9);
+        doc.text(lines,16,y);y+=lines.length*4.7+8;
+      }
+      paragraph("DATOS DEL TRABAJO", "Cliente: "+cliente+"\nExpediente: "+job.id+"\nFecha: "+date+"\nDirección: "+String(fields.get("direccion")||"")+"\nIntervención: "+work);
+      paragraph("1. OBJETO", "Este documento recoge los riesgos previsibles y responsabilidades correspondientes a la intervención indicada.");
+      const rotura = {
+        evaluar:"La responsabilidad por roturas durante la manipulación o instalación se determinará según las causas acreditadas y las obligaciones legales y contractuales.",
+        empresa:"Vidres Sosa responderá de las roturas que legalmente le sean imputables durante la instalación.",
+        preexistentes:"Se tendrán en cuenta los defectos preexistentes y las causas acreditadas, sin excluir responsabilidades legalmente exigibles."
+      };
+      const danos = {
+        preexistentes:"El cliente declara haber sido informado de los riesgos previsibles sobre superficies y elementos preexistentes. Los daños se atribuirán según su causa acreditada; esta cláusula no exime de negligencias imputables a Vidres Sosa.",
+        evaluar:"Los daños a elementos existentes se valorarán según su causa acreditada y la responsabilidad legal de cada parte.",
+        empresa:"Vidres Sosa responderá de los daños a elementos existentes que le sean legalmente imputables."
+      };
+      paragraph("2. ROTURA DE VIDRIOS",rotura[fields.get("rotura")]);
+      paragraph("3. DAÑOS A ELEMENTOS PREEXISTENTES",danos[fields.get("danos")]);
+      paragraph("4. SEGURIDAD","Vidres Sosa podrá suspender o aplazar los trabajos cuando las condiciones de acceso, estabilidad, climatología o seguridad no permitan una intervención adecuada.");
+      if (String(fields.get("observaciones")||"").trim()) paragraph("5. OBSERVACIONES",String(fields.get("observaciones")));
+      paragraph("6. CONFORMIDAD","Las partes declaran haber recibido información sobre los riesgos previsibles. La firma no supone renuncia a derechos irrenunciables ni exoneración de responsabilidades legalmente exigibles.");
+      if(y>248){doc.addPage();y=25;}
+      doc.setFont("helvetica","bold");doc.setFontSize(9);
+      doc.text("Por Vidres Sosa",16,y);doc.text("Por el cliente",112,y);
+      y+=20;doc.line(16,y,88,y);doc.line(112,y,188,y);
+      doc.setFont("helvetica","normal");doc.text("Nombre, firma y fecha",16,y+5);doc.text("Nombre, firma y fecha",112,y+5);
+      const blob = doc.output("blob");
+      const filename = "Carta-responsabilidad-"+String(job.id).replace(/[^a-zA-Z0-9_-]/g,"-")+"-"+new Date().toISOString().slice(0,10)+".pdf";
+      if(save){
+        const status=form.querySelector("[data-letter-status]");
+        status.textContent="Guardando documento…";
+        await storeDocument({id:crypto.randomUUID(),trabajo:job.id,nombre:filename,blob,fecha:new Date().toISOString(),tipo:"responsabilidad"});
+        status.textContent="PDF guardado en Documentos vinculados.";
+        tab="documentos";
+        form.close();
+        await render();
+      }else{
+        const url=URL.createObjectURL(blob);
+        const a=document.createElement("a");a.href=url;a.download=filename;a.click();
+        setTimeout(()=>URL.revokeObjectURL(url),60000);
+      }
+    }
+    form.addEventListener("click",async e=>{
+      const button=e.target.closest("button");
+      if(!button) return;
+      const save=button.hasAttribute("data-save-letter");
+      if(!save && !button.hasAttribute("data-preview-letter")) return;
+      button.disabled=true;
+      try{await generate(save);}catch(error){form.querySelector("[data-letter-status]").textContent="No se pudo generar o guardar: "+error.message;}
+      finally{button.disabled=false;}
+    });
+  }
+
   const date = (v) => (v ? new Date(v).toLocaleString("es-ES") : "—");
   function glassSummary(measures, jobId) {
     const config = VSStorage.read(VSStorage.keys.configuracion, {});
@@ -446,7 +540,7 @@
     }
     if (tab === "documentos") {
       body.innerHTML =
-        '<section class="exp-section"><div class="exp-section-head"><h3>Documentos del expediente</h3><label class="exp-upload">+ Añadir documento<input id="exp-doc-files" type="file" accept=".pdf,.txt,.csv,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,application/pdf" multiple hidden></label></div><p class="muted">Documentos privados compartidos entre dispositivos e incluidos en la copia completa. Máximo 8 MB por archivo.</p><div id="exp-doc-list">Cargando documentos…</div></section>';
+        '<section class="exp-section"><div class="exp-section-head"><h3>Documentos vinculados</h3><button type="button" data-exp-new-letter class="primary">+ Carta de responsabilidad</button><label class="exp-upload">+ Añadir documento<input id="exp-doc-files" type="file" accept=".pdf,.txt,.csv,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,application/pdf" multiple hidden></label></div><p class="muted">Documentos privados compartidos entre dispositivos e incluidos en la copia completa. Máximo 8 MB por archivo.</p><div id="exp-doc-list">Cargando documentos…</div></section>';
       try {
         const items = await documentItems();
         if (tab !== "documentos") return;
@@ -578,7 +672,9 @@
   dialog.addEventListener("click", async (e) => {
     const b = e.target.closest("button");
     if (!b) return;
-    if (b.hasAttribute("data-exp-sheet")) {
+    if (b.id === "exp-responsabilidad" || b.hasAttribute("data-exp-new-letter")) {
+      await createResponsibilityLetter();
+    } else if (b.hasAttribute("data-exp-sheet")) {
       showSheet();
     } else if (b.hasAttribute("data-exp-status-open")) {
       const editor = body.querySelector("#exp-status-editor");

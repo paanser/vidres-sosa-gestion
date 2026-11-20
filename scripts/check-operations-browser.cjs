@@ -292,6 +292,7 @@ module.exports = async (page, context, root) => {
   assert.ok((await page.locator(".new-measure-piece").count()) > 0);
   await page.locator("#cancel").click();
   await page.locator('#nav [data-page="trabajos"]').click();
+  const jobScope = await page.locator("#job-scope").inputValue();
   await page.locator("#job-scope").selectOption("cobros");
   await page.locator('#content [data-id="VS-OPS"]').first().click();
   const expediente = page.locator("#expediente");
@@ -347,6 +348,7 @@ module.exports = async (page, context, root) => {
   await expediente.locator("[data-exp-close]").click();
   await page.evaluate(() => VSOperations.open());
   await dialog.locator('[data-op="close"]').click();
+  await page.locator("#job-scope").selectOption(jobScope);
   await page.unroute("**/api/state", slowSave);
   console.log(
     "PASS pedidos con copia de medidas, recepción parcial, PDF, cobros, rentabilidad, solapamientos, firma/fotos y borradores offline con importación",

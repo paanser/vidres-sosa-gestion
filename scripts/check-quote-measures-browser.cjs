@@ -3,7 +3,8 @@ const assert = require("node:assert/strict");
 const path = require("node:path");
 
 module.exports = async function checkQuoteMeasures(page, context, root) {
-  const fixture = await page.evaluate(async () => {
+  const description = "Ventana: 100 × 80 cm\nRevisar <img> del croquis";
+  const fixture = await page.evaluate(async (description) => {
     const jobs = vidresGetJobs(),
       measures = vidresGetMeasurements(),
       config = VSStorage.read(VSStorage.keys.configuracion, {}),
@@ -14,6 +15,7 @@ module.exports = async function checkQuoteMeasures(page, context, root) {
         id: "VS-REFERENCIA-2",
         cliente: "Rocío de prueba",
         direccion: "Carrer de la Plata, 255",
+        descripcion: description,
       };
     await VSStorage.patchValues({
       [VSStorage.keys.configuracion]: {
@@ -79,7 +81,7 @@ module.exports = async function checkQuoteMeasures(page, context, root) {
       otherPhoto: otherPhoto.id,
       normalPhoto: normalPhoto.id,
     };
-  });
+  }, description);
   assert.deepEqual(
     await page
       .locator("#quote-measures")
@@ -204,6 +206,11 @@ module.exports = async function checkQuoteMeasures(page, context, root) {
   await page.locator("#quote-measures > summary").click();
   await page.locator('[data-quote-paper] img[alt="otro-parte.jpg"]').waitFor();
   assert.equal(await page.locator(".quote-measure-grid article").count(), 0);
+  const jobDescription = page.locator(
+    "#quote-measures h3:text-is('Descripción del trabajo') + p",
+  );
+  assert.equal(await jobDescription.innerText(), description);
+  assert.equal(await jobDescription.locator("img").count(), 0);
   assert.doesNotMatch(
     await page.locator("#quote-measures").textContent(),
     /Revisar hueco/,

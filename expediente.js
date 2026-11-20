@@ -153,7 +153,9 @@
       '<label style="display:grid;gap:5px;margin:12px 0">Observaciones<textarea name="observaciones" maxlength="1200" rows="3"></textarea></label>' +
       '<p style="font-size:12px">Borrador sujeto a revisión jurídica. La firma no elimina responsabilidades legalmente exigibles.</p>' +
       '<div style="display:flex;gap:10px;flex-wrap:wrap"><button type="button" data-save-letter class="primary">Guardar PDF en expediente</button><button type="button" data-preview-letter>Vista previa PDF</button><button value="cancel">Cancelar</button></div><p data-letter-status role="status"></p></form>';
-    document.body.appendChild(form);
+    // Keep the editor inside the already modal expediente, so iOS Safari does not hide it behind the parent dialog.
+    dialog.appendChild(form);
+    form.addEventListener("click", (event) => event.stopPropagation());
     const cleanup = () => form.remove();
     form.addEventListener("close", cleanup, { once: true });
     form.showModal();
@@ -208,12 +210,17 @@
         status.textContent="Guardando documento…";
         await storeDocument({id:crypto.randomUUID(),trabajo:job.id,nombre:filename,blob,fecha:new Date().toISOString(),tipo:"responsabilidad"});
         status.textContent="PDF guardado en Documentos vinculados.";
+        // Present the generated PDF to the user as soon as saving finishes.
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
         tab="documentos";
         form.close();
         await render();
       }else{
         const url=URL.createObjectURL(blob);
-        const a=document.createElement("a");a.href=url;a.download=filename;a.click();
+        const a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
         setTimeout(()=>URL.revokeObjectURL(url),60000);
       }
     }
@@ -223,7 +230,7 @@
       const save=button.hasAttribute("data-save-letter");
       if(!save && !button.hasAttribute("data-preview-letter")) return;
       button.disabled=true;
-      try{await generate(save);}catch(error){form.querySelector("[data-letter-status]").textContent="No se pudo generar o guardar: "+error.message;}
+      try{await generate(save);}catch(error){const status=form.querySelector("[data-letter-status]");if(status)status.textContent="No se pudo generar o guardar: "+error.message;}
       finally{button.disabled=false;}
     });
   }

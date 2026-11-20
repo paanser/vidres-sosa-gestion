@@ -935,10 +935,11 @@ textarea:focus {
 }
 .quote-add-actions {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
-.quote-add-actions button {
+.quote-add-action {
+  width: 100%;
   min-height: 44px;
   padding: 12px 14px;
   border: 1px solid #81b89a;
@@ -947,7 +948,7 @@ textarea:focus {
   color: var(--vs-green);
   font-weight: 650;
 }
-.quote-add-actions button:hover {
+.quote-add-action:hover {
   background: #dcefe3;
 }
 @media (max-width: 720px) {

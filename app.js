@@ -196,7 +196,8 @@ window.vidresAppReady = (async () => {
       "</tbody></table>"
     );
   }
-  const isClosed = (j) => ["Instalado", "Finalizado"].includes(j.estado);
+  const isClosed = (j) => ["Instalado", "Colocado", "Pendiente de cobro", "Finalizado"].includes(j.estado);
+  const awaitingPayment = (j) => !isArchived(j) && ["Instalado", "Colocado", "Pendiente de cobro"].includes(j.estado);
   const isArchived = (j) => Boolean(j.archivadoEn);
   const localToday = () => {
     const d = new Date();
@@ -309,6 +310,8 @@ window.vidresAppReady = (async () => {
       "En producción",
       "Para instalar",
       "Instalado",
+      "Colocado",
+      "Pendiente de cobro",
       "Finalizado",
       "Crítico",
     ];
@@ -318,6 +321,7 @@ window.vidresAppReady = (async () => {
       '"></label><label>Mostrar<select id="job-scope">' +
       [
         ["activos", "Activos"],
+        ["cobros", "Pendientes de cobro"],
         ["finalizados", "Finalizados sin archivar"],
         ["archivo", "Archivo"],
         ["todos", "Todos los trabajos"],
@@ -395,6 +399,7 @@ window.vidresAppReady = (async () => {
       ],
       ["Notas", pendingNotes.length],
       ["Por reclamar", followups.length],
+      ["Pnt Cobro", jobs.filter(awaitingPayment).length, 'data-payment-focus="true"'],
     ];
     const preview = [...active]
       .sort(
@@ -412,7 +417,7 @@ window.vidresAppReady = (async () => {
                 "<" +
                 (action ? 'button type="button" ' + action : "div") +
                 ' class="stat ' +
-                (label === "Críticos" ? "critical-stat" : "") +
+                (label === "Críticos" ? "critical-stat" : label === "Pnt Cobro" ? "payment-stat" : "") +
                 '"><small>' +
                 label +
                 "</small><b>" +
@@ -1050,7 +1055,9 @@ window.vidresAppReady = (async () => {
               ? isArchived(j)
               : jobScope === "finalizados"
                 ? j.estado === "Finalizado" && !isArchived(j)
-                : j.estado !== "Finalizado" && !isArchived(j))) &&
+                : jobScope === "cobros"
+                  ? awaitingPayment(j)
+                  : !isClosed(j) && !isArchived(j))) &&
           VSMilestones.matches(
             j,
             "job",
@@ -1554,6 +1561,7 @@ window.vidresAppReady = (async () => {
       throw new Error("Estado no válido");
     const job = jobs.find((j) => j.id === id);
     if (!job) throw new Error("Expediente no encontrado");
+    if (status === "Colocado") status = "Pendiente de cobro";
     if (job.estado === status) return;
     const next = jobs.map((j) =>
       j.id === id
@@ -1562,7 +1570,7 @@ window.vidresAppReady = (async () => {
             estado: status,
             finalizadoEn:
               status === "Finalizado" ? new Date().toISOString() : null,
-            archivadoEn: status === "Finalizado" ? j.archivadoEn || null : null,
+            archivadoEn: status === "Finalizado" ? new Date().toISOString() : null,
             historial: [
               ...(j.historial || []),
               {
@@ -1930,6 +1938,14 @@ window.vidresAppReady = (async () => {
       }
       return;
     }
+    if (e.target.closest("[data-payment-focus]")) {
+      jobScope = "cobros";
+      jobFocus = "";
+      search = "";
+      filters = emptyJobFilters();
+      window.vidresNavigate("trabajos");
+      return;
+    }
     const focus = e.target.closest("[data-job-focus]");
     if (focus) {
       jobScope = "activos";
@@ -2257,6 +2273,7 @@ window.vidresAppReady = (async () => {
         alert("Revisa la duración: de 1 a 1440 minutos");
         return;
       }
+      if (values.estado === "Colocado") values.estado = "Pendiente de cobro";
       let nextJobs = [...jobs],
         nextMeasurements = measurements;
       let createdJobId = "";
@@ -2291,7 +2308,7 @@ window.vidresAppReady = (async () => {
           facturado: Boolean(old.facturado),
           cobrado: Boolean(old.cobrado),
           archivadoEn:
-            values.estado === "Finalizado" ? old.archivadoEn || null : null,
+            values.estado === "Finalizado" ? old.archivadoEn || new Date().toISOString() : null,
         };
       } else {
         const max = jobs.reduce(
@@ -2308,7 +2325,7 @@ window.vidresAppReady = (async () => {
             values.estado === "Finalizado" ? new Date().toISOString() : null,
           facturado: false,
           cobrado: false,
-          archivadoEn: null,
+          archivadoEn: values.estado === "Finalizado" ? new Date().toISOString() : null,
           historial: [
             {
               de: "",

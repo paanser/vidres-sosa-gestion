@@ -5301,3 +5301,8 @@ html {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Cobros pendientes: aviso pastel discreto. */
+.simple-stats .stat.payment-stat { background: #fff1f2; border-color: #f4b6bd; color: #c94b56; }
+.simple-stats .stat.payment-stat small { color: #704b51; }
+.simple-stats .stat.payment-stat b { color: #c94b56; }

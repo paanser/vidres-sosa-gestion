@@ -136,6 +136,58 @@
   }
   const getJob = () => window.vidresGetJobs?.().find((j) => j.id === current);
 
+  function bindLetterSignature(pad) {
+    const canvas = pad.querySelector("canvas");
+    const context = canvas.getContext("2d");
+    let pointer = null;
+    let previous = null;
+    let signed = false;
+    context.strokeStyle = "#15314b";
+    context.lineWidth = 4;
+    context.lineCap = "round";
+    const clear = () => {
+      pointer = null;
+      previous = null;
+      signed = false;
+      context.clearRect(0, 0, canvas.width, canvas.height);
+    };
+    const point = (event) => {
+      const bounds = canvas.getBoundingClientRect();
+      return [
+        ((event.clientX - bounds.left) / bounds.width) * canvas.width,
+        ((event.clientY - bounds.top) / bounds.height) * canvas.height,
+      ];
+    };
+    canvas.addEventListener("pointerdown", (event) => {
+      if (pointer !== null || event.button !== 0) return;
+      pointer = event.pointerId;
+      canvas.setPointerCapture(pointer);
+      previous = point(event);
+    });
+    canvas.addEventListener("pointermove", (event) => {
+      if (event.pointerId !== pointer) return;
+      const next = point(event);
+      if (Math.hypot(next[0] - previous[0], next[1] - previous[1]) < 1) return;
+      context.beginPath();
+      context.moveTo(...previous);
+      context.lineTo(...next);
+      context.stroke();
+      previous = next;
+      signed = true;
+    });
+    for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) {
+      canvas.addEventListener(type, (event) => {
+        if (event.pointerId === pointer) pointer = null;
+      });
+    }
+    pad.querySelector("button").addEventListener("click", clear);
+    return {
+      clear,
+      hasInk: () => signed,
+      image: () => (signed ? canvas.toDataURL("image/png") : null),
+    };
+  }
+
   async function createResponsibilityLetter() {
     const job = getJob();
     if (!job) return alert("No se encontró el expediente.");
@@ -151,6 +203,12 @@
       '" maxlength="180" value="' +
       esc(value) +
       '" style="padding:10px;width:100%;box-sizing:border-box"></label>';
+    const signaturePad = (id, label) =>
+      `<fieldset class="responsibility-signature" data-signature="${id}">
+        <legend>${label}</legend>
+        <canvas width="600" height="240" role="img" aria-label="${label}. Dibuja con el dedo o el ratón."></canvas>
+        <button type="button">Borrar firma</button>
+      </fieldset>`;
     form.innerHTML =
       '<form method="dialog"><h2>Carta de responsabilidad</h2><p>Documento vinculado al expediente · Revisa las cláusulas antes de firmar.</p>' +
       field("Cliente", "cliente", job.cliente) +
@@ -168,12 +226,34 @@
       '<label style="display:grid;gap:5px;margin:12px 0">Daños a elementos existentes<select name="danos"><option value="preexistentes">Riesgos preexistentes informados</option><option value="evaluar">Evaluar según causa acreditada</option><option value="empresa">Vidres Sosa: daños imputables</option></select></label>' +
       '<label style="display:grid;gap:5px;margin:12px 0">Observaciones<textarea name="observaciones" maxlength="1200" rows="3"></textarea></label>' +
       '<p style="font-size:12px">Borrador sujeto a revisión jurídica. La firma no elimina responsabilidades legalmente exigibles.</p>' +
+      "<h3>Firmas</h3><p>Puedes revisar el PDF antes de firmar con el dedo o el ratón. Si cambias los datos después de firmar, se borrarán las firmas.</p>" +
+      field(
+        "Nombre del empleado que firma",
+        "empleado",
+        window.VSAuth?.user?.nombre,
+      ) +
+      signaturePad("employee", "Firma del empleado de Vidres Sosa") +
+      signaturePad("client", "Firma del cliente") +
       '<div style="display:flex;gap:10px;flex-wrap:wrap"><button type="button" data-save-letter class="primary">Guardar PDF en expediente</button><button type="button" data-preview-letter>Vista previa PDF</button><button value="cancel">Cancelar</button></div><p data-letter-status role="status"></p></form>';
     // Keep the editor inside the already modal expediente, so iOS Safari does not hide it behind the parent dialog.
     dialog.appendChild(form);
     form.addEventListener("click", (event) => event.stopPropagation());
     const cleanup = () => form.remove();
     form.addEventListener("close", cleanup, { once: true });
+    const employeeSignature = bindLetterSignature(
+      form.querySelector('[data-signature="employee"]'),
+    );
+    const clientSignature = bindLetterSignature(
+      form.querySelector('[data-signature="client"]'),
+    );
+    const status = form.querySelector("[data-letter-status]");
+    form.addEventListener("input", () => {
+      if (!employeeSignature.hasInk() && !clientSignature.hasInk()) return;
+      employeeSignature.clear();
+      clientSignature.clear();
+      status.textContent =
+        "Se han borrado las firmas. Revisa los cambios y vuelve a firmar.";
+    });
     form.showModal();
     async function generate(save) {
       const fields = new FormData(form.querySelector("form"));
@@ -328,47 +408,79 @@
         y += h;
       }
       const observations = String(fields.get("observaciones") || "").trim();
-      if (
-        y +
-          32 +
-          (observations
-            ? doc.splitTextToSize(observations, 177).length * 4
-            : 0) >
-        252
-      ) {
-        doc.addPage();
-        y = 20;
-      }
-      banner(12, y + 5, 186, 9, "OBSERVACIONES");
+      doc.setFontSize(8.5);
       const observationLines = doc.splitTextToSize(
         observations || "Sin observaciones adicionales.",
         177,
       );
-      const obsH = Math.max(16, observationLines.length * 4.4 + 7);
-      doc.setDrawColor(195, 207, 217);
-      doc.rect(12, y + 14, 186, obsH);
-      doc.setTextColor(...ink);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8.5);
-      doc.text(observationLines, 16, y + 21);
-      y += 19 + obsH;
-      if (y + 42 > 285) {
+      for (let start = 0; start < observationLines.length; ) {
+        if (y + 30 > 285) {
+          doc.addPage();
+          y = 20;
+        }
+        const availableLines = Math.floor((285 - y - 21) / 4.4);
+        const lines = observationLines.slice(start, start + availableLines);
+        const height = Math.max(16, lines.length * 4.4 + 7);
+        banner(12, y + 5, 186, 9, "OBSERVACIONES");
+        doc.setDrawColor(195, 207, 217);
+        doc.rect(12, y + 14, 186, height);
+        doc.setTextColor(...ink);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8.5);
+        doc.text(lines, 16, y + 21);
+        y += 19 + height;
+        start += lines.length;
+      }
+
+      doc.setFontSize(8);
+      const employee = String(fields.get("empleado") || "").trim();
+      const signers = [
+        {
+          x: 12,
+          label: "POR VIDRES SOSA",
+          name: employee || "______________________",
+          image: employeeSignature.image(),
+        },
+        {
+          x: 108,
+          label: "POR EL CLIENTE",
+          name: cliente,
+          image: clientSignature.image(),
+        },
+      ].map((signer) => ({
+        ...signer,
+        nameLines: doc.splitTextToSize("Nombre: " + signer.name, 82),
+      }));
+      const signatureOffset =
+        16 + Math.max(...signers.map((signer) => signer.nameLines.length)) * 4;
+      const dateOffset = signatureOffset + 25;
+      if (y + dateOffset > 285) {
         doc.addPage();
         y = 20;
       }
-      banner(12, y, 90, 9, "POR VIDRES SOSA");
-      banner(108, y, 90, 9, "POR EL CLIENTE");
-      doc.setTextColor(...ink);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      doc.text("Nombre: ______________________", 16, y + 16);
-      doc.text("Nombre: " + cliente.slice(0, 32), 112, y + 16);
-      doc.text("Firma:", 16, y + 29);
-      doc.text("Firma:", 112, y + 29);
-      doc.line(32, y + 31, 97, y + 31);
-      doc.line(127, y + 31, 193, y + 31);
-      doc.text("Fecha: ____ / ____ / ______", 16, y + 38);
-      doc.text("Fecha: ____ / ____ / ______", 112, y + 38);
+      for (const { x, label, nameLines, image } of signers) {
+        banner(x, y, 90, 9, label);
+        doc.setTextColor(...ink);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.text(nameLines, x + 4, y + 16);
+        doc.text("Firma:", x + 4, y + signatureOffset + 10);
+        if (image) {
+          doc.addImage(image, "PNG", x + 20, y + signatureOffset, 52.5, 21);
+        }
+        doc.setDrawColor(...navy);
+        doc.line(
+          x + 20,
+          y + signatureOffset + 21,
+          x + 85,
+          y + signatureOffset + 21,
+        );
+        doc.text(
+          "Fecha: " + (image ? date : "____ / ____ / ______"),
+          x + 4,
+          y + dateOffset,
+        );
+      }
       const blob = doc.output("blob");
       const filename =
         "Carta-responsabilidad-" +
@@ -377,7 +489,6 @@
         new Date().toISOString().slice(0, 10) +
         ".pdf";
       if (save) {
-        const status = form.querySelector("[data-letter-status]");
         status.textContent = "Guardando documento…";
         await storeDocument({
           id: crypto.randomUUID(),
@@ -417,12 +528,11 @@
       const save = button.hasAttribute("data-save-letter");
       if (!save && !button.hasAttribute("data-preview-letter")) return;
       button.disabled = true;
+      status.textContent = "";
       try {
         await generate(save);
       } catch (error) {
-        const status = form.querySelector("[data-letter-status]");
-        if (status)
-          status.textContent = "No se pudo generar o guardar: " + error.message;
+        status.textContent = "No se pudo generar o guardar: " + error.message;
       } finally {
         button.disabled = false;
       }

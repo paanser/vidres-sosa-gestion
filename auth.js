@@ -8,9 +8,11 @@
     message = document.querySelector("#auth-message"),
     startup = document.querySelector("#startup-screen"),
     startupMessage = document.querySelector("#startup-message"),
-    retry = document.querySelector("#startup-retry");
+    retry = document.querySelector("#startup-retry"),
+    goToLogin = document.querySelector("#startup-login");
   let token = "",
     user = null,
+    restoringSession = false,
     resolveReady;
   const ready = new Promise((resolve) => (resolveReady = resolve));
   const notify = (s) => {
@@ -18,6 +20,7 @@
   };
   function showLogin() {
     startup.hidden = true;
+    goToLogin.hidden = true;
     screen.hidden = false;
   }
   function showStartupError(error) {
@@ -27,9 +30,17 @@
     retry.hidden = false;
   }
   retry.addEventListener("click", () => location.reload());
+  goToLogin.addEventListener("click", () => {
+    restoringSession = false;
+    token = "";
+    showLogin();
+    notify("Introduce tu usuario y contraseña.");
+  });
   function remember(value) {
-    localStorage.setItem(KEY, value);
     token = value;
+    try {
+      localStorage.setItem(KEY, value);
+    } catch {}
   }
   function hidePrivate() {
     document.body.classList.remove("authenticated");
@@ -42,16 +53,22 @@
     window.VSStorage?.clear?.();
     window.VSFiles?.clear?.();
   }
-  function invalidate() {
-    hidePrivate();
-    user = null;
+  function forgetSession() {
     token = "";
     try {
       localStorage.removeItem(KEY);
     } catch {}
+  }
+  function invalidate() {
+    hidePrivate();
+    user = null;
+    forgetSession();
     location.reload();
   }
-  async function rawRequest(path, options = {}) {
+  async function rawRequest(
+    path,
+    { invalidateSession = true, ...options } = {},
+  ) {
     if (!endpoint || new URL(endpoint).protocol !== "https:")
       throw Error("Servidor de acceso sin configurar");
     const headers = new Headers(options.headers || {});
@@ -70,9 +87,16 @@
         "No se puede conectar con el servidor. Comprueba la conexión e inténtalo de nuevo.",
       );
     }
+    if (response.status === 401 && path !== "/auth/login") {
+      if (invalidateSession && !options.signal?.aborted) invalidate();
+      const error = Error(
+        "La sesión ya no es válida. Vuelve a iniciar sesión.",
+      );
+      error.status = 401;
+      throw error;
+    }
     if (!response.ok) {
       const result = await response.json().catch(() => ({}));
-      if (response.status === 401 && path !== "/auth/login") invalidate();
       const e = new Error(
         response.status === 429 && path === "/auth/login"
           ? "Demasiados intentos de inicio de sesión. Espera 15 minutos antes de volver a intentarlo."
@@ -155,24 +179,36 @@
       })
     ).json();
   }
-  async function verifySession() {
+  async function accessRequest(path, method, body, options, timeoutMessage) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+    let timeout;
+    const deadline = new Promise((_, reject) => {
+      timeout = setTimeout(() => {
+        reject(Error(timeoutMessage));
+        controller.abort();
+      }, 15000);
+    });
     try {
-      return await json("/auth/me", "GET", undefined, {
-        signal: controller.signal,
-      });
-    } catch (error) {
-      if (controller.signal.aborted)
-        throw Error(
-          "El servidor tarda demasiado en verificar la sesión. Vuelve a intentarlo.",
-        );
-      throw error;
+      return await Promise.race([
+        deadline,
+        json(path, method, body, { ...options, signal: controller.signal }),
+      ]);
     } finally {
       clearTimeout(timeout);
     }
   }
+  function verifySession(invalidateSession = true) {
+    return accessRequest(
+      "/auth/me",
+      "GET",
+      undefined,
+      { invalidateSession },
+      "El servidor tarda demasiado en verificar la sesión. Vuelve a intentarlo.",
+    );
+  }
   function enter(active) {
+    goToLogin.hidden = true;
+    retry.hidden = true;
     user = active;
     if (user.cambioObligatorio) {
       showLogin();
@@ -214,10 +250,16 @@
   login.addEventListener("submit", (e) => {
     e.preventDefault();
     submit(login, async () => {
-      const result = await json("/auth/login", "POST", {
-        usuario: login.elements.usuario.value.trim(),
-        password: login.elements.password.value,
-      });
+      const result = await accessRequest(
+        "/auth/login",
+        "POST",
+        {
+          usuario: login.elements.usuario.value.trim(),
+          password: login.elements.password.value,
+        },
+        {},
+        "El servidor tarda demasiado en iniciar sesión. Vuelve a intentarlo.",
+      );
       remember(result.token);
       login.reset();
       enter(result.user);
@@ -303,19 +345,28 @@
     try {
       token = localStorage.getItem(KEY) || "";
       if (token) {
+        restoringSession = true;
+        goToLogin.hidden = false;
         startupMessage.textContent = "Verificando sesión…";
-        const r = await verifySession();
-        enter(r.user);
+        const r = await verifySession(false);
+        if (restoringSession) enter(r.user);
       } else {
         showLogin();
         notify("Introduce tu usuario y contraseña.");
       }
     } catch (e) {
-      if (token) showStartupError(e);
-      else {
+      if (restoringSession && e.status === 401) {
+        forgetSession();
+        showLogin();
+        notify(e.message);
+      } else if (restoringSession) {
+        showStartupError(e);
+      } else if (startup.hidden === false) {
         showLogin();
         notify(e.message);
       }
+    } finally {
+      restoringSession = false;
     }
   })();
 })();

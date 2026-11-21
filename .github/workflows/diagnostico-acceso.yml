@@ -32,3 +32,33 @@ jobs:
             } catch (error) { console.log(method,path,error.message); process.exitCode=1; }
           }
           JS
+  webkit:
+    runs-on: ubuntu-latest
+    steps:
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps webkit
+      - run: |
+          node <<'JS'
+          const { webkit, devices } = require('playwright');
+          const { randomUUID } = require('node:crypto');
+          (async () => {
+            const browser = await webkit.launch();
+            try {
+              const page = await browser.newPage(devices['iPhone 13']);
+              page.on('requestfailed', request => {
+                if (request.url().includes('workers.dev')) console.log('::notice::' + request.failure()?.errorText);
+              });
+              await page.goto('https://paanser.github.io/vidres-sosa-gestion/?v=1be467a11b1b5c7124c2964980b8adafdf1a0164');
+              await page.locator('#login-form [name=usuario]').fill('diag-' + randomUUID());
+              await page.locator('#login-form [name=password]').fill(randomUUID());
+              const start = Date.now();
+              const [result] = await Promise.all([
+                page.waitForResponse(response => response.url().endsWith('/auth/login') && response.request().method() === 'POST'),
+                page.getByRole('button', {name:'Entrar'}).click(),
+              ]);
+              if (result.status() !== 401) throw Error('HTTP ' + result.status());
+              await page.getByText('Usuario o contraseña incorrectos').waitFor();
+              console.log('::notice::Formulario publicado en WebKit iPhone: respuesta 401 esperada en ' + (Date.now() - start) + ' ms');
+            } finally { await browser.close(); }
+          })().catch(error => { console.error(error); process.exitCode = 1; });
+          JS

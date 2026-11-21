@@ -1072,6 +1072,7 @@ window.vidresAppReady = (async () => {
       calendario: "Calendario",
     };
     const clientsPage = page === "clientes";
+    $(".layout").classList.toggle("home-page", page === "inicio");
     $(".layout").classList.toggle("clients-page", clientsPage);
     $("#client-count").hidden = !clientsPage;
     $("#client-add").hidden = !clientsPage;

@@ -155,6 +155,23 @@
       })
     ).json();
   }
+  async function verifySession() {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    try {
+      return await json("/auth/me", "GET", undefined, {
+        signal: controller.signal,
+      });
+    } catch (error) {
+      if (controller.signal.aborted)
+        throw Error(
+          "El servidor tarda demasiado en verificar la sesión. Vuelve a intentarlo.",
+        );
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
   function enter(active) {
     user = active;
     if (user.cambioObligatorio) {
@@ -259,7 +276,7 @@
   async function check() {
     if (!user || user.cambioObligatorio || document.hidden) return;
     try {
-      const r = await json("/auth/me");
+      const r = await verifySession();
       if (
         r.user.rol !== user.rol ||
         r.user.cambioObligatorio !== user.cambioObligatorio
@@ -287,7 +304,7 @@
       token = localStorage.getItem(KEY) || "";
       if (token) {
         startupMessage.textContent = "Verificando sesión…";
-        const r = await json("/auth/me");
+        const r = await verifySession();
         enter(r.user);
       } else {
         showLogin();

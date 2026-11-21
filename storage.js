@@ -93,9 +93,7 @@
     refresh() {
       // Serialize with pending writes, including recovery after a conflict.
       const result = queue.then(async () => {
-        const state = await VSAuth.json("/api/state", "GET", undefined, {
-          signal: window.AbortSignal?.timeout(15000),
-        });
+        const state = await VSAuth.json("/api/state");
         accept(state);
         dirtyConflict = false;
       });

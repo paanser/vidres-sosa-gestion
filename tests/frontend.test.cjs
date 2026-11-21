@@ -111,9 +111,10 @@ function authContext(b, local, timers = { setTimeout, clearTimeout }) {
     layout = { hidden: true, inert: true },
     message = { textContent: "" };
   for (const form of [login, change]) {
+    form.button = { disabled: false };
     form.listeners = {};
     form.addEventListener = (n, fn) => (form.listeners[n] = fn);
-    form.querySelector = () => ({ disabled: false });
+    form.querySelector = () => form.button;
     form.reset = () =>
       Object.values(form.elements).forEach((x) => (x.value = ""));
   }
@@ -285,6 +286,68 @@ test("la verificación termina aunque el cuerpo no responda a la cancelación", 
   assert.equal(page.layout.hidden, true);
   assert.equal(page.screen.hidden, true);
   assert.equal(local.getItem("vidres-session-v1"), "session-fixture");
+});
+test("el formulario recupera el botón y conserva las credenciales si el login se atasca", async () => {
+  let expire,
+    signal,
+    calls = 0;
+  const page = authContext(
+    {
+      request(path, options) {
+        assert.equal(path, "/auth/login");
+        calls++;
+        signal = options.signal;
+        return new Promise(() => {});
+      },
+    },
+    store(),
+    {
+      setTimeout(callback, delay) {
+        assert.equal(delay, 30000);
+        expire = callback;
+      },
+      clearTimeout() {},
+    },
+  );
+  page.login.elements.usuario.value = "operario";
+  page.login.elements.password.value = "fixture-password";
+  const event = { preventDefault() {} };
+  page.login.listeners.submit(event);
+  page.login.listeners.submit(event);
+  assert.equal(calls, 1);
+  assert.equal(page.login.button.disabled, true);
+  expire();
+  await until(() => !page.login.button.disabled);
+  assert.equal(signal.aborted, true);
+  assert.match(page.message.textContent, /tarda demasiado en iniciar sesión/);
+  assert.equal(page.login.elements.usuario.value, "operario");
+  assert.equal(page.login.elements.password.value, "fixture-password");
+  assert.equal(page.layout.hidden, true);
+});
+test("la carga de datos inicial termina si el servidor se queda esperando", async () => {
+  let expire, signal;
+  const { ctx, layout } = authContext(
+    {
+      request(path, options) {
+        assert.equal(path, "/api/state");
+        signal = options.signal;
+        return new Promise(() => {});
+      },
+    },
+    store(),
+    {
+      setTimeout(callback, delay) {
+        assert.equal(delay, 15000);
+        expire = callback;
+      },
+      clearTimeout() {},
+    },
+  );
+  const pending = ctx.VSAuth.json("/api/state");
+  expire();
+  await assert.rejects(pending, /tarda demasiado en cargar los datos/);
+  assert.equal(signal.aborted, true);
+  assert.equal(layout.hidden, true);
 });
 test("una sesión rechazada muestra el formulario sin esperar el cuerpo ni recargar", async () => {
   const local = store([["vidres-session-v1", "session-fixture"]]);

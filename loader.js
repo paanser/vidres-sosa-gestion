@@ -1,5 +1,30 @@
 "use strict";
 document.querySelectorAll("#nav button").forEach((b) => (b.disabled = true));
+async function beforeDeadline(task, ms, message) {
+  let timeout;
+  try {
+    return await Promise.race([
+      task,
+      new Promise((_, reject) => {
+        timeout = setTimeout(() => reject(Error(message)), ms);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+function loadAsset(element, start, label) {
+  const error = "No se pudo cargar " + label;
+  const loaded = new Promise((resolve, reject) => {
+    element.onload = resolve;
+    element.onerror = () => reject(Error(error));
+    start();
+  });
+  return beforeDeadline(loaded, 20000, error).finally(() => {
+    element.onload = null;
+    element.onerror = null;
+  });
+}
 (async () => {
   const modules = [
     "utils",
@@ -32,21 +57,33 @@ document.querySelectorAll("#nav button").forEach((b) => (b.disabled = true));
   // Execution and private data requests still wait for authentication.
   const assetsReady = (async () => {
     let version = "local";
+    const controller = new AbortController();
     try {
-      const r = await fetch("version.json", {
+      const release = fetch("version.json", {
         cache: "no-store",
-        signal: AbortSignal.timeout(4000),
-      });
-      if (r.ok) version = (await r.json()).version;
-    } catch {}
+        signal: controller.signal,
+      }).then((response) => (response.ok ? response.json() : null));
+      const result = await beforeDeadline(
+        release,
+        4000,
+        "Versión no disponible",
+      );
+      if (typeof result?.version === "string" && result.version)
+        version = result.version;
+    } catch {
+      controller.abort();
+    }
     window.VIDRES_VERSION = version;
-    const suffix = "?v=" + encodeURIComponent(version);
+    const suffix =
+      version === "local" ? "" : "?v=" + encodeURIComponent(version);
     const style = document.querySelector("#app-style");
-    const styled = new Promise((resolve, reject) => {
-      style.onload = resolve;
-      style.onerror = () => reject(Error("No se pudo cargar el diseño"));
-      style.href = "styles.css" + suffix;
-    });
+    const styled = suffix
+      ? loadAsset(
+          style,
+          () => (style.href = "styles.css" + suffix),
+          "el diseño",
+        )
+      : Promise.resolve();
     // Attach a handler now, even if authentication has not finished yet.
     styled.catch(() => {});
     for (const name of modules) {
@@ -61,13 +98,9 @@ document.querySelectorAll("#nav button").forEach((b) => (b.disabled = true));
   await VSAuth.ready;
   const { suffix, styled } = await assetsReady;
   for (const name of modules) {
-    await new Promise((resolve, reject) => {
-      const script = document.createElement("script");
-      script.src = name + ".js" + suffix;
-      script.onload = resolve;
-      script.onerror = () => reject(Error("No se pudo cargar " + name));
-      document.body.appendChild(script);
-    });
+    const script = document.createElement("script");
+    script.src = name + ".js" + suffix;
+    await loadAsset(script, () => document.body.appendChild(script), name);
     if (name === "storage") VSStorage.ready.catch(() => {});
     if (name === "files") await Promise.all([VSStorage.ready, VSFiles.ready]);
     if (name === "app") {

@@ -68,7 +68,8 @@ jobs:
           const base = "https://paanser.github.io/vidres-sosa-gestion/";
           const revision = process.env.GITHUB_SHA;
           const branchVersion = JSON.parse(execFileSync("git", ["show", "HEAD:version.json"], {encoding: "utf8"})).version;
-          const entryAssets = ["auth.js", "pwa.js", "facturadirecta.js"];
+          const startupAssets = ["auth.js", "pwa.js", "loader.js"];
+          const entryAssets = [...startupAssets, "facturadirecta.js"];
           let published = false;
           for (let attempt = 0; attempt < 12; attempt++) {
             const response = await fetch(base + "version.json?v=" + revision, { cache: "no-store", signal: AbortSignal.timeout(15000) });
@@ -80,7 +81,7 @@ jobs:
                 const response = await fetch(base + asset + "?v=" + revision, { cache: "no-store", signal: AbortSignal.timeout(15000) });
                 return response.ok && readFileSync("public/" + asset).equals(Buffer.from(await response.arrayBuffer()));
               }));
-              if (matches.every(Boolean) && ["auth.js", "pwa.js"].every((asset) => html.includes('src="' + asset + '?v=' + version + '"'))) { published = true; break; }
+              if (matches.every(Boolean) && startupAssets.every((asset) => html.includes('src="' + asset + '?v=' + version + '"'))) { published = true; break; }
             }
             await new Promise(resolve => setTimeout(resolve, 3000));
           }
@@ -89,6 +90,11 @@ jobs:
           const auth = "https://vidres-sosa-ia.pausosagomez.workers.dev/auth/me";
           const preflight = await fetch(auth, { method: "OPTIONS", headers: { Origin: origin, "Access-Control-Request-Method": "GET", "Access-Control-Request-Headers": "authorization" }, signal: AbortSignal.timeout(15000) });
           if (preflight.status !== 204 || preflight.headers.get("access-control-allow-origin") !== origin || !/\bauthorization\b/i.test(preflight.headers.get("access-control-allow-headers"))) throw Error("La comprobación CORS de sesión ha fallado");
+          const login = auth.replace(/\/me$/, "/login");
+          const loginPreflight = await fetch(login, { method: "OPTIONS", headers: { Origin: origin, "Access-Control-Request-Method": "POST", "Access-Control-Request-Headers": "content-type" }, signal: AbortSignal.timeout(15000) });
+          if (loginPreflight.status !== 204 || loginPreflight.headers.get("access-control-allow-origin") !== origin || !/\bcontent-type\b/i.test(loginPreflight.headers.get("access-control-allow-headers"))) throw Error("La comprobación CORS de inicio de sesión ha fallado");
+          const emptyLogin = await fetch(login, { method: "POST", headers: { Origin: origin, "Content-Type": "application/json" }, signal: AbortSignal.timeout(15000) });
+          if (emptyLogin.status !== 400 || emptyLogin.headers.get("access-control-allow-origin") !== origin) throw Error("La ruta de inicio de sesión no respondió como se esperaba (" + emptyLogin.status + ")");
           const unknownSession = await fetch(auth, { headers: { Origin: origin, Authorization: "Bearer " + randomBytes(32).toString("hex") }, signal: AbortSignal.timeout(15000) });
           if (unknownSession.status !== 401 || unknownSession.headers.get("access-control-allow-origin") !== origin) throw Error("La comprobación de sesión con la base de datos ha fallado (" + unknownSession.status + ")");
           for (const asset of ["operations.js", "operations-model.js", "milestones.js", "job-sheet-pdf.js"]) {

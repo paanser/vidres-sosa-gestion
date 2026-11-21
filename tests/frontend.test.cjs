@@ -102,6 +102,12 @@ function authContext(b, local, timers = { setTimeout, clearTimeout }) {
     startup = { hidden: false },
     startupMessage = { textContent: "" },
     retry = { hidden: true, addEventListener() {} },
+    goToLogin = {
+      hidden: true,
+      addEventListener(event, handler) {
+        this[event] = handler;
+      },
+    },
     layout = { hidden: true, inert: true },
     message = { textContent: "" };
   for (const form of [login, change]) {
@@ -126,6 +132,7 @@ function authContext(b, local, timers = { setTimeout, clearTimeout }) {
     "#startup-screen": startup,
     "#startup-message": startupMessage,
     "#startup-retry": retry,
+    "#startup-login": goToLogin,
   };
   const doc = {
     body: {
@@ -170,6 +177,7 @@ function authContext(b, local, timers = { setTimeout, clearTimeout }) {
     startup,
     startupMessage,
     retry,
+    goToLogin,
     layout,
     message,
     classes,
@@ -243,7 +251,7 @@ test("fallo de red al recuperar la sesión ofrece reintentar sin mostrar login n
   page.ctx.VSAuth.showApp();
   assert.equal(page.layout.hidden, true);
 });
-test("la verificación de sesión tiene un límite aunque se atasque el cuerpo de la respuesta", async () => {
+test("la verificación termina aunque el cuerpo no responda a la cancelación", async () => {
   const local = store([["vidres-session-v1", "session-fixture"]]);
   let expire, readingBody;
   const page = authContext(
@@ -252,11 +260,10 @@ test("la verificación de sesión tiene un límite aunque se atasque el cuerpo d
         assert.equal(path, "/auth/me");
         return {
           ok: true,
-          json: () =>
-            new Promise((resolve, reject) => {
-              signal.addEventListener("abort", () => reject(signal.reason));
-              readingBody = true;
-            }),
+          json() {
+            readingBody = signal;
+            return new Promise(() => {});
+          },
         };
       },
     },
@@ -273,10 +280,62 @@ test("la verificación de sesión tiene un límite aunque se atasque el cuerpo d
   assert.equal(page.retry.hidden, true);
   expire();
   await until(() => !page.retry.hidden);
+  assert.equal(readingBody.aborted, true);
   assert.match(page.startupMessage.textContent, /tarda demasiado/);
   assert.equal(page.layout.hidden, true);
   assert.equal(page.screen.hidden, true);
   assert.equal(local.getItem("vidres-session-v1"), "session-fixture");
+});
+test("una sesión rechazada muestra el formulario sin esperar el cuerpo ni recargar", async () => {
+  const local = store([["vidres-session-v1", "session-fixture"]]);
+  const page = authContext(
+    {
+      request: async () => ({
+        status: 401,
+        ok: false,
+        json: () => new Promise(() => {}),
+      }),
+    },
+    local,
+  );
+  await until(() => !page.screen.hidden);
+  assert.equal(page.reloads, 0);
+  assert.equal(page.startup.hidden, true);
+  assert.equal(page.layout.hidden, true);
+  assert.equal(local.getItem("vidres-session-v1"), null);
+});
+test("se puede iniciar sesión mientras la comprobación anterior sigue pendiente", async () => {
+  const b = await backend();
+  const a = await admin(b);
+  const local = store([["vidres-session-v1", "session-fixture"]]);
+  let rejectOldSession;
+  const page = authContext(
+    {
+      request(path, options) {
+        if (path === "/auth/me")
+          return new Promise((resolve) => {
+            rejectOldSession = () =>
+              resolve(new Response(null, { status: 401 }));
+          });
+        assert.equal(options.headers.has("Authorization"), false);
+        return b.request(path, options);
+      },
+    },
+    local,
+  );
+  assert.equal(page.goToLogin.hidden, false);
+  page.goToLogin.click();
+  assert.equal(page.screen.hidden, false);
+  assert.equal(local.getItem("vidres-session-v1"), "session-fixture");
+  page.login.elements.usuario.value = a.user.usuario;
+  page.login.elements.password.value = "changed-fixture-123";
+  page.login.listeners.submit({ preventDefault() {} });
+  await until(() => page.classes.has("authenticated"));
+  rejectOldSession();
+  await pause();
+  assert.equal(page.reloads, 0);
+  assert.equal(page.ctx.VSAuth.user.nombre, "Pau");
+  assert.match(local.getItem("vidres-session-v1"), /^[a-f0-9]{64}$/);
 });
 test("revocación detectada en frontend borra token y pantalla privada", async () => {
   const b = await backend(),

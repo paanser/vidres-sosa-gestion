@@ -3,6 +3,10 @@ if ("serviceWorker" in navigator && location.protocol !== "file:") {
   const hadController = Boolean(navigator.serviceWorker.controller);
   navigator.serviceWorker.addEventListener("controllerchange", () => {
     if (!hadController || document.querySelector("#pwa-update")) return;
+    if (document.querySelector("#startup-screen")?.hidden === false) {
+      location.reload();
+      return;
+    }
     const panel = document.createElement("div");
     panel.id = "pwa-update";
     panel.setAttribute("role", "status");

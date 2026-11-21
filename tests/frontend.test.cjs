@@ -80,7 +80,7 @@ async function until(fn) {
   }
   assert.fail("La operación del frontend no terminó");
 }
-function authContext(b, local) {
+function authContext(b, local, timers = { setTimeout, clearTimeout }) {
   const events = {},
     classes = new Set();
   let reloads = 0;
@@ -144,6 +144,8 @@ function authContext(b, local) {
     localStorage: local,
     URL,
     Headers,
+    AbortController,
+    ...timers,
     console,
     location: {
       reload() {
@@ -240,6 +242,41 @@ test("fallo de red al recuperar la sesión ofrece reintentar sin mostrar login n
   assert.match(page.startupMessage.textContent, /No se puede conectar/);
   page.ctx.VSAuth.showApp();
   assert.equal(page.layout.hidden, true);
+});
+test("la verificación de sesión tiene un límite aunque se atasque el cuerpo de la respuesta", async () => {
+  const local = store([["vidres-session-v1", "session-fixture"]]);
+  let expire, readingBody;
+  const page = authContext(
+    {
+      async request(path, { signal }) {
+        assert.equal(path, "/auth/me");
+        return {
+          ok: true,
+          json: () =>
+            new Promise((resolve, reject) => {
+              signal.addEventListener("abort", () => reject(signal.reason));
+              readingBody = true;
+            }),
+        };
+      },
+    },
+    local,
+    {
+      setTimeout(callback, delay) {
+        assert.equal(delay, 15000);
+        expire = callback;
+      },
+      clearTimeout() {},
+    },
+  );
+  await until(() => readingBody);
+  assert.equal(page.retry.hidden, true);
+  expire();
+  await until(() => !page.retry.hidden);
+  assert.match(page.startupMessage.textContent, /tarda demasiado/);
+  assert.equal(page.layout.hidden, true);
+  assert.equal(page.screen.hidden, true);
+  assert.equal(local.getItem("vidres-session-v1"), "session-fixture");
 });
 test("revocación detectada en frontend borra token y pantalla privada", async () => {
   const b = await backend(),

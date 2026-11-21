@@ -20,7 +20,7 @@
   };
   function showLogin() {
     startup.hidden = true;
-    goToLogin.hidden = true;
+    if (goToLogin) goToLogin.hidden = true;
     screen.hidden = false;
   }
   function showStartupError(error) {
@@ -30,7 +30,7 @@
     retry.hidden = false;
   }
   retry.addEventListener("click", () => location.reload());
-  goToLogin.addEventListener("click", () => {
+  goToLogin?.addEventListener("click", () => {
     restoringSession = false;
     token = "";
     showLogin();
@@ -72,7 +72,9 @@
     if (!endpoint || new URL(endpoint).protocol !== "https:")
       throw Error("Servidor de acceso sin configurar");
     const headers = new Headers(options.headers || {});
-    if (token) headers.set("Authorization", "Bearer " + token);
+    const requestToken = token;
+    if (requestToken && path !== "/auth/login")
+      headers.set("Authorization", "Bearer " + requestToken);
     let response;
     try {
       response = await fetch(endpoint.replace(/\/$/, "") + path, {
@@ -88,7 +90,12 @@
       );
     }
     if (response.status === 401 && path !== "/auth/login") {
-      if (invalidateSession && !options.signal?.aborted) invalidate();
+      if (
+        invalidateSession &&
+        requestToken === token &&
+        !options.signal?.aborted
+      )
+        invalidate();
       const error = Error(
         "La sesión ya no es válida. Vuelve a iniciar sesión.",
       );
@@ -165,7 +172,7 @@
       showSaveStatus();
     }
   }
-  async function json(path, method = "GET", body, options = {}) {
+  async function readJSON(path, method, body, options) {
     return (
       await request(path, {
         ...options,
@@ -179,35 +186,43 @@
       })
     ).json();
   }
-  async function accessRequest(path, method, body, options, timeoutMessage) {
+  async function json(path, method = "GET", body, options = {}) {
+    const reading = method === "GET";
+    if (options.signal || (!reading && !path.startsWith("/auth/")))
+      return readJSON(path, method, body, options);
+    const operation =
+      {
+        "/auth/login": "iniciar sesión",
+        "/auth/me": "verificar la sesión",
+        "/auth/change-password": "cambiar la contraseña",
+        "/auth/logout": "cerrar la sesión",
+      }[path] || "cargar los datos";
     const controller = new AbortController();
     let timeout;
     const deadline = new Promise((_, reject) => {
-      timeout = setTimeout(() => {
-        reject(Error(timeoutMessage));
-        controller.abort();
-      }, 15000);
+      timeout = setTimeout(
+        () => {
+          reject(
+            Error(
+              `El servidor tarda demasiado en ${operation}. Vuelve a intentarlo.`,
+            ),
+          );
+          controller.abort();
+        },
+        reading ? 15000 : 30000,
+      );
     });
     try {
       return await Promise.race([
         deadline,
-        json(path, method, body, { ...options, signal: controller.signal }),
+        readJSON(path, method, body, { ...options, signal: controller.signal }),
       ]);
     } finally {
       clearTimeout(timeout);
     }
   }
-  function verifySession(invalidateSession = true) {
-    return accessRequest(
-      "/auth/me",
-      "GET",
-      undefined,
-      { invalidateSession },
-      "El servidor tarda demasiado en verificar la sesión. Vuelve a intentarlo.",
-    );
-  }
   function enter(active) {
-    goToLogin.hidden = true;
+    if (goToLogin) goToLogin.hidden = true;
     retry.hidden = true;
     user = active;
     if (user.cambioObligatorio) {
@@ -237,6 +252,7 @@
   );
   async function submit(form, task) {
     const button = form.querySelector('[type="submit"]');
+    if (button.disabled) return;
     button.disabled = true;
     notify("Comprobando…");
     try {
@@ -250,16 +266,10 @@
   login.addEventListener("submit", (e) => {
     e.preventDefault();
     submit(login, async () => {
-      const result = await accessRequest(
-        "/auth/login",
-        "POST",
-        {
-          usuario: login.elements.usuario.value.trim(),
-          password: login.elements.password.value,
-        },
-        {},
-        "El servidor tarda demasiado en iniciar sesión. Vuelve a intentarlo.",
-      );
+      const result = await json("/auth/login", "POST", {
+        usuario: login.elements.usuario.value.trim(),
+        password: login.elements.password.value,
+      });
       remember(result.token);
       login.reset();
       enter(result.user);
@@ -317,8 +327,12 @@
   // Revalidate when returning to the app and every 30s; private responses are never cached.
   async function check() {
     if (!user || user.cambioObligatorio || document.hidden) return;
+    const checkedToken = token;
     try {
-      const r = await verifySession();
+      const r = await json("/auth/me", "GET", undefined, {
+        invalidateSession: false,
+      });
+      if (checkedToken !== token) return;
       if (
         r.user.rol !== user.rol ||
         r.user.cambioObligatorio !== user.cambioObligatorio
@@ -330,8 +344,9 @@
       connectionLost = false;
       showSaveStatus();
     } catch (e) {
+      if (checkedToken !== token) return;
       if (e.status === 401 || e.status === 403) {
-        if (e.status === 403) invalidate();
+        invalidate();
         return;
       }
       connectionLost = true;
@@ -346,9 +361,11 @@
       token = localStorage.getItem(KEY) || "";
       if (token) {
         restoringSession = true;
-        goToLogin.hidden = false;
+        if (goToLogin) goToLogin.hidden = false;
         startupMessage.textContent = "Verificando sesión…";
-        const r = await verifySession(false);
+        const r = await json("/auth/me", "GET", undefined, {
+          invalidateSession: false,
+        });
         if (restoringSession) enter(r.user);
       } else {
         showLogin();

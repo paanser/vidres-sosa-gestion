@@ -2053,6 +2053,15 @@ body {
   font-size: calc(19px * var(--vs-reading-scale));
 }
 @media (max-width: 480px) {
+  #expediente .exp-tabs button {
+    flex: 1 1 0;
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .exp-tabs button span {
+    max-width: 100%;
+  }
   .exp-tab-label {
     position: absolute;
     width: 1px;

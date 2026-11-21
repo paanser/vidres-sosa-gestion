@@ -1,6 +1,8 @@
 "use strict";
 const RELEASE = "__BUILD_VERSION__";
-const VERSION = RELEASE.startsWith("__") ? "20261121-firmas-carta" : RELEASE;
+const VERSION = RELEASE.startsWith("__")
+  ? "20261121-carta-corporativa"
+  : RELEASE;
 const PREFIX = "vidres-sosa:" + self.registration.scope + ":",
   CACHE = PREFIX + VERSION;
 const ASSETS = [

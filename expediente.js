@@ -142,7 +142,7 @@
     let pointer = null;
     let previous = null;
     let signed = false;
-    context.strokeStyle = "#15314b";
+    context.strokeStyle = "#202020";
     context.lineWidth = 4;
     context.lineCap = "round";
     const clear = () => {
@@ -217,11 +217,7 @@
         "direccion",
         [job.direccion, job.poblacion].filter(Boolean).join(", "),
       ) +
-      field(
-        "Trabajo (editable)",
-        "trabajo",
-        job.descripcion || "Montaje con robot grúa elevador",
-      ) +
+      field("Trabajo (editable)", "trabajo", job.descripcion) +
       '<label style="display:grid;gap:5px;margin:12px 0">Responsabilidad por rotura<select name="rotura"><option value="evaluar">Evaluar según causa acreditada</option><option value="empresa">Vidres Sosa: daños imputables</option><option value="preexistentes">Considerar defectos preexistentes</option></select></label>' +
       '<label style="display:grid;gap:5px;margin:12px 0">Daños a elementos existentes<select name="danos"><option value="preexistentes">Riesgos preexistentes informados</option><option value="evaluar">Evaluar según causa acreditada</option><option value="empresa">Vidres Sosa: daños imputables</option></select></label>' +
       '<label style="display:grid;gap:5px;margin:12px 0">Observaciones<textarea name="observaciones" maxlength="1200" rows="3"></textarea></label>' +
@@ -260,91 +256,124 @@
       const cliente = String(fields.get("cliente") || "").trim();
       if (!cliente) return alert("Introduce el cliente.");
       const doc = new jspdf.jsPDF({ unit: "mm", format: "a4", compress: true });
-      const navy = [21, 49, 75],
-        pale = [235, 243, 249],
-        ink = [30, 43, 55];
+      const red = "#d9071b",
+        green = "#00aa72",
+        darkGreen = "#006044",
+        ink = "#202020",
+        rule = "#d9dfdc",
+        left = 12,
+        width = 186,
+        right = left + width,
+        bottom = 281,
+        lineHeight = 3.8;
       const date = new Date().toLocaleDateString("es-ES");
       const work = String(fields.get("trabajo") || "").trim();
       const robot = /robot|grúa|grua|elevador/i.test(work);
-      const brand = window.VSBrandLogo;
-      if (brand?.draw) brand.draw(doc, 13, 8, 85);
-      else {
-        doc.setTextColor(200, 22, 39);
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(17);
-        doc.text("VIDRES", 14, 23);
-        doc.setTextColor(0, 160, 95);
-        doc.text("SOSA", 45, 23);
+
+      function bodyText() {
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(ink);
+        doc.setFontSize(9.5);
       }
-      doc.setTextColor(...ink);
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      doc.text(
-        ["Carrer de la Plata, 8", "43006 Tarragona", "www.vidressosa.com"],
-        195,
-        14,
-        { align: "right" },
-      );
-      doc.setDrawColor(...navy);
-      doc.setLineWidth(0.7);
-      doc.line(12, 35, 198, 35);
-      function banner(x, y, w, h, label) {
-        doc.setFillColor(...navy);
-        doc.roundedRect(x, y, w, h, 1.4, 1.4, "F");
-        doc.setTextColor(255, 255, 255);
+      const lineOptions = { lineHeightFactor: 1.13 };
+      function section(label, y) {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(10);
-        doc.text(label, x + 5, y + h / 2 + 3.2);
+        doc.setTextColor(darkGreen);
+        doc.setFillColor(red);
+        doc.rect(left, y, 1.4, 4, "F");
+        doc.text(label, left + 4, y + 3.2);
       }
-      banner(
+      function card(x, y, h, label, accent, background) {
+        doc.setDrawColor(rule);
+        doc.setFillColor(background);
+        doc.setLineWidth(0.25);
+        doc.roundedRect(x, y, 91, h, 2, 2, "FD");
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9.5);
+        doc.setTextColor(accent);
+        doc.text(label, x + 4, y + 6);
+      }
+
+      const brand = window.VSBrandLogo;
+      if (brand?.draw) brand.draw(doc, left, 8, 85);
+      else {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(17);
+        doc.setTextColor(red);
+        doc.text("VIDRES", left, 19);
+        doc.setTextColor(green);
+        doc.text("SOSA", left + 27, 19);
+      }
+      bodyText();
+      doc.text(
+        ["Carrer de la Plata, 8", "43006 Tarragona", "www.vidressosa.com"],
+        right,
         12,
-        40,
-        186,
-        23,
-        "CARTA DE RESPONSABILIDAD Y ACEPTACIÓN DE RIESGOS",
+        { ...lineOptions, align: "right" },
       );
-      // Draw a robot lifting a pane only for robot / crane interventions.
-      if (robot) {
-        doc.setDrawColor(255, 255, 255);
-        doc.setLineWidth(1.15);
-        doc.roundedRect(170, 54, 17, 5, 1, 1, "S");
-        doc.line(174, 53, 179, 46);
-        doc.line(179, 46, 187, 50);
-        doc.line(187, 50, 190, 50);
-        doc.line(190, 50, 190, 55);
-        doc.rect(187, 55, 7, 5);
-        doc.circle(190, 57, 1.1);
-      }
-      banner(12, 67, 91, 9, "DATOS DEL CLIENTE");
-      banner(107, 67, 91, 9, "DATOS DEL TRABAJO");
-      doc.setDrawColor(195, 207, 217);
-      doc.setLineWidth(0.3);
-      doc.roundedRect(12, 76, 91, 32, 1, 1);
-      doc.roundedRect(107, 76, 91, 32, 1, 1);
-      doc.setTextColor(...ink);
+      doc.setFillColor(darkGreen);
+      doc.roundedRect(left, 27, width, 22, 2, 2, "F");
+      doc.setFillColor(green);
+      doc.rect(left + 3, 31, 1.4, 14, "F");
+      doc.setTextColor("#ffffff");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(19);
+      doc.text("Carta de responsabilidad", left + 8, 37);
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      const clientLines = [
-        "Cliente: " + cliente,
-        "Dirección: " + String(fields.get("direccion") || ""),
-        "Teléfono: " + String(job.telefono || ""),
-      ];
-      const workLines = [
-        "Expediente: " + job.id,
-        "Fecha: " + date,
-        "Trabajo: " + work,
-      ];
-      function details(lines, x) {
-        let y = 82;
-        for (const line of lines) {
-          const wrapped = doc.splitTextToSize(line, 83).slice(0, 2);
-          doc.text(wrapped, x, y);
-          y += Math.max(7, wrapped.length * 4);
-        }
+      doc.setFontSize(10.5);
+      doc.text("Aceptación de riesgos", left + 8, 44);
+
+      // Draw the robot icon only for robot / crane interventions.
+      if (robot) {
+        doc.setDrawColor("#ffffff");
+        doc.setLineWidth(0.75);
+        doc.roundedRect(170, 41, 17, 4, 1, 1, "S");
+        doc.line(174, 41, 179, 32);
+        doc.line(179, 32, 189, 36);
+        doc.line(189, 36, 189, 41);
+        doc.rect(186, 41, 7, 5);
+        doc.circle(189, 43.5, 1);
       }
-      details(clientLines, 16);
-      details(workLines, 111);
-      banner(12, 113, 186, 10, "CONDICIONES Y RESPONSABILIDADES");
+
+      bodyText();
+      const detailCards = [
+        {
+          x: left,
+          title: "DATOS DEL CLIENTE",
+          accent: red,
+          tint: "#fff5f5",
+          lines: [
+            "Cliente: " + cliente,
+            "Dirección: " + String(fields.get("direccion") || ""),
+            "Teléfono: " + String(job.telefono || ""),
+          ],
+        },
+        {
+          x: right - 91,
+          title: "DATOS DEL TRABAJO",
+          accent: darkGreen,
+          tint: "#f1f9f5",
+          lines: [
+            "Expediente: " + job.id,
+            "Fecha: " + date,
+            "Trabajo: " + work,
+          ],
+        },
+      ].map((item) => ({
+        ...item,
+        lines: item.lines.flatMap((line) => doc.splitTextToSize(line, 83)),
+      }));
+      const detailsY = 54;
+      const detailsHeight =
+        12 +
+        lineHeight * Math.max(...detailCards.map((item) => item.lines.length));
+      for (const { x, title, accent, tint, lines } of detailCards) {
+        card(x, detailsY, detailsHeight, title, accent, tint);
+        bodyText();
+        doc.text(lines, x + 4, detailsY + 12, lineOptions);
+      }
+
       const rotura = {
         evaluar:
           "En caso de rotura, la responsabilidad se determinará atendiendo a las circunstancias, causas acreditadas y obligaciones legales y contractuales de las partes.",
@@ -385,101 +414,139 @@
           "Las partes manifiestan haber leído las condiciones descritas, sin renunciar a derechos legalmente irrenunciables ni excluir responsabilidades exigibles.",
         ],
       ];
-      let y = 123;
+      let y = detailsY + detailsHeight + 6;
+      section("CONDICIONES Y RESPONSABILIDADES", y);
+      y += 7;
       for (const [label, content] of clauses) {
-        const lines = doc.splitTextToSize(content, 140);
-        const h = Math.max(16, 7 + lines.length * 4.25);
-        if (y + h > 224) {
-          doc.addPage();
-          y = 20;
-        }
-        doc.setFillColor(...pale);
-        doc.rect(12, y, 43, h, "F");
-        doc.setDrawColor(206, 215, 222);
-        doc.rect(12, y, 186, h, "S");
-        doc.setTextColor(...navy);
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(8.5);
-        doc.text(doc.splitTextToSize(label, 37), 15, y + 7);
-        doc.setTextColor(...ink);
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(8.4);
-        doc.text(lines, 59, y + 6);
-        y += h;
+        doc.setFontSize(9);
+        const labels = doc.splitTextToSize(label, 41);
+        bodyText();
+        const lines = doc.splitTextToSize(content, 136);
+        const height = 4 + lineHeight * Math.max(labels.length, lines.length);
+        doc.setDrawColor(rule);
+        doc.setLineWidth(0.2);
+        doc.line(left, y, right, y);
+        doc.setTextColor(darkGreen);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.text(labels, left + 3, y + 5, lineOptions);
+        bodyText();
+        doc.text(lines, left + 47, y + 5, lineOptions);
+        y += height;
       }
-      const observations = String(fields.get("observaciones") || "").trim();
-      doc.setFontSize(8.5);
-      const observationLines = doc.splitTextToSize(
-        observations || "Sin observaciones adicionales.",
-        177,
-      );
-      for (let start = 0; start < observationLines.length; ) {
-        if (y + 30 > 285) {
-          doc.addPage();
-          y = 20;
-        }
-        const availableLines = Math.floor((285 - y - 21) / 4.4);
-        const lines = observationLines.slice(start, start + availableLines);
-        const height = Math.max(16, lines.length * 4.4 + 7);
-        banner(12, y + 5, 186, 9, "OBSERVACIONES");
-        doc.setDrawColor(195, 207, 217);
-        doc.rect(12, y + 14, 186, height);
-        doc.setTextColor(...ink);
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(8.5);
-        doc.text(lines, 16, y + 21);
-        y += 19 + height;
-        start += lines.length;
-      }
+      doc.line(left, y, right, y);
+      y += 5;
 
-      doc.setFontSize(8);
       const employee = String(fields.get("empleado") || "").trim();
       const signers = [
         {
-          x: 12,
+          x: left,
           label: "POR VIDRES SOSA",
           name: employee || "______________________",
+          accent: darkGreen,
           image: employeeSignature.image(),
         },
         {
-          x: 108,
+          x: right - 91,
           label: "POR EL CLIENTE",
           name: cliente,
+          accent: red,
           image: clientSignature.image(),
         },
       ].map((signer) => ({
         ...signer,
-        nameLines: doc.splitTextToSize("Nombre: " + signer.name, 82),
+        nameLines: doc.splitTextToSize("Nombre: " + signer.name, 83),
       }));
       const signatureOffset =
-        16 + Math.max(...signers.map((signer) => signer.nameLines.length)) * 4;
-      const dateOffset = signatureOffset + 25;
-      if (y + dateOffset > 285) {
+        12 +
+        lineHeight *
+          Math.max(...signers.map((signer) => signer.nameLines.length));
+      const signatureHeight = signatureOffset + 29;
+      const observations = String(fields.get("observaciones") || "").trim();
+      const observationLines = doc.splitTextToSize(
+        observations || "Sin observaciones adicionales.",
+        width - 8,
+      );
+      const observationHeight = (count) => 12 + count * lineHeight;
+      const drawObservations = (lines, continued) => {
+        section(
+          continued ? "OBSERVACIONES (CONTINUACIÓN)" : "OBSERVACIONES",
+          y,
+        );
+        const height = observationHeight(lines.length);
+        doc.setFillColor("#f7f9f8");
+        doc.roundedRect(left, y + 7, width, height - 7, 1.5, 1.5, "F");
+        bodyText();
+        doc.text(lines, left + 4, y + 12, lineOptions);
+        y += height;
+      };
+      const addContinuation = () => {
         doc.addPage();
-        y = 20;
+        section("CARTA DE RESPONSABILIDAD", 13);
+        bodyText();
+        doc.text("Expediente: " + job.id, right, 16.2, { align: "right" });
+        y = 25;
+      };
+      // Keep the signature cards together with the end of the observations.
+      let start = 0;
+      while (
+        y +
+          observationHeight(observationLines.length - start) +
+          5 +
+          signatureHeight >
+        bottom
+      ) {
+        const capacity = Math.floor(
+          (bottom - y - observationHeight(0)) / lineHeight,
+        );
+        const count = Math.min(capacity, observationLines.length - start - 1);
+        if (count > 0) {
+          drawObservations(
+            observationLines.slice(start, start + count),
+            start > 0,
+          );
+          start += count;
+        }
+        addContinuation();
       }
-      for (const { x, label, nameLines, image } of signers) {
-        banner(x, y, 90, 9, label);
-        doc.setTextColor(...ink);
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(8);
-        doc.text(nameLines, x + 4, y + 16);
+      drawObservations(observationLines.slice(start), start > 0);
+      y += 5;
+
+      for (const { x, label, nameLines, accent, image } of signers) {
+        card(x, y, signatureHeight, label, accent, "#ffffff");
+        bodyText();
+        doc.text(nameLines, x + 4, y + 12, lineOptions);
         doc.text("Firma:", x + 4, y + signatureOffset + 10);
         if (image) {
-          doc.addImage(image, "PNG", x + 20, y + signatureOffset, 52.5, 21);
+          doc.addImage(image, "PNG", x + 20, y + signatureOffset, 50, 20);
         }
-        doc.setDrawColor(...navy);
+        doc.setDrawColor(accent);
         doc.line(
           x + 20,
-          y + signatureOffset + 21,
-          x + 85,
-          y + signatureOffset + 21,
+          y + signatureOffset + 20,
+          x + 86,
+          y + signatureOffset + 20,
         );
         doc.text(
           "Fecha: " + (image ? date : "____ / ____ / ______"),
           x + 4,
-          y + dateOffset,
+          y + signatureOffset + 25,
         );
+      }
+
+      const pages = doc.getNumberOfPages();
+      for (let page = 1; page <= pages; page++) {
+        doc.setPage(page);
+        doc.setFillColor(green);
+        doc.rect(left, 284, width - 16, 0.65, "F");
+        doc.setFillColor(red);
+        doc.rect(right - 16, 284, 16, 0.65, "F");
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(ink);
+        doc.text("Vidres Sosa", left, 289);
+        doc.text(page + " / " + pages, right, 289, { align: "right" });
       }
       const blob = doc.output("blob");
       const filename =

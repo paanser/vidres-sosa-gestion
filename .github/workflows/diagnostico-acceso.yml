@@ -1,0 +1,34 @@
+name: Diagnóstico de acceso en producción
+on:
+  push:
+    branches: [diagnostic/acceso-produccion]
+permissions: {}
+jobs:
+  probe:
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-latest
+          - runner: windows-latest
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - shell: bash
+        run: |
+          node --input-type=module <<'JS'
+          import { randomUUID } from 'node:crypto';
+          const base = 'https://vidres-sosa-ia.pausosagomez.workers.dev';
+          const Origin = 'https://paanser.github.io';
+          for (const [method,path,extra,body] of [
+            ['OPTIONS','/auth/login',{'Access-Control-Request-Method':'POST','Access-Control-Request-Headers':'content-type'}],
+            ['OPTIONS','/auth/me',{'Access-Control-Request-Method':'GET','Access-Control-Request-Headers':'authorization'}],
+            ['POST','/auth/login',{'Content-Type':'application/json'},JSON.stringify({usuario:'diag-'+randomUUID(),password:randomUUID()})],
+          ]) {
+            const start = performance.now();
+            try {
+              const response = await fetch(base+path,{method,headers:{Origin,...extra},body,signal:AbortSignal.timeout(20000)});
+              const size = (await response.text()).length;
+              console.log({method,path,status:response.status,ms:Math.round(performance.now()-start),cors:response.headers.get('access-control-allow-origin'),ray:response.headers.get('cf-ray')?.split('-').at(-1),size});
+              if (response.headers.get('access-control-allow-origin') !== Origin || response.status !== (method==='POST'?401:204)) process.exitCode=1;
+            } catch (error) { console.log(method,path,error.message); process.exitCode=1; }
+          }
+          JS

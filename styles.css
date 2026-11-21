@@ -5688,3 +5688,26 @@ select[name="estado"]:has(option:nth-child(6):checked) {
     background: #e2efe7;
   }
 }
+
+.responsibility-signature {
+  min-inline-size: 0;
+  margin: 12px 0;
+  padding: 10px;
+  border: 1px solid #9aada4;
+  border-radius: 8px;
+}
+
+.responsibility-signature canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #fff;
+  outline: 1px solid #879d91;
+  border-radius: 4px;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.responsibility-signature button {
+  margin-top: 10px;
+}

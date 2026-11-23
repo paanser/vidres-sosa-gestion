@@ -1052,6 +1052,34 @@ async function checkMobileFields(page) {
   console.log(
     "PASS hoja de visita PDF sin desplazar menús, cierre y Escape a 390/768/1440 px",
   );
+  await expTabs.getByRole("tab", { name: "Documentos" }).click();
+  await page.locator("[data-exp-new-letter]").click();
+  const letterDownload = page.waitForEvent("download");
+  await page.locator("[data-save-letter]").click();
+  const letter = await letterDownload;
+  assert.match(letter.suggestedFilename(), /^Carta-responsabilidad-.*\.pdf$/);
+  const letterBytes = await fs.readFile(await letter.path());
+  assert.equal(letterBytes.subarray(0, 5).toString(), "%PDF-");
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, "canShare", {
+      configurable: true,
+      value: () => false,
+    });
+  });
+  const sharedLetter = page.waitForEvent("download");
+  await page
+    .locator("#exp-doc-list .exp-doc-item")
+    .filter({ hasText: letter.suggestedFilename() })
+    .getByRole("button", { name: "Compartir PDF" })
+    .click();
+  const fallbackLetter = await sharedLetter;
+  assert.equal(fallbackLetter.suggestedFilename(), letter.suggestedFilename());
+  assert.deepEqual(await fs.readFile(await fallbackLetter.path()), letterBytes);
+  await page.evaluate(() => delete navigator.canShare);
+  await expTabs.getByRole("tab", { name: "Resumen" }).click();
+  console.log(
+    "PASS carta de responsabilidad: PDF guardado y descargable para adjuntar",
+  );
   assert.equal(await page.locator("#exp-status").isVisible(), false);
   await page.getByRole("button", { name: /Estado ▾/ }).click();
   await page.locator("#exp-status").selectOption("Finalizado");

@@ -121,15 +121,9 @@
   async function openDocument(id) {
     const item = (await documentItems()).find((x) => x.id === id);
     if (!item) return;
-    const url = URL.createObjectURL(item.blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = item.nombre;
-    a.rel = "noopener";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    VSDownloadFile(
+      new File([item.blob], item.nombre, { type: item.blob.type }),
+    );
   }
   function compress(file) {
     return VSFiles.compressImage(file);
@@ -555,6 +549,7 @@
         "-" +
         new Date().toISOString().slice(0, 10) +
         ".pdf";
+      const file = new File([blob], filename, { type: "application/pdf" });
       if (save) {
         status.textContent = "Guardando documento…";
         await storeDocument({
@@ -566,27 +561,12 @@
           tipo: "responsabilidad",
         });
         status.textContent = "PDF guardado en Documentos vinculados.";
-        // Present the generated PDF to the user as soon as saving finishes.
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 60000);
+        VSDownloadFile(file);
         tab = "documentos";
         form.close();
         await render();
       } else {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 60000);
+        VSDownloadFile(file);
       }
     }
     form.addEventListener("click", async (e) => {
@@ -918,9 +898,9 @@
         '<section class="exp-section"><div class="exp-section-head"><h3>Documentos vinculados</h3><button type="button" data-exp-new-letter class="primary">+ Carta de responsabilidad</button><label class="exp-upload">+ Añadir documento<input id="exp-doc-files" type="file" accept=".pdf,.txt,.csv,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,application/pdf" multiple hidden></label></div><p class="muted">Documentos privados compartidos entre dispositivos e incluidos en la copia completa. Máximo 8 MB por archivo.</p><div id="exp-doc-list">Cargando documentos…</div></section>';
       try {
         const items = await documentItems();
-        if (tab !== "documentos") return;
+        if (!active() || tab !== "documentos") return;
         const host = dialog.querySelector("#exp-doc-list");
-        if (host)
+        if (host) {
           host.innerHTML = items.length
             ? '<div class="exp-doc-list">' +
               items
@@ -941,7 +921,25 @@
                 .join("") +
               "</div>"
             : '<div class="empty-state">Aún no hay documentos adjuntos.</div>';
+          host.querySelectorAll(".exp-doc-item").forEach((row, index) => {
+            const item = items[index];
+            if (
+              item.blob.type !== "application/pdf" &&
+              !/\.pdf$/i.test(item.nombre)
+            )
+              return;
+            const file = new File([item.blob], item.nombre, {
+              type: "application/pdf",
+            });
+            const actions = row.lastElementChild;
+            const status = document.createElement("p");
+            status.setAttribute("role", "status");
+            actions.prepend(VSSharePDF(file, null, status));
+            row.firstElementChild.append(status);
+          });
+        }
       } catch {
+        if (!active()) return;
         const host = dialog.querySelector("#exp-doc-list");
         if (host)
           host.textContent =

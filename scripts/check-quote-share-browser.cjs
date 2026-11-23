@@ -3,15 +3,42 @@ module.exports = async (page) => {
   await page.evaluate(() => vidresQuoteWhatsApp("HITO-Q"));
   assert.equal(
     await page.locator('#quote-message-form [type="submit"]').textContent(),
-    "Abrir WhatsApp",
+    "Descargar PDF y abrir WhatsApp",
   );
   assert.ok(
     await page.locator('#quote-message-form [name="mensaje"]').inputValue(),
   );
-  assert.doesNotMatch(
-    await page.locator("#quote-message-dialog .muted").textContent(),
-    /PDF adjunto/,
-  );
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, "canShare", {
+      configurable: true,
+      value: () => true,
+    });
+    Object.defineProperty(navigator, "share", {
+      configurable: true,
+      value: async (payload) => {
+        const [pdf] = payload.files;
+        window.__quoteAttachment = {
+          keys: Object.keys(payload),
+          type: pdf.type,
+          name: pdf.name,
+          header: await pdf.slice(0, 5).text(),
+        };
+      },
+    });
+  });
+  await page.locator("#quote-message-share button").click();
+  await page.waitForFunction(() => window.__quoteAttachment);
+  assert.deepEqual(await page.evaluate(() => window.__quoteAttachment), {
+    keys: ["files"],
+    type: "application/pdf",
+    name: "Presupuesto-HITO-Q-cliente.pdf",
+    header: "%PDF-",
+  });
+  await page.evaluate(() => {
+    delete navigator.canShare;
+    delete navigator.share;
+    delete window.__quoteAttachment;
+  });
   await page.locator("#quote-message-cancel").click();
   await page.evaluate(async () => {
     const key = "vs-quote-prototype-v1";
@@ -38,7 +65,12 @@ module.exports = async (page) => {
     await page.locator('[name="destinatario"]').inputValue(),
     "card",
   );
+  const downloaded = page.waitForEvent("download");
   await page.locator('#quote-message-form [type="submit"]').click();
+  assert.equal(
+    (await downloaded).suggestedFilename(),
+    "Presupuesto-HITO-Q-cliente.pdf",
+  );
   assert.match(
     await page.evaluate(() => window.__waOpened[0]),
     /^https:\/\/wa.me\/34612345678\?text=/,
@@ -70,5 +102,17 @@ module.exports = async (page) => {
     "",
   );
   await page.locator("#quote-message-cancel").click();
-  console.log("PASS WhatsApp: conserva el diálogo de mensaje de texto");
+  await page.evaluate(() => vidresQuoteFollowupWhatsApp("HITO-Q"));
+  assert.equal(
+    await page.locator('#quote-message-form [type="submit"]').textContent(),
+    "Abrir WhatsApp",
+  );
+  assert.equal(
+    await page.locator("#quote-message-attachment").isHidden(),
+    true,
+  );
+  await page.locator("#quote-message-cancel").click();
+  console.log(
+    "PASS WhatsApp: PDF del cliente como adjunto o descarga y seguimiento por texto",
+  );
 };

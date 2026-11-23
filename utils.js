@@ -553,13 +553,24 @@ if (typeof document !== "undefined") {
 
 // Share the actual PDF from the app, without passing a viewer or blob URL.
 if (typeof window !== "undefined") {
+  window.VSDownloadFile = function (file) {
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = file.name;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  };
   window.VSSharePDF = function (file, save, status) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "primary";
     button.textContent = "Compartir PDF";
     const download = () => {
-      save.click();
+      if (save) save.click();
+      else window.VSDownloadFile(file);
       status.textContent =
         "PDF descargado. Adjunta este archivo en la aplicación que elijas. Este navegador no permite compartir el archivo directamente.";
     };
@@ -578,11 +589,15 @@ if (typeof window !== "undefined") {
         await navigator.share({ files: [file] });
       } catch (error) {
         if (error.name === "AbortError") return;
-        if (error.name === "NotSupportedError" || error.name === "TypeError") {
+        if (
+          ["NotSupportedError", "TypeError", "NotAllowedError"].includes(
+            error.name,
+          )
+        ) {
           download();
         } else {
           status.textContent =
-            "No se pudo compartir el archivo PDF. Pulsa Compartir PDF para reintentarlo o Guardar PDF para adjuntarlo manualmente.";
+            "No se pudo compartir el archivo PDF. Pulsa Compartir PDF para reintentarlo o descarga el PDF para adjuntarlo manualmente.";
         }
       } finally {
         button.disabled = false;

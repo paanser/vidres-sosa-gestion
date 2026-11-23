@@ -605,8 +605,6 @@
   }
   function quickSync() {
     const line = draft.lines[0] || emptyLine(),
-      result = calc(line),
-      total = sum(draft),
       names = window.vidresClientNames?.() || [];
     document.querySelector("#content").innerHTML = `
       <div class="quote-toolbar"><button type="button" id="quick-close">← Volver a presupuestos</button></div>
@@ -632,17 +630,15 @@
         <section class="quick-double">${doubleFields(line)}${weightFields(line)}${line.doubleGlazing ? pieceSurchargeFields(line) + surchargeFields() : supplementFields(line)}</section>
         ${edgeFields(line, true)}</section>
         <section class="quote-form-section"><h3><span class="quote-step">3</span> Condiciones de cálculo</h3>${minimumAreaFields()}${energyFields()}</section>
-        <h3 class="quote-summary-heading">Resumen del presupuesto</h3><div id="quick-result" class="quote-result quick-result">${quickResultHtml(result, total)}</div>
+        <h3 class="quote-summary-heading">Resumen del presupuesto</h3><div id="quick-result" class="quote-result quick-result">${quickResultHtml()}</div>
         ${documentFields()}<div class="quote-toolbar"><button type="button" id="quote-pdf">PDF para cliente</button><button type="button" id="quick-copy">Copiar mensaje</button><button type="button" id="quick-whatsapp">Enviar por WhatsApp</button><button type="button" class="primary" id="quick-save">Guardar como presupuesto</button></div>
       </section>`;
     initMeasures();
   }
-  function quickResultHtml(result, total) {
-    const config = pricing(draft);
-    const glassRate =
-      config.priceMode === "fixed" ? config.fixedPrice : draft.lines[0].price;
-    const netGlass = result.area * result.qty * num(glassRate);
-    return `${surchargeResult(result)}Medida real: ${measures(result.w, result.h)}<br>Medida aplicada: ${measures(result.aw, result.ah)}<br>Superficie aplicada: ${result.area.toFixed(4)} m² por pieza<br>Importe neto del vidrio: <strong>${money(netGlass)}</strong> sin IVA<br>Canto pulido: ${result.ml.toFixed(2)} ml × ${result.edgeParts} vidrio(s) × ${result.qty} ud. = ${(result.ml * result.edgeParts * result.qty).toFixed(2)} ml<br>Importe del pulido: ${money(result.ml * result.edgeParts * result.qty * num(draft.lines[0].edgePrice))} sin IVA<br>Peso vidrio: ${result.weight.toFixed(2)} kg<br>Recargo energético calculado: <strong>${money(result.energy)}</strong><br>Base: <strong>${money(total.base)}</strong><br>IVA (${esc(pricing(draft).vat ?? 21)} %): <strong>${money(total.iva)}</strong><br>Total: <strong class="quote-grand-total">${money(total.total)}</strong>`;
+  function quickResultHtml() {
+    const breakdown = details(draft);
+    const result = breakdown.lines[0];
+    return `${surchargeResult(result)}Medida real: ${measures(result.w, result.h)}<br>Medida aplicada: ${measures(result.aw, result.ah)}<br>Peso vidrio: ${result.weight.toFixed(2)} kg${totalResult(breakdown)}`;
   }
   function readQuickForm() {
     const line = draft.lines[0] || emptyLine(),
@@ -688,8 +684,7 @@
   function updateQuickResult() {
     readQuickForm();
     const host = document.querySelector("#quick-result");
-    if (host)
-      host.innerHTML = quickResultHtml(calc(draft.lines[0]), sum(draft));
+    if (host) host.innerHTML = quickResultHtml();
   }
   function messageQuote(q) {
     const c = config(),
@@ -855,9 +850,79 @@
     const sale = `<p class="quote-line-sale"><strong>Precio de esta partida sin IVA: ${money(c.glassSale)}</strong>${c.energySale ? `<br>Recargo energético separado sin IVA: ${money(c.energySale)}` : ""}${c.separate && c.extraSale ? `<br>Concepto separado sin IVA: ${money(c.extraSale)}` : ""}${c.energySale || c.extraSale ? `<br>Total de la partida sin IVA: ${money(c.sale)}` : ""}</p>`;
     return `${sale}${surchargeResult(c)}<div class="quote-line-metrics"><span>Peso vidrio: ${c.thickness ? c.weight.toFixed(2) + " kg" : "pendiente de espesor"}</span><span>Real: ${measures(c.w, c.h)} · ${c.real.toFixed(4)} m²</span><span>Aplicada: ${measures(c.aw, c.ah)} · ${c.area.toFixed(4)} m²</span><span>Canto: ${c.ml.toFixed(2)} ml × ${c.edgeParts} pieza(s) de vidrio · Unidades: ${c.qty} · Canto total: ${(c.ml * c.edgeParts * c.qty).toFixed(2)} ml</span><span>Coste de vidrio y cantos: ${money(c.total - c.energy - c.surcharge - c.supplementTotal)}</span><span>Importe del pulido: ${money(c.ml * c.edgeParts * c.qty * num(line?.edgePrice))} sin IVA</span>${c.thickness ? `<span>Recargo energético: ${money(c.energy)} sin IVA${pricing(draft).energyMode === "kg" ? ` (${c.weight.toFixed(2)} kg × ${VSUtils.energyMoney(num(pricing(draft).energy))}/kg)` : ""}</span>` : "<span>Recargo energético pendiente: indica el espesor del vidrio.</span>"}</div>`;
   }
+  const formatArea = (area) =>
+    area.toLocaleString("es-ES", {
+      minimumFractionDigits: 4,
+      maximumFractionDigits: 4,
+    }) + " m²";
+  function glassCostTable(line, a) {
+    const round = VSCalculations.round2;
+    const costs = [
+      [`Cristal · ${money(num(line.price))}/m²`, a.glassUnitCost * a.qty],
+      [
+        `Pulido · ${money(num(line.edgePrice))}/ml`,
+        a.polishingUnitCost * a.qty,
+      ],
+      ["Recargo energético", a.energy],
+      ...[
+        ["Suplemento por medidas", a.size],
+        ["Suplemento por metraje", a.surface],
+        ["Suplemento por forma", a.shape],
+        ...a.surcharges
+          .filter((r) => r.applied)
+          .map((r) => [r.label, r.amount]),
+      ].filter(([, amount]) => amount),
+    ];
+    const adjustment = round(
+      a.glassCost - costs.reduce((sum, [, amount]) => sum + round(amount), 0),
+    );
+    const row = (label, unit, total, className = "") =>
+      `<tr class="${className}"><th scope="row">${esc(label)}</th><td>${unit}</td><td>${total}</td></tr>`;
+    const amountRow = (label, amount) =>
+      row(label, money(round(amount / a.qty)), money(round(amount)));
+    const formatMeasure = (value, unit) =>
+      value.toLocaleString("es-ES", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }) +
+      " " +
+      unit;
+    const title = `${esc(glassName(line) || "Vidrio")} · ${measures(a.w, a.h)} · ${a.qty} ud.`;
+    const roundedUnit = [
+      ...costs.map(([, amount]) => amount),
+      a.glassCost,
+    ].some((amount) => round(round(amount / a.qty) * a.qty) !== round(amount));
+    const html = `<table class="quote-glass-cost"><caption>${title}</caption><thead><tr><th scope="col">Desglose de coste</th><th scope="col">Por unidad</th><th scope="col">Partida · ${a.qty} ud.</th></tr></thead><tbody>${row("Superficie facturable", formatArea(a.area), formatArea(a.area * a.qty))}${a.real !== a.area ? row("Superficie real", formatArea(a.real), formatArea(a.real * a.qty)) : ""}${a.ml ? row("Longitud de pulido", formatMeasure(a.ml * a.edgeParts, "ml"), formatMeasure(a.ml * a.edgeParts * a.qty, "ml")) : ""}${a.weight ? row("Peso del vidrio", formatMeasure(a.weight / a.qty, "kg"), formatMeasure(a.weight, "kg")) : ""}${costs.map(([label, amount]) => amountRow(label, amount)).join("")}${adjustment ? row("Ajuste de redondeo", "—", money(adjustment)) : ""}${row("Subtotal de vidrios", money(round(a.glassCost / a.qty)), money(a.glassCost), "quote-cost-subtotal")}${a.extraCost ? row(line.extraDescription || "Concepto adicional", "—", money(a.extraCost)) + row("Coste de la partida", "—", money(a.cost), "quote-cost-subtotal") : ""}</tbody></table>`;
+    return { html, roundedUnit };
+  }
+  function glassCostTables(breakdown) {
+    const tables = draft.lines.flatMap((line, i) =>
+      ["concept", "aluminum"].includes(line.kind)
+        ? []
+        : [glassCostTable(line, breakdown.lines[i])],
+    );
+    const note = tables.some((table) => table.roundedUnit)
+      ? '<div class="quote-cost-rounding">Los importes por unidad se muestran redondeados. Los totales se calculan antes de ese redondeo.</div>'
+      : "";
+    return tables.map((table) => table.html).join("") + note;
+  }
+  function costSummary(breakdown) {
+    const adjustment = VSCalculations.round2(
+      breakdown.cost -
+        breakdown.lines.reduce((sum, line) => sum + line.cost, 0),
+    );
+    return `${adjustment ? `Ajuste de redondeo del presupuesto: ${money(adjustment)}<br>` : ""}Coste interno: <strong>${money(breakdown.cost)}</strong><br>Margen añadido: <strong>${money(breakdown.margin)}</strong><br>Base imponible de venta: <strong>${money(breakdown.totals.base)}</strong>`;
+  }
   function totalResult(breakdown) {
     const total = breakdown.totals;
-    return `Recargo energético calculado: <strong>${money(breakdown.lines.reduce((n, l) => n + l.energy, 0))}</strong><br>Coste interno: <strong>${money(breakdown.cost)}</strong><br>Margen añadido: <strong>${money(breakdown.margin)}</strong><br>Base imponible de venta: <strong>${money(total.base)}</strong><br>IVA (${esc(pricing(draft).vat ?? 21)} %): <strong>${money(total.iva)}</strong><br>Total con IVA: <strong class="quote-grand-total">${money(total.total)}</strong>`;
+    const otherCosts = draft.lines
+      .map((line, i) =>
+        ["concept", "aluminum"].includes(line.kind)
+          ? `<div class="quote-other-cost"><span>${esc(line.description || (line.kind === "aluminum" ? "Aluminio" : "Concepto libre"))}</span><strong>${money(breakdown.lines[i].cost)}</strong></div>`
+          : "",
+      )
+      .join("");
+    return `${glassCostTables(breakdown)}${otherCosts}<div class="quote-price-summary">${costSummary(breakdown)}<br>IVA (${esc(pricing(draft).vat ?? 21)} %): <strong>${money(total.iva)}</strong><br>Total con IVA: <strong class="quote-grand-total">${money(total.total)}</strong></div>`;
   }
   function fromForm() {
     if (!draft || !document.querySelector("#quote-client")) return;
@@ -1191,22 +1256,20 @@
     }
     const breakdown = details(draft),
       t = breakdown.totals;
-    const rows = draft.lines
-      .map((l, i) => {
-        const a = breakdown.lines[i];
-        if (["concept", "aluminum"].includes(l.kind))
-          return `<tr><td>${l.kind === "aluminum" ? aluminumDescription(l) : esc(l.description)}</td>${internal ? `<td>${money(a.cost)}</td><td>${money(a.margin)}</td>` : ""}<td>${money(a.sale)}</td></tr>`;
-        const label = `${esc(glassName(l) || "Vidrio")} · ${measures(a.w, a.h)} · ${a.qty} ud.`;
-        if (internal)
-          return `<tr><td>${label}<br>Precio vidrio: ${money(num(l.price))}/m² · canto: ${money(num(l.edgePrice))}/ml<br>Real: ${a.real.toFixed(4)} m²/pieza · aplicada: ${a.area.toFixed(4)} m²/pieza · canto: ${a.ml.toFixed(2)} ml × ${a.edgeParts} vidrio(s)/pieza<br>Peso vidrio: ${a.weight.toFixed(2)} kg<br>Vidrio y cantos: ${money(a.glassCost - a.energy - a.surcharge)} · recargos de formas/medidas: ${money(a.surcharge)}${
-            a.surcharges
-              ?.filter((r) => r.applied)
-              .map((r) => ` (${esc(r.label)}: ${money(r.amount)})`)
-              .join("") || ""
-          } · recargo energético: ${money(a.energy)}<br>Otros conceptos: ${esc(l.extraDescription || "Sin concepto")} · ${money(a.extraCost)} (${a.separate ? "separado" : "integrado en vidrio"})</td><td>${money(a.cost)}</td><td>${money(a.margin)}</td><td>${money(a.sale)}</td></tr>`;
-        return `<tr><td>${label}</td><td>${money(a.glassSale)}</td></tr>${a.energySale ? `<tr><td>Recargo energético</td><td>${money(a.energySale)}</td></tr>` : ""}${a.separate && a.extraCost ? `<tr><td>${esc(l.extraDescription || "Otros conceptos")}</td><td>${money(a.extraSale)}</td></tr>` : ""}`;
-      })
-      .join("");
+    const rows = internal
+      ? draft.lines
+          .map((line, i) => {
+            const a = breakdown.lines[i];
+            const label =
+              line.kind === "aluminum"
+                ? aluminumDescription(line)
+                : line.kind === "concept"
+                  ? esc(line.description)
+                  : `${esc(glassName(line) || "Vidrio")} · ${measures(a.w, a.h)} · ${a.qty} ud.`;
+            return `<tr><td>${label}</td><td>${money(a.cost)}</td><td>${money(a.margin)}</td><td>${money(a.sale)}</td></tr>`;
+          })
+          .join("")
+      : "";
     const options = pdfOptions(draft),
       hasGlass = draft.lines.some(
         (line) => !["concept", "aluminum"].includes(line.kind),
@@ -1265,7 +1328,7 @@
       .map((v) => `<br>${lines(v)}`)
       .join(
         "",
-      )}</section></div></header><div class="quote-doc-dates"><p><strong>Fecha oferta:</strong> ${esc(dateLabel(draft.date))}</p>${showValidity ? `<p><strong>Fecha validez:</strong> ${esc(dateLabel(addDays(draft.date, Number(company.validity) || 30)))}</p>` : ""}${draft.job ? `<p><strong>Parte relacionado:</strong> ${esc(draft.job)}</p>` : ""}</div><table class="quote-doc-items"><thead><tr><th>Concepto</th>${internal ? "<th>Coste</th><th>Margen añadido</th>" : columns.map(([, label]) => `<th>${label}</th>`).join("")}<th>Importe sin IVA</th></tr></thead><tbody>${internal ? rows : customerRows}</tbody></table>${(internal || options.observations) && draft.observations ? `<section class="quote-doc-notes"><h2>OBSERVACIONES</h2><p>${lines(draft.observations)}</p></section>` : ""}${(internal || options.conditions) && company.conditions ? `<section class="quote-doc-notes"><h2>CONDICIONES</h2><p>${lines(company.conditions)}</p></section>` : ""}${internal && pricing(draft).priceMode === "fixed" ? `<p>Tarifa de venta del vidrio: ${money(num(pricing(draft).fixedPrice))}/m²</p>` : ""}${internal ? `<p>Coste interno: ${money(breakdown.cost)}<br>${draft.lines.some((l) => l.kind === "aluminum") ? "El aluminio aplica su incremento propio por línea. " : ""}${pricing(draft).priceMode === "fixed" ? "Diferencia entre venta y coste" : `Margen sobre ${pricing(draft).marginScope === "glass" ? "coste del cristal, del canto pulido y de los recargos" : pricing(draft).marginMode === "sale" ? "venta sin IVA" : "coste"} (${esc(pricing(draft).margin || 0)} %)`}: ${money(breakdown.margin)}</p>` : ""}<footer class="quote-doc-footer"><div class="quote-doc-summary">${hasGlass && (internal || options.quantity) ? `<span>Total unidades: ${breakdown.lines.reduce((n, a, i) => n + (["concept", "aluminum"].includes(draft.lines[i].kind) ? 0 : a.qty), 0)}</span>` : ""}${
+      )}</section></div></header><div class="quote-doc-dates"><p><strong>Fecha oferta:</strong> ${esc(dateLabel(draft.date))}</p>${showValidity ? `<p><strong>Fecha validez:</strong> ${esc(dateLabel(addDays(draft.date, Number(company.validity) || 30)))}</p>` : ""}${draft.job ? `<p><strong>Parte relacionado:</strong> ${esc(draft.job)}</p>` : ""}</div>${internal ? glassCostTables(breakdown) : ""}<table class="quote-doc-items"><thead><tr><th>Concepto</th>${internal ? "<th>Coste</th><th>Margen añadido</th>" : columns.map(([, label]) => `<th>${label}</th>`).join("")}<th>Importe sin IVA</th></tr></thead><tbody>${internal ? rows : customerRows}</tbody></table>${(internal || options.observations) && draft.observations ? `<section class="quote-doc-notes"><h2>OBSERVACIONES</h2><p>${lines(draft.observations)}</p></section>` : ""}${(internal || options.conditions) && company.conditions ? `<section class="quote-doc-notes"><h2>CONDICIONES</h2><p>${lines(company.conditions)}</p></section>` : ""}${internal && pricing(draft).priceMode === "fixed" ? `<p>Tarifa de venta del vidrio: ${money(num(pricing(draft).fixedPrice))}/m²</p>` : ""}${internal ? `<p>${costSummary(breakdown)}<br>${draft.lines.some((l) => l.kind === "aluminum") ? "El aluminio aplica su incremento propio por línea. " : ""}${pricing(draft).priceMode === "fixed" ? "Diferencia entre venta y coste" : `Margen sobre ${pricing(draft).marginScope === "glass" ? "coste del cristal, del canto pulido y de los recargos" : pricing(draft).marginMode === "sale" ? "venta sin IVA" : "coste"} (${esc(pricing(draft).margin || 0)} %)`}</p>` : ""}<footer class="quote-doc-footer"><div class="quote-doc-summary">${hasGlass && (internal || options.quantity) ? `<span>Total unidades: ${breakdown.lines.reduce((n, a, i) => n + (["concept", "aluminum"].includes(draft.lines[i].kind) ? 0 : a.qty), 0)}</span>` : ""}${
       hasGlass && (internal || options.area)
         ? `<span>Total m²: ${number(
             breakdown.lines.reduce(
@@ -1607,20 +1670,21 @@
       showClientMatches();
       document.querySelector(".quote-customer").outerHTML = customerFields();
     }
+    const breakdown = details(draft);
     document.querySelectorAll(".quote-line").forEach((el) => {
-      const line = draft.lines[Number(el.dataset.line)];
+      const i = Number(el.dataset.line);
+      const line = draft.lines[i];
       if (line.kind === "aluminum")
         el.querySelector(".quote-aluminum-result").textContent =
-          "Venta sin IVA: " +
-          money(details(draft).lines[Number(el.dataset.line)].sale);
+          "Venta sin IVA: " + money(breakdown.lines[i].sale);
       else if (line.kind !== "concept")
         el.querySelector(".quote-result").innerHTML = lineResult(
-          details(draft).lines[Number(el.dataset.line)],
+          breakdown.lines[i],
           line,
         );
     });
     const host = document.querySelector(".quote-total-breakdown");
-    if (host) host.innerHTML = totalResult(details(draft));
+    if (host) host.innerHTML = totalResult(breakdown);
   };
   window.vidresQuotesForJob = (id) =>
     quotes()

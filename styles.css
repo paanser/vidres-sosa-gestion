@@ -986,8 +986,67 @@ textarea:focus {
   color: var(--vs-green);
   margin-bottom: 8px;
 }
-.quote-total-breakdown strong {
-  margin-left: 10px;
+.quote-glass-cost {
+  width: 100%;
+  margin: 0 0 12px;
+  border-collapse: collapse;
+  font-size: 13px;
+  line-height: 1.35;
+}
+.quote-glass-cost caption {
+  padding: 8px 6px;
+  text-align: left;
+  font-weight: 700;
+  color: var(--vs-green);
+}
+.quote-glass-cost th,
+.quote-glass-cost td {
+  padding: 6px;
+  border-bottom: 1px solid #dbe9df;
+  text-align: right;
+}
+.quote-glass-cost th:first-child {
+  text-align: left;
+}
+.quote-glass-cost td {
+  white-space: nowrap;
+}
+.quote-glass-cost tbody th {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.quote-glass-cost .quote-cost-subtotal {
+  background: #e8f2ec;
+  font-weight: 700;
+}
+.quote-glass-cost .quote-cost-subtotal th {
+  font-weight: inherit;
+}
+.quote-cost-rounding {
+  margin-bottom: 10px;
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.quote-other-cost {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
+}
+.quote-price-summary {
+  border-top: 1px solid #dbe9df;
+  padding-top: 8px;
+  text-align: right;
+}
+@media (max-width: 480px) {
+  .quote-total {
+    padding: 12px;
+  }
+  .quote-glass-cost th,
+  .quote-glass-cost td {
+    padding: 5px 3px;
+  }
 }
 .quote-grand-total {
   font-size: 25px;

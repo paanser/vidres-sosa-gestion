@@ -201,6 +201,20 @@ module.exports = async function checkQuotes(page, context, root) {
   assert.match(internal, /Montaje interno reservado/);
   assert.match(internal, /390,59/);
 
+  const internalBreakdown = page.locator("#quote-print .quote-glass-cost");
+  assert.equal(await internalBreakdown.count(), 1);
+  assert.equal(
+    await internalBreakdown.locator("tbody").textContent(),
+    await page
+      .locator(".quote-total-breakdown .quote-glass-cost tbody")
+      .textContent(),
+  );
+  assert.match(internal, /PDF interno|No entregar al cliente/);
+  assert.match(
+    await page.locator("#quote-pdf-result").textContent(),
+    /PDF interno preparado/,
+  );
+
   // El porcentaje comercial inválido y los costes negativos no se guardan.
   const key = "vs-quote-prototype-v1";
   const countBefore = await page.evaluate(
@@ -502,7 +516,7 @@ module.exports = async function checkQuotes(page, context, root) {
   await page.locator('[data-quick-edge="top"]').check();
   assert.match(
     await page.locator("#quick-result").textContent(),
-    /Importe del pulido: 4,50/,
+    /Pulido · [^€]*€\/ml4,50[^€]*€4,50/,
   );
   await page.locator('[data-field="edgeMode"]').selectOption("tariff");
   assert.equal(
@@ -515,7 +529,7 @@ module.exports = async function checkQuotes(page, context, root) {
   );
   assert.match(
     await page.locator("#quick-result").textContent(),
-    /Importe del pulido: 6,00/,
+    /Pulido · [^€]*€\/ml6,00[^€]*€6,00/,
   );
   await selectBySearch(
     page,
@@ -531,7 +545,7 @@ module.exports = async function checkQuotes(page, context, root) {
   await set("#quick-qty", "2");
   assert.match(
     await page.locator("#quick-result").textContent(),
-    /Importe del pulido: 18,00/,
+    /Pulido · [^€]*€\/ml9,00[^€]*€18,00/,
   );
   await set("#quick-qty", "1");
   await selectBySearch(page, '[data-field="edgeTariff"]', "test-edge");
@@ -542,7 +556,7 @@ module.exports = async function checkQuotes(page, context, root) {
   await page.locator('[data-field="doubleGlazing"]').check();
   assert.match(
     await page.locator("#quick-result").textContent(),
-    /Importe del pulido: 12,00/,
+    /Pulido · [^€]*€\/ml12,00[^€]*€12,00/,
   );
   await page.locator("#quick-save").click();
   await page.waitForSelector("#quote-save");
@@ -616,7 +630,83 @@ module.exports = async function checkQuotes(page, context, root) {
   console.log(
     "PASS tarifa desde Ajustes: normal, rápido, duplicado y conservación de guardados",
   );
-  await page.evaluate(() => window.vidresNavigate("inicio"));
+  // Reproduce un presupuesto de dos piezas, incluido el redondeo del cristal.
+  await page.locator("#quote-close").click();
+  const exampleId = "P-TEST-DESGLOSE";
+  await page.evaluate(async (id) => {
+    const key = "vs-quote-prototype-v1";
+    const quote = {
+      id,
+      client: "Cliente ficticio de desglose",
+      date: "2026-11-23",
+      pricing: {
+        marginScope: "glass",
+        marginMode: "cost",
+        margin: 80,
+        energyMode: "kg",
+        energy: 0.32,
+        vat: 21,
+      },
+      lines: [
+        {
+          w: 200,
+          h: 200,
+          qty: 2,
+          glass: "Plata incolora 5",
+          price: 32.58,
+          thickness: 5,
+          edgePrice: 3,
+          sides: ["top", "bottom", "left", "right"],
+          extraDescription: "Montaje y marco",
+          extraAmount: 200,
+        },
+      ],
+    };
+    await VSStorage.write(key, [...VSStorage.read(key, []), quote]);
+    vidresQuoteOpenSaved(id);
+    window.addEventListener(
+      "vidres-pdf-ready",
+      (event) => {
+        window.breakdownPDF = event.detail;
+      },
+      { once: true },
+    );
+  }, exampleId);
+  const summary = page.locator(".quote-total-breakdown");
+  const costRows = await summary
+    .locator(".quote-glass-cost tbody tr")
+    .allTextContents();
+  assert.match(costRows[0], /4,1616 m²8,3232 m²/);
+  assert.match(
+    costRows.find((row) => row.startsWith("Cristal")),
+    /32,58\s*€\/m²135,58\s*€271,17/,
+  );
+  assert.match(
+    costRows.find((row) => row.startsWith("Pulido")),
+    /24,00\s*€48,00/,
+  );
+  assert.match(
+    costRows.find((row) => row.startsWith("Recargo energético")),
+    /16,00\s*€32,00/,
+  );
+  assert.match(await summary.textContent(), /551,17.*280,94.*832,11.*1006,85/);
+  assert.match(await summary.textContent(), /se muestran redondeados/);
+  await page.locator("#quote-pdf-internal").click();
+  assert.deepEqual(
+    await page
+      .locator("#quote-print .quote-glass-cost tbody tr")
+      .allTextContents(),
+    costRows,
+  );
+  assert.equal(await page.evaluate(() => window.breakdownPDF?.pages), 1);
+  await page.evaluate(async (id) => {
+    const key = "vs-quote-prototype-v1";
+    await VSStorage.write(
+      key,
+      VSStorage.read(key, []).filter((q) => q.id !== id),
+    );
+    vidresNavigate("inicio");
+  }, exampleId);
   console.log(
     "PASS presupuestos: incremento solo vidrio y tarifas Reuglass, extras, concepto libre, PDF interno/cliente, WhatsApp, validación, persistencia y 390/768/1024/1440 px",
   );

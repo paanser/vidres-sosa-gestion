@@ -132,6 +132,39 @@
         bodyStyles: { textColor: muted, fontSize: 9 },
       });
     }
+    for (const costs of host.querySelectorAll(".quote-glass-cost")) {
+      table({
+        head: [
+          [{ content: textOf(costs.caption), colSpan: 3 }],
+          [...costs.tHead.rows[0].cells].map(textOf),
+        ],
+        body: [...costs.tBodies[0].rows].map((row) =>
+          [...row.cells].map(textOf),
+        ),
+        styles: {
+          fontSize: 9,
+          cellPadding: { top: 1.1, bottom: 1.1, left: 2, right: 2 },
+        },
+        rowPageBreak: "avoid",
+        columnStyles: {
+          0: { cellWidth: 102 },
+          1: { cellWidth: 40, halign: "right" },
+          2: { cellWidth: 40, halign: "right" },
+        },
+        didParseCell({ cell, column, row, section }) {
+          if (section === "head" && row.index === 1 && column.index > 0)
+            cell.styles.halign = "right";
+          if (
+            section === "body" &&
+            costs.tBodies[0].rows[row.index].classList.contains(
+              "quote-cost-subtotal",
+            )
+          )
+            cell.styles.fontStyle = "bold";
+        },
+      });
+    }
+    paragraph(textOf(host.querySelector(".quote-cost-rounding")));
     const items = host.querySelector(".quote-doc-items");
     const headers = [...items.querySelectorAll("thead th")].map(textOf);
     const rows = [...items.querySelectorAll("tbody tr")];
@@ -152,6 +185,7 @@
       head: [headers],
       body: rows.map((row) => [...row.cells].map(textOf)),
       rowPageBreak: "avoid",
+      styles: internal ? { cellPadding: 2.5 } : undefined,
       columnStyles: { 0: { cellWidth: headers.length === 2 ? 140 : "auto" } },
       didParseCell(data) {
         if (data.column.index > 0) data.cell.styles.halign = "right";
@@ -195,8 +229,10 @@
       paragraph(textOf(section.querySelector("h2")), true);
       paragraph(textOf(section.querySelector("p")));
     });
-    const internalCost = [...host.children].find((el) => el.tagName === "P");
-    paragraph(textOf(internalCost));
+    for (const internalCost of [...host.children].filter(
+      (el) => el.tagName === "P",
+    ))
+      paragraph(textOf(internalCost));
     const summary = [...host.querySelectorAll(".quote-doc-summary span")];
     paragraph(summary.map(textOf).join("   ·   "));
     const totals = host.querySelector(".quote-doc-totals");

@@ -227,8 +227,9 @@
       ),
       real = (w * h) / 10000;
     const edgeParts = line.doubleGlazing ? 2 : 1;
-    const subtotal =
-      (area * num(line.price) + ml * edgeParts * num(line.edgePrice)) * qty;
+    const glassUnitCost = area * num(line.price);
+    const polishingUnitCost = ml * edgeParts * num(line.edgePrice);
+    const subtotal = (glassUnitCost + polishingUnitCost) * qty;
     const thickness = num(line.thickness);
     const weight = ["concept", "aluminum"].includes(line.kind)
       ? 0
@@ -257,6 +258,8 @@
       weight,
       thickness,
       energy,
+      glassUnitCost,
+      polishingUnitCost,
       total: subtotal + energy + surcharge + extras.supplementTotal,
     };
   }

@@ -267,7 +267,7 @@
     return { base, iva, total: round2(base + iva) };
   }
   // Los importes adicionales son por línea completa, no por pieza.
-  // El incremento del vidrio incluye cantos, energía y extras asociados.
+  // El margen del vidrio incluye el pulido y los recargos calculados.
   function quoteDetails(quote) {
     const config = quote.pricing || {},
       marginRate = num(config.margin),
@@ -295,38 +295,26 @@
           };
         }
         const dimensions = calc(line, config),
-          glassCost = round2(
-            line.kind === "concept" ? num(line.amount) : dimensions.total,
-          ),
-          extraCost =
-            line.kind === "concept" ? 0 : round2(num(line.extraAmount)),
+          isConcept = line.kind === "concept",
+          fixedPrice = config.priceMode === "fixed",
+          glassCost = round2(isConcept ? num(line.amount) : dimensions.total),
+          extraCost = isConcept ? 0 : round2(num(line.extraAmount)),
           cost = round2(glassCost + extraCost),
-          marginBase =
-            config.marginScope === "glass"
-              ? line.kind === "concept"
-                ? 0
-                : cost
-              : cost,
           sale = round2(
-            config.priceMode === "fixed" && line.kind !== "concept"
-              ? cost +
+            isConcept
+              ? cost
+              : fixedPrice
+                ? cost +
                   dimensions.area *
                     dimensions.qty *
                     (num(config.fixedPrice) - num(line.price))
-              : config.marginScope === "glass"
-                ? cost + marginBase * (factor - 1)
-                : cost * factor,
+                : glassCost * factor + extraCost,
           ),
           separate = line.extraMode === "separate",
-          extraSale = separate
-            ? round2(extraCost * (config.priceMode === "fixed" ? 1 : factor))
-            : 0,
+          extraSale = separate ? extraCost : 0,
           energySale =
-            config.energySeparate === true && line.kind !== "concept"
-              ? round2(
-                  dimensions.energy *
-                    (config.priceMode === "fixed" ? 1 : factor),
-                )
+            config.energySeparate === true && !isConcept
+              ? round2(dimensions.energy * (fixedPrice ? 1 : factor))
               : 0;
         return {
           ...dimensions,

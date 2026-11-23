@@ -128,11 +128,11 @@ module.exports = async function checkQuotes(page, context, root) {
   await set("#quote-margin", "20");
   assert.match(
     await page.locator(".quote-grand-total").textContent(),
-    /281,69/,
+    /269,59/,
   );
   assert.match(
     await page.locator(".quote-line-sale").textContent(),
-    /Precio de esta partida sin IVA: 232,80/,
+    /Precio de esta partida sin IVA: 222,80/,
   );
   await page.locator("#quote-add").click();
   const second = page.locator('.quote-line[data-line="1"]');
@@ -148,7 +148,7 @@ module.exports = async function checkQuotes(page, context, root) {
     await page
       .locator('.quote-line[data-line="0"] .quote-line-sale')
       .textContent(),
-    /232,80/,
+    /222,80/,
   );
   await page.locator("#quote-margin").fill("0");
   assert.match(
@@ -163,11 +163,11 @@ module.exports = async function checkQuotes(page, context, root) {
   await set('[data-field="amount"]', "100");
   assert.match(
     await page.locator(".quote-grand-total").textContent(),
-    /402,69/,
+    /390,59/,
   );
   await page.locator("#quote-pdf").click();
   let client = await page.locator("#quote-print").textContent();
-  assert.match(client, /402,69/);
+  assert.match(client, /390,59/);
   assert.ok(client.includes(description));
   assert.doesNotMatch(client, /Coste|Margen|Montaje interno reservado/);
   assert.equal(
@@ -178,28 +178,28 @@ module.exports = async function checkQuotes(page, context, root) {
   let message = await page
     .locator('#quote-message-form [name="mensaje"]')
     .inputValue();
-  assert.match(message, /402,69/);
+  assert.match(message, /390,59/);
   assert.doesNotMatch(message, /Coste|Margen|Montaje interno reservado/);
   await page.locator("#quote-message-cancel").click();
   await page.locator('[data-field="extraMode"]').selectOption("separate");
   await page.locator("#quote-pdf").click();
   client = await page.locator("#quote-print").textContent();
   assert.match(client, /Montaje interno reservado/);
-  assert.match(client, /60,00/);
-  assert.match(client, /402,69/);
+  assert.match(client, /50,00/);
+  assert.match(client, /390,59/);
   await page.locator("#quote-whatsapp").click();
   message = await page
     .locator('#quote-message-form [name="mensaje"]')
     .inputValue();
-  assert.match(message, /Montaje interno reservado:.*60,00/);
+  assert.match(message, /Montaje interno reservado:.*50,00/);
   await page.locator("#quote-message-cancel").click();
   await page.locator("#quote-pdf-internal").click();
   const internal = await page.locator("#quote-print").textContent();
   assert.match(internal, /No entregar al cliente/);
   assert.match(internal, /Coste interno/);
-  assert.match(internal, /coste total del vidrio.*20 %/);
+  assert.match(internal, /coste del cristal.*20 %/);
   assert.match(internal, /Montaje interno reservado/);
-  assert.match(internal, /402,69/);
+  assert.match(internal, /390,59/);
 
   // El porcentaje comercial inválido y los costes negativos no se guardan.
   const key = "vs-quote-prototype-v1";
@@ -245,7 +245,7 @@ module.exports = async function checkQuotes(page, context, root) {
   await page.evaluate((id) => window.vidresQuoteOpenSaved(id), saved.id);
   assert.match(
     await page.locator(".quote-grand-total").textContent(),
-    /402,69/,
+    /390,59/,
   );
   assert.equal(
     await page.locator('[data-field="description"]').inputValue(),
@@ -255,7 +255,7 @@ module.exports = async function checkQuotes(page, context, root) {
   await page.locator(`[data-duplicate="${saved.id}"]`).click();
   assert.match(
     await page.locator(".quote-grand-total").textContent(),
-    /402,69/,
+    /390,59/,
   );
   assert.equal(await page.locator('[data-field="price"]').inputValue(), "100");
 

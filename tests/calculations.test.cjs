@@ -79,9 +79,10 @@ test("presupuestos antiguos conservan importes y redondeo fiscal", () => {
   );
 });
 
-test("margen seleccionable sobre coste o venta y conceptos sin tarifa ni medidas", () => {
+test("el concepto libre mantiene su importe con margen sobre coste o venta", () => {
   const q = {
     lines: [
+      { w: 120, h: 120, price: 100 },
       {
         kind: "concept",
         description: "Trabajo fuera de tarifa",
@@ -90,40 +91,38 @@ test("margen seleccionable sobre coste o venta y conceptos sin tarifa ni medidas
     ],
     pricing: { margin: 20, marginMode: "cost", vat: 21 },
   };
-  assert.deepEqual(quoteDetails(q).totals, {
-    base: 120,
-    iva: 25.2,
-    total: 145.2,
-  });
+  assert.equal(quoteDetails(q).totals.base, 272.8);
+  assert.equal(quoteDetails(q).lines[1].sale, 100);
   q.pricing.marginMode = "sale";
   assert.deepEqual(quoteDetails(q).totals, {
-    base: 125,
-    iva: 26.25,
-    total: 151.25,
+    base: 280,
+    iva: 58.8,
+    total: 338.8,
   });
-  assert.equal(quoteDetails(q).margin, 25);
+  assert.equal(quoteDetails(q).margin, 36);
+  assert.equal(quoteDetails(q).lines[1].margin, 0);
   q.pricing.margin = 100;
   assert.ok(!Number.isFinite(quoteDetails(q).totals.total));
-  q.pricing.margin = 0;
+  q.lines.shift();
   assert.deepEqual(quoteDetails(q).totals, { base: 100, iva: 21, total: 121 });
 });
 
-test("margen sobre coste, importe libre por línea y presentación sin cambiar el total", () => {
+test("el importe adicional conserva su valor al incluirlo o separarlo", () => {
   const q = {
     lines: [{ w: 120, h: 120, qty: 2, price: 100, extraAmount: "50,50" }],
     pricing: { margin: "20", vat: 21 },
   };
   const included = quoteDetails(q);
   assert.equal(included.cost, 338.5);
-  assert.equal(included.margin, 67.7);
-  assert.deepEqual(included.totals, { base: 406.2, iva: 85.3, total: 491.5 });
-  assert.equal(included.lines[0].glassSale, 406.2);
+  assert.equal(included.margin, 57.6);
+  assert.deepEqual(included.totals, { base: 396.1, iva: 83.18, total: 479.28 });
+  assert.equal(included.lines[0].glassSale, 396.1);
   assert.equal(included.lines[0].extraSale, 0);
   q.lines[0].extraMode = "separate";
   const separate = quoteDetails(q);
   assert.deepEqual(separate.totals, included.totals);
   assert.equal(separate.lines[0].glassSale, 345.6);
-  assert.equal(separate.lines[0].extraSale, 60.6);
+  assert.equal(separate.lines[0].extraSale, 50.5);
 });
 
 test("margen incluye cantos y energía; suma de conceptos coincide con base y total", () => {
@@ -157,7 +156,7 @@ test("margen incluye cantos y energía; suma de conceptos coincide con base y to
   assert.equal(result.totals.iva, round2(result.totals.base * 0.1));
 });
 
-test("incremento sobre todo el coste del vidrio, con cantos, energía y manufacturas asociadas", () => {
+test("incremento sobre cristal, pulido y recargo energético con conceptos libres aparte", () => {
   const q = {
     pricing: {
       marginScope: "glass",
@@ -182,15 +181,15 @@ test("incremento sobre todo el coste del vidrio, con cantos, energía y manufact
     ],
   };
   const result = quoteDetails(q);
-  assert.equal(result.margin, 78.64);
-  assert.equal(result.lines[0].extraSale, 60);
+  assert.equal(result.margin, 68.64);
+  assert.equal(result.lines[0].extraSale, 50);
   assert.equal(result.lines[1].sale, 100);
   assert.equal(result.cost, 493.2);
-  assert.deepEqual(result.totals, { base: 571.84, iva: 120.09, total: 691.93 });
+  assert.deepEqual(result.totals, { base: 561.84, iva: 117.99, total: 679.83 });
   q.lines[0].extraMode = "included";
   assert.deepEqual(quoteDetails(q).totals, result.totals);
   q.pricing.margin = 100;
-  assert.equal(quoteDetails(q).margin, 393.2);
+  assert.equal(quoteDetails(q).margin, 343.2);
 });
 
 test("aluminio: incremento propio, vidrio independiente e IVA sobre venta", () => {
@@ -514,7 +513,7 @@ test("suplementos por medidas y metraje: umbrales reales, tramos y desactivació
   assert.equal(calc({ w: 300, h: 300, price: 100 }).supplementTotal, 360);
 });
 
-test("100 € de coste completo con 100 % de margen son 200 € antes de IVA", () => {
+test("75 € de cristal, pulido y recargo con 100 % de margen más 25 € de importe adicional", () => {
   const q = {
     pricing: {
       marginScope: "glass",
@@ -540,9 +539,9 @@ test("100 € de coste completo con 100 % de margen son 200 € antes de IVA", (
   };
   const result = quoteDetails(q);
   assert.equal(result.cost, 100);
-  assert.equal(result.margin, 100);
-  assert.deepEqual(result.totals, { base: 200, iva: 42, total: 242 });
-  assert.equal(result.lines[0].extraSale, 50);
+  assert.equal(result.margin, 75);
+  assert.deepEqual(result.totals, { base: 175, iva: 36.75, total: 211.75 });
+  assert.equal(result.lines[0].extraSale, 25);
   assert.equal(result.lines[0].energySale, 30);
   q.lines[0].extraMode = "included";
   q.pricing.energySeparate = false;

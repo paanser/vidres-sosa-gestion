@@ -298,8 +298,8 @@ del primer vidrio, después de la configuración del acristalamiento.
 
 ## Margen comercial del vidrio
 
-El porcentaje se aplica sobre el coste total del vidrio, incluidos cantos,
-manufacturas, mano de obra, recargos energéticos y extras asociados. Por ejemplo,
-100 € de coste total con un margen del 100 % son 200 € de venta antes de IVA.
-Mostrar recargos o extras por separado no cambia el margen ni el total. Los
-conceptos libres independientes y el aluminio conservan su tratamiento propio.
+El porcentaje se aplica al coste del cristal, del canto pulido y de los recargos
+calculados, incluido el energético. Los importes adicionales de una línea y los
+conceptos libres se suman por su valor antes de IVA. Mostrar los recargos o los
+importes adicionales por separado mantiene el mismo total. El aluminio aplica
+su propio incremento por línea.

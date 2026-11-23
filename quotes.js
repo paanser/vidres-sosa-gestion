@@ -1660,7 +1660,7 @@
     }
   };
   window.vidresQuoteInput = (event) => {
-    if (!validPriceFields()) return;
+    if (!draft || !validPriceFields()) return;
     if (quickMode) {
       updateQuickResult();
       return;

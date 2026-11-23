@@ -367,7 +367,7 @@ export function checked(values) {
       strings(l, { extraDescription: 160 });
       if (
         l.extraMode != null &&
-        !["included", "separate"].includes(l.extraMode)
+        !["description", "included", "separate"].includes(l.extraMode)
       )
         fail(400, "Presentación del concepto no válida");
       if (

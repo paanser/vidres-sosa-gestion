@@ -123,6 +123,7 @@ module.exports = async function checkQuotes(page, context, root) {
   await set('[data-field="w"]', "1.200");
   await set('[data-field="h"]', "1.200");
   await set('[data-field="price"]', "100");
+  await page.locator('[data-field="extraMode"]').selectOption("included");
   await set('[data-field="extraDescription"]', "Montaje interno reservado");
   await set('[data-field="extraAmount"]', "50");
   await set("#quote-margin", "20");
@@ -256,7 +257,15 @@ module.exports = async function checkQuotes(page, context, root) {
   assert.equal(saved.lines[1].description, description);
   await page.reload();
   await page.locator("#title").filter({ hasText: "Inicio" }).waitFor();
-  await page.evaluate((id) => window.vidresQuoteOpenSaved(id), saved.id);
+  await page.evaluate(() => window.vidresNavigate("presupuestos"));
+  await page.locator(`[data-saved-quote="${saved.id}"] summary`).click();
+  await page.getByRole("button", { name: "Editar partidas" }).click();
+  assert.equal(
+    await page
+      .locator("#quote-lines-title")
+      .evaluate((title) => document.activeElement === title),
+    true,
+  );
   assert.match(
     await page.locator(".quote-grand-total").textContent(),
     /390,59/,

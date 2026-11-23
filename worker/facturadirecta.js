@@ -32,21 +32,17 @@ export function quoteInvoice(quote, tariffs = []) {
       .replace(/\s*·\s*(MF|Sustituciones|Templado)\s*$/i, "")
       .trim();
     const description = `${name || "Vidrio"} · ${utils.formatMeters(value.w)} × ${utils.formatMeters(value.h)} m · ${value.qty} ud.`;
+    const extra = calculations.customerExtra(line, value);
     return [
       { description, amount: cents(value.glassSale) },
+      ...(extra
+        ? [{ description: extra.description, amount: cents(extra.amount ?? 0) }]
+        : []),
       ...(value.energySale
         ? [
             {
               description: "Recargo energético",
               amount: cents(value.energySale),
-            },
-          ]
-        : []),
-      ...(value.separate && value.extraCost
-        ? [
-            {
-              description: line.extraDescription || "Otros conceptos",
-              amount: cents(value.extraSale),
             },
           ]
         : []),

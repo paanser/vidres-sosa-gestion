@@ -102,6 +102,18 @@ module.exports = async function checkQuoteDocument(page, context, root) {
   const total = await page.locator(".quote-grand-total").textContent();
   await page.locator('[data-pdf-option="unitPrice"]').check();
   await page.locator("#quote-pdf").click();
+  const extraRow = page.locator("#quote-print .quote-doc-extra");
+  assert.equal(
+    await extraRow.locator("td").first().textContent(),
+    "Coste reservado de montaje",
+  );
+  assert.equal(await extraRow.locator("td").last().textContent(), "");
+  assert.match(
+    await extraRow.evaluate((row) => row.previousElementSibling.textContent),
+    /^Vidrio con montaje incluido/,
+  );
+  await page.locator('[data-field="extraMode"]').selectOption("included");
+  await page.locator("#quote-pdf").click();
   let printed = await page.locator("#quote-print").textContent();
   assert.match(printed, /Vidres Sosa/);
   assert.match(printed, /NIF DE EJEMPLO/);

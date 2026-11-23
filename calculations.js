@@ -380,7 +380,19 @@
       pending,
     };
   }
+  function customerExtra(line, result) {
+    const description = line.extraDescription?.trim();
+    if (result.separate && result.extraCost)
+      return {
+        description: description || "Otros conceptos",
+        amount: result.extraSale,
+      };
+    if (description && (line.extraMode === "description" || result.separate))
+      return { description, amount: null };
+    return null;
+  }
   const api = {
+    customerExtra,
     calc,
     surchargeRules,
     totals,

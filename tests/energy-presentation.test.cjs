@@ -35,10 +35,24 @@ test("FacturaDirecta conserva el recargo separado y los importes del presupuesto
   assert.deepEqual(separate.totals, included.totals);
   assert.deepEqual(
     separate.lines.map((l) => l.unitPrice),
-    ["124.85", "24.00", "25.00"],
+    ["124.85", "25.00", "24.00"],
   );
-  assert.equal(separate.lines[1].description, "Recargo energético");
+  assert.equal(separate.lines[1].description, "Montaje");
+  assert.equal(separate.lines[2].description, "Recargo energético");
+  const described = {
+    ...quote,
+    lines: [{ ...quote.lines[0], extraMode: "description" }],
+  };
+  const describedInvoice = quoteInvoice(described);
+  assert.deepEqual(describedInvoice.totals, included.totals);
+  assert.equal(describedInvoice.lines[0].unitPrice, "173.85");
+  assert.deepEqual(describedInvoice.lines[1], {
+    description: "Montaje",
+    quantity: 1,
+    unitPrice: "0.00",
+  });
   const { checked, KEYS } = await import("../worker/data.js");
+  assert.doesNotThrow(() => checked({ [KEYS.presupuestos]: [described] }));
   for (const energySeparate of [true, false])
     assert.doesNotThrow(() =>
       checked({

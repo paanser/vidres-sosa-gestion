@@ -304,6 +304,13 @@ window.vidresAppReady = (async () => {
   function jobCards(items, editableStatus = false) {
     if (!items.length)
       return '<div class="empty-state"><strong>No hay trabajos que coincidan</strong><p>Prueba otros filtros o crea un nuevo parte.</p></div>';
+    const quotedJobs = new Set(
+      page === "trabajos"
+        ? VSStorage.read(VSStorage.keys.presupuestos, []).map(
+            (quote) => quote.job,
+          )
+        : [],
+    );
     return (
       '<div class="job-cards">' +
       items
@@ -325,7 +332,11 @@ window.vidresAppReady = (async () => {
             esc(j.responsable || "Sin asignar") +
             "</span><span>" +
             esc(j.tipoCliente || "Particular") +
-            '</span><span class="job-created">Creación: ' +
+            "</span>" +
+            (quotedJobs.has(j.id)
+              ? '<span><b class="job-quote-check" aria-hidden="true">✓</b> Presupuesto</span>'
+              : "") +
+            '<span class="job-created">Creación: ' +
             esc(VSUtils.jobCreatedDate(j) || "Sin fecha registrada") +
             '</span></div><button type="button" class="job-open" data-id="' +
             esc(j.id) +

@@ -8,6 +8,10 @@ module.exports = async (page) => {
   }));
   await page.evaluate(async () => {
     window.jobListOriginal = window.vidresGetJobs();
+    window.jobListOriginalQuotes = VSStorage.read(
+      VSStorage.keys.presupuestos,
+      [],
+    );
     const fixture = (id, cliente, responsable, fecha) => ({
       id,
       cliente: "OrdenFixture " + cliente,
@@ -17,18 +21,40 @@ module.exports = async (page) => {
       descripcion: "Prueba de orden y filtros",
       historial: fecha ? [{ de: "", a: "Pendiente", fecha }] : [],
     });
-    await VSStorage.write(VSStorage.keys.trabajos, [
-      ...window.jobListOriginal,
-      fixture("ORDER-10", "Zeta", "Pau", "2026-11-10T12:00:00Z"),
-      fixture("ORDER-2", "Ana", "Pau", "2026-11-11T12:00:00Z"),
-      fixture("ORDER-3", "Bea", "Otro", "2026-11-11T14:00:00Z"),
-      fixture("ORDER-4", "Sin fecha", "Pau", ""),
-    ]);
+    await VSStorage.patchValues({
+      [VSStorage.keys.trabajos]: [
+        ...window.jobListOriginal,
+        fixture("ORDER-10", "Zeta", "Pau", "2026-11-10T12:00:00Z"),
+        fixture("ORDER-2", "Ana", "Pau", "2026-11-11T12:00:00Z"),
+        fixture("ORDER-3", "Bea", "Otro", "2026-11-11T14:00:00Z"),
+        fixture("ORDER-4", "Sin fecha", "Pau", ""),
+      ],
+      [VSStorage.keys.presupuestos]: [
+        ...window.jobListOriginalQuotes,
+        {
+          id: "QUOTE-ORDER-2",
+          job: "ORDER-2",
+          client: "OrdenFixture Ana",
+          status: "Borrador",
+          lines: [{ kind: "concept", description: "Oferta", amount: 50 }],
+        },
+      ],
+    });
     window.vidresReloadData();
     window.vidresNavigate("trabajos");
   });
   const refs = () => page.locator(".job-ref").allTextContents();
   await page.locator("#search").fill("OrdenFixture");
+  const quoteBadges = page.locator(".job-meta .job-quote-check");
+  assert.equal(await quoteBadges.count(), 1);
+  assert.equal(
+    await page
+      .locator(".job-card")
+      .filter({ has: quoteBadges })
+      .locator(".job-ref")
+      .textContent(),
+    "ORDER-2",
+  );
   await page.locator("#job-order").selectOption("creation:desc");
   assert.deepEqual(await refs(), ["ORDER-3", "ORDER-2", "ORDER-10", "ORDER-4"]);
   await page.locator(".advanced-work-filters summary").click();
@@ -86,7 +112,10 @@ module.exports = async (page) => {
       if (value === null) localStorage.removeItem(key);
       else localStorage.setItem(key, value);
     }
-    await VSStorage.write(VSStorage.keys.trabajos, window.jobListOriginal);
+    await VSStorage.patchValues({
+      [VSStorage.keys.trabajos]: window.jobListOriginal,
+      [VSStorage.keys.presupuestos]: window.jobListOriginalQuotes,
+    });
     window.vidresReloadData();
     window.vidresNavigate("inicio");
   }, previousPreferences);

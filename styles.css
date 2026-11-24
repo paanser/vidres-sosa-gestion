@@ -1378,6 +1378,9 @@ textarea:focus {
   font-size: 12px;
   font-weight: 600;
 }
+.job-quote-check {
+  color: #18753b;
+}
 .job-open {
   background: #15523e;
   color: #fff;

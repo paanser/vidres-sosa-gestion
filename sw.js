@@ -1,6 +1,6 @@
 "use strict";
 const RELEASE = "__BUILD_VERSION__";
-const VERSION = RELEASE.startsWith("__") ? "20261123-editar-partidas" : RELEASE;
+const VERSION = RELEASE.startsWith("__") ? "20261124-hitos-ocultos" : RELEASE;
 const PREFIX = "vidres-sosa:" + self.registration.scope + ":",
   CACHE = PREFIX + VERSION;
 const ASSETS = [

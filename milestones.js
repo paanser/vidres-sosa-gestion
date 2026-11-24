@@ -1,5 +1,7 @@
 "use strict";
 (() => {
+  // Set to true to restore milestone buttons and filters.
+  const enabled = false;
   const labels = {
     M: "Medido",
     F: "Fabricado",
@@ -22,6 +24,7 @@
     return { record, kind };
   }
   function badges(record, kind = "job") {
+    if (!enabled) return "";
     const s = source(record, kind);
     return `<div class="milestones" role="group" aria-label="Hitos del expediente">${Object.entries(
       labels,
@@ -33,6 +36,7 @@
       .join("")}</div>`;
   }
   function controls(prefix) {
+    if (!enabled) return "";
     return `<div class="milestone-filters"><label>Hito<select id="${prefix}-milestone"><option value="">Todos los hitos</option>${Object.entries(
       labels,
     )
@@ -42,7 +46,6 @@
       )}</select></label><label>Situación<select id="${prefix}-completion"><option value="done">Completado</option><option value="pending">Pendiente</option></select></label></div>`;
   }
   function matches(record, kind, query, key, completion) {
-    const s = source(record, kind).record;
     const date = record.fecha || record.date || "";
     const text = [
       record.id,
@@ -55,12 +58,16 @@
     ].join(" ");
     return (
       (!query || normalize(text).includes(normalize(query))) &&
-      (!key || (s.hitos?.[key] === true) === (completion !== "pending"))
+      (!enabled ||
+        !key ||
+        (source(record, kind).record.hitos?.[key] === true) ===
+          (completion !== "pending"))
     );
   }
   document.addEventListener(
     "click",
     async (e) => {
+      if (!enabled) return;
       const b = e.target.closest("[data-milestone]");
       if (!b) return;
       e.stopImmediatePropagation();
@@ -105,5 +112,5 @@
     },
     true,
   );
-  window.VSMilestones = { badges, controls, matches };
+  window.VSMilestones = { enabled, badges, controls, matches };
 })();

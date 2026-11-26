@@ -533,7 +533,7 @@ export function stateStatements(db, values) {
   );
   return statements;
 }
-export async function saveState(req, db, auth) {
+export async function saveState(req, db, auth, onNewJobs) {
   const b = await readJSON(req, 8_000_000);
   if (!Number.isSafeInteger(b.revision) || b.revision < 0)
     fail(400, "Revisión no válida");
@@ -546,6 +546,13 @@ export async function saveState(req, db, auth) {
       values[KEYS.numeracion][year] || 0,
     );
   await atomic(db, auth, stateStatements(db, values), { revision: b.revision });
+  if (onNewJobs) {
+    const previousIds = new Set(old.values[KEYS.trabajos].map((job) => job.id));
+    const count = values[KEYS.trabajos].filter(
+      (job) => !previousIds.has(job.id),
+    ).length;
+    if (count) onNewJobs(count);
+  }
   return { revision: b.revision + 1, values };
 }
 export async function fileList(db) {

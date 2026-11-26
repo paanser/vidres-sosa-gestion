@@ -11,6 +11,7 @@ import { D1Files } from "./d1-files.js";
 import { maintenance } from "./maintenance.js";
 import { interpret } from "./ai.js";
 import { facturadirectaRoute } from "./facturadirecta.js";
+import { notificationsRoute, notifyNewJobs } from "./notifications.js";
 export default {
   async scheduled(controller, env, ctx) {
     const db = env.DB?.withSession
@@ -18,7 +19,7 @@ export default {
       : env.DB;
     ctx.waitUntil(maintenance({ ...env, FILES: env.FILES || new D1Files(db) }));
   },
-  async fetch(req, env) {
+  async fetch(req, env, ctx) {
     const origin = req.headers.get("Origin"),
       allowed = env.ALLOWED_ORIGIN || "https://paanser.github.io";
     const headers = {
@@ -113,9 +114,27 @@ export default {
         path.startsWith("/api/facturadirecta/quotes/")
       )
         return json(await facturadirectaRoute(req, db, auth, env, path));
+      if (path === "/notifications")
+        return json(await notificationsRoute(req, db, auth, env));
       if (path === "/api/state") {
         if (req.method === "GET") return json(await state(db));
-        if (req.method === "PUT") return json(await saveState(req, db, auth));
+        if (req.method === "PUT") {
+          return json(
+            await saveState(
+              req,
+              db,
+              auth,
+              ctx &&
+                ((count) => {
+                  ctx.waitUntil(
+                    notifyNewJobs(db, env, count).catch(() =>
+                      console.warn({ event: "push_broadcast_failed" }),
+                    ),
+                  );
+                }),
+            ),
+          );
+        }
       }
       if (path.startsWith("/api/files")) {
         const storageEnv = { ...env, FILES: env.FILES || new D1Files(db) };

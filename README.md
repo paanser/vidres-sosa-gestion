@@ -56,6 +56,12 @@ Las pruebas usan SQLite real mediante `node:sqlite` y el Worker con un proveedor
 
 El flujo de GitHub Actions valida pruebas y formato, y publica solo una lista explícita de archivos frontend. Excluye backend, configuración, copias y secretos del artefacto Pages. El Worker se despliega por separado.
 
+### Notificaciones de nuevos partes
+
+Aplica la migración D1 `0007_push_subscriptions.sql` al desplegar el Worker. Genera un par de claves VAPID con `npx web-push generate-vapid-keys` y configura `PUSH_PUBLIC_KEY`, `PUSH_PRIVATE_KEY` y `PUSH_SUBJECT` en Cloudflare Worker desde **Settings → Variables and Secrets**. Guarda la clave privada como secreto y usa como asunto una URL de contacto HTTPS o una dirección de contacto en formato `mailto:`. Conserva el mismo par de claves entre despliegues para mantener las suscripciones.
+
+En la app instalada, los avisos están activados por defecto. Al abrirla con la sesión iniciada, concede el permiso si el dispositivo lo solicita. Si ya estaba concedido, el registro se completa automáticamente. En iOS y iPadOS 16.4 o posterior, abre la app desde la pantalla de inicio. Puedes desactivar los avisos de este móvil en **Ajustes → Notificaciones**. La app conserva esta elección al volver a iniciar sesión.
+
 ## Documentación
 
 - [Seguridad, despliegue y migración](docs/SEGURIDAD-DESPLIEGUE.md).

@@ -929,3 +929,101 @@ test("inicio personal: preferencias aisladas por cuenta, persistencia y validaci
     home,
   );
 });
+
+test("los partes nuevos avisan a todos los móviles registrados tras el guardado", async (t) => {
+  const { createECDH, randomBytes } = require("node:crypto");
+  const keys = require("web-push").generateVAPIDKeys();
+  const env = {
+    ...setup(),
+    PUSH_PUBLIC_KEY: keys.publicKey,
+    PUSH_PRIVATE_KEY: keys.privateKey,
+    PUSH_SUBJECT: "mailto:push@example.com",
+  };
+  const { token } = await admin(env);
+  const second = await call(env, "/auth/login", "POST", {
+    usuario: "pau",
+    password: "changed-fixture-123",
+  });
+  assert.equal(second.status, 200);
+  const makeSubscription = (endpoint) => {
+    const client = createECDH("prime256v1");
+    return {
+      endpoint,
+      keys: {
+        p256dh: client.generateKeys().toString("base64url"),
+        auth: randomBytes(16).toString("base64url"),
+      },
+    };
+  };
+  const android = makeSubscription(
+    "https://fcm.googleapis.com/fcm/send/fixture",
+  );
+  const iphone = makeSubscription("https://web.push.apple.com/fixture");
+  const invalid = makeSubscription("https://example.com/fixture");
+  const path = "/notifications";
+  assert.equal((await call(env, path, "PUT", android)).status, 401);
+  assert.equal((await call(env, path, "PUT", invalid, token)).status, 400);
+  const status = (subscription, session) =>
+    call(env, path, "POST", { endpoint: subscription.endpoint }, session);
+  assert.equal((await status(android, token)).data.active, false);
+  assert.equal((await call(env, path, "PUT", android, token)).status, 200);
+  assert.equal(
+    (await call(env, path, "PUT", iphone, second.data.token)).status,
+    200,
+  );
+  assert.deepEqual((await status(android, token)).data, {
+    publicKey: keys.publicKey,
+    active: true,
+  });
+
+  const sends = [];
+  t.mock.method(globalThis, "fetch", async (endpoint, options) => {
+    sends.push({
+      endpoint,
+      encoding: options.headers.get("Content-Encoding"),
+      authorization: options.headers.get("Authorization"),
+      revision: env.DB.db.prepare("SELECT revision FROM workspace").get()
+        .revision,
+    });
+    return new Response(null, {
+      status: endpoint === iphone.endpoint ? 410 : 201,
+    });
+  });
+  const values = empty();
+  values["vidres-sosa-demo-v01"] = [job];
+  const pending = [];
+  const ctx = { waitUntil: (promise) => pending.push(promise) };
+  const save = (revision) =>
+    worker.fetch(
+      req("/api/state", "PUT", { revision, values }, token),
+      env,
+      ctx,
+    );
+  assert.equal((await save(0)).status, 200);
+  assert.equal(pending.length, 1);
+  await pending.pop();
+  assert.deepEqual(
+    sends.map((send) => send.endpoint).sort(),
+    [android.endpoint, iphone.endpoint].sort(),
+  );
+  for (const send of sends) {
+    assert.equal(send.revision, 1);
+    assert.equal(send.encoding, "aes128gcm");
+    assert.match(send.authorization, /^vapid /i);
+  }
+  assert.equal((await status(iphone, second.data.token)).data.active, false);
+
+  values["vidres-sosa-demo-v01"] = [{ ...job, descripcion: "Editado" }];
+  assert.equal((await save(1)).status, 200);
+  values["vidres-sosa-demo-v01"].push({ ...job, id: "VS-0002" });
+  assert.equal((await save(0)).status, 409);
+  assert.equal(pending.length, 0);
+  assert.equal(
+    (await call(env, "/auth/logout", "POST", {}, token)).status,
+    200,
+  );
+  assert.equal(
+    env.DB.db.prepare("SELECT COUNT(*) AS n FROM push_subscriptions").get().n,
+    0,
+  );
+});

@@ -1,6 +1,6 @@
 "use strict";
 const RELEASE = "__BUILD_VERSION__";
-const VERSION = RELEASE.startsWith("__") ? "20261124-hitos-ocultos" : RELEASE;
+const VERSION = RELEASE.startsWith("__") ? "20261126-notificaciones" : RELEASE;
 const PREFIX = "vidres-sosa:" + self.registration.scope + ":",
   CACHE = PREFIX + VERSION;
 const ASSETS = [
@@ -114,6 +114,41 @@ self.addEventListener("fetch", (event) => {
           )
         );
       }
+    })(),
+  );
+});
+
+self.addEventListener("push", (event) => {
+  let payload;
+  try {
+    payload = event.data?.json();
+  } catch {
+    return;
+  }
+  if (payload?.type !== "new-jobs") return;
+  event.waitUntil(
+    self.registration.showNotification("Vidres Sosa · Partes de trabajo", {
+      body:
+        payload.count > 1
+          ? "Se han creado " + payload.count + " partes de trabajo."
+          : "Se ha creado un nuevo parte de trabajo.",
+      icon: new URL("icons/app-vs-192.png", self.registration.scope).href,
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(
+    (async () => {
+      const scope = self.registration.scope;
+      const clients = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
+      const app = clients.find((client) => client.url.startsWith(scope));
+      if (app) await app.focus();
+      else await self.clients.openWindow(scope);
     })(),
   );
 });

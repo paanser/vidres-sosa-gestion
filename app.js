@@ -1076,6 +1076,7 @@ window.vidresAppReady = (async () => {
       "ajustes-plantillas": "Plantillas de trabajo",
       "ajustes-copias": "Copias de seguridad",
       "ajustes-cuenta": "Mi cuenta y sesión",
+      "ajustes-notificaciones": "Notificaciones",
       "ajustes-ia": "Dictado e inteligencia artificial",
       usuarios: "Gestión de usuarios",
       produccion: "Producción",
@@ -1202,6 +1203,10 @@ window.vidresAppReady = (async () => {
       );
       window.VSUsers.renderUsers();
       customizeSection();
+      return;
+    } else if (page === "ajustes-notificaciones") {
+      $("#content").innerHTML = window.vidresSettingsBack();
+      window.vidresPushSettings($("#content"));
       return;
     } else if (page === "ajustes-cuenta") {
       $("#content").innerHTML = window.vidresSettingsBack();

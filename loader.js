@@ -112,6 +112,7 @@ function loadAsset(element, start, label) {
   await styled;
   document.querySelectorAll("#nav button").forEach((b) => (b.disabled = false));
   VSAuth.showApp();
+  window.vidresStartPush?.();
 })().catch((e) => {
   VSAuth.showStartupError(e);
 });

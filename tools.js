@@ -131,6 +131,11 @@
         "Cambiar mi contraseña o cerrar sesión",
       ],
       [
+        "ajustes-notificaciones",
+        "Notificaciones",
+        "Recibir avisos de nuevos partes en este dispositivo",
+      ],
+      [
         "ajustes-ia",
         "Dictado e inteligencia artificial",
         "Consultar el uso del dictado con IA",
